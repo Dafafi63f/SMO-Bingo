@@ -1,0 +1,909 @@
+{
+  "_definition": "Capturas in-game (wiki) con lunas in-scope asignadas. Formato alineado con bingo_groups / goals_referencia: id (wiki), capture, tipo, kind, n_objectives, n_moons, n_goal_moons, objectives[{goal,range,progression,…}], moons[{kingdom,moon,name,goal}], kingdom (primer reino; el resto se ve en moons/lista), moon_tag si tipo=normal. moons[].goal=true si la luna cuenta para alguna goal Combined de la captura (union de pools); false si solo es captura tematica / sin goal propia. Una captura puede listar 2+ goals (Pokio + Pokio Hole). Acceso/transporte: moons del grupo bingo anexadas (pueden repetir en captura de contenido; Rocket Flower no es captura). Binoculars: pool=lista + lista[] (ubicaciones). Una captura principal por luna. tipo=normal|especial|minoritaria|transporte|postgame.",
+  "_note": "Regenerar con export_capturas_lunas.py o regenerate_all.py.",
+  "n_captures": 52,
+  "n_with_moons": 40,
+  "n_with_goal": 43,
+  "captures": [
+    {
+      "id": 1,
+      "capture": "Frog",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 4,
+      "n_goal_moons": 4,
+      "objectives": [
+        {"goal": "{{X}} Cap Frog Moons", "range": [2, 4], "progression": ["e"]}
+      ],
+      "moons": [
+        {"kingdom": "cap", "moon": 1, "name": "Frog-Jumping Above the Fog", "goal": true},
+        {"kingdom": "cap", "moon": 2, "name": "Frog-Jumping from the Top Deck", "goal": true},
+        {"kingdom": "cap", "moon": 10, "name": "Searching the Frog Pond", "goal": true},
+        {"kingdom": "cap", "moon": 11, "name": "Secrets of the Frog Pond", "goal": true}
+      ],
+      "kingdom": "cap",
+      "moon_tag": "frog"
+    },
+    {
+      "id": 2,
+      "capture": "Spark pylon",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 5,
+      "n_goal_moons": 5,
+      "objectives": [
+        {"goal": "{{X}} Spark Pylon Moons", "range": [2, 4], "progression": ["e", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "cap", "moon": 8, "name": "Push-Block Peril", "goal": true},
+        {"kingdom": "cap", "moon": 9, "name": "Hidden Among the Push-Blocks", "goal": true},
+        {"kingdom": "metro", "moon": 39, "name": "Rewiring the Neighborhood", "goal": true},
+        {"kingdom": "metro", "moon": 40, "name": "Off the Beaten Wire", "goal": true},
+        {"kingdom": "bowser", "moon": 26, "name": "Found Behind Bars!", "goal": true}
+      ],
+      "kingdom": "cap",
+      "moon_tag": "spark_pylon"
+    },
+    {
+      "id": 3,
+      "capture": "Paragoomba",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 4,
+      "n_goal_moons": 4,
+      "objectives": [
+        {"goal": "{{X}} Paragoomba Moons", "range": [2, 4], "progression": ["e", "m"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "cap", "moon": 6, "name": "Skimming the Poison Tide", "goal": true},
+        {"kingdom": "cap", "moon": 7, "name": "Slipping Through the Poison Tide", "goal": true},
+        {"kingdom": "wooded", "moon": 41, "name": "Wandering in the Fog", "goal": true},
+        {"kingdom": "wooded", "moon": 42, "name": "Nut Hidden in the Fog", "goal": true}
+      ],
+      "kingdom": "cap",
+      "moon_tag": "paragoomba"
+    },
+    {
+      "id": 4,
+      "capture": "Chain Chomp",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 5,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Cascade Chain Chomp Moons", "range": [2], "progression": ["e"]}
+      ],
+      "moons": [
+        {"kingdom": "cascade", "moon": 1, "name": "Our First Power Moon", "goal": false},
+        {"kingdom": "cascade", "moon": 3, "name": "Chomp Through the Rocks", "goal": false},
+        {"kingdom": "cascade", "moon": 7, "name": "Above a High Cliff", "goal": false},
+        {"kingdom": "cascade", "moon": 14, "name": "Nice Shot with the Chain Chomp!", "goal": true},
+        {"kingdom": "cascade", "moon": 15, "name": "Very Nice Shot with the Chain Chomp!", "goal": true}
+      ],
+      "kingdom": "cascade",
+      "moon_tag": "chain_chomp"
+    },
+    {
+      "id": 5,
+      "capture": "Big Chain Chomp",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture Big Chain Chomp", "progression": ["e"]}
+      ],
+      "moons": [],
+      "kingdom": "cascade"
+    },
+    {
+      "id": 6,
+      "capture": "Broode's Chain Chomp",
+      "tipo": "especial",
+      "kind": "moons",
+      "n_objectives": 0,
+      "n_moons": 1,
+      "n_goal_moons": 0,
+      "objectives": [],
+      "moons": [
+        {"kingdom": "cascade", "moon": 2, "name": "Multi Moon Atop the Falls", "goal": false, "odyssey_units": 3}
+      ],
+      "kingdom": "cascade"
+    },
+    {
+      "id": 7,
+      "capture": "T-Rex",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 6,
+      "n_goal_moons": 6,
+      "objectives": [
+        {"goal": "{{X}} T-Rex Moons", "range": [2, 4, 6], "progression": ["e", "m", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "cascade", "moon": 12, "name": "Dinosaur Nest: Big Cleanup!", "goal": true},
+        {"kingdom": "cascade", "moon": 13, "name": "Dinosaur Nest: Running Wild!", "goal": true},
+        {"kingdom": "wooded", "moon": 31, "name": "By the Babbling Brook in Deep Woods", "goal": true},
+        {"kingdom": "wooded", "moon": 32, "name": "The Hard Rock in Deep Woods", "goal": true},
+        {"kingdom": "metro", "moon": 49, "name": "Motor Scooter: Escape!", "goal": true},
+        {"kingdom": "metro", "moon": 50, "name": "Big Jump: Escape!", "goal": true}
+      ],
+      "kingdom": "cascade",
+      "moon_tag": "t_rex"
+    },
+    {
+      "id": 8,
+      "capture": "Binoculars",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture {{X}} Binoculars", "range": [3, 5, 7, 9], "progression": ["e", "m", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [],
+      "kingdom": "sand",
+      "pool": "lista",
+      "n_lista": 16,
+      "lista": [
+        {"kingdom": "cap", "name": "Cap binocular", "near": "#1 Central Plaza"},
+        {"kingdom": "cascade", "name": "Cascade binocular", "near": "#1 Waterfall Basin / Odyssey"},
+        {"kingdom": "sand", "name": "Sand binocular 1", "near": "#2 Tostarena Ruins Entrance"},
+        {"kingdom": "sand", "name": "Sand binocular 2", "near": "#4 Tostarena Ruins Round Tower"},
+        {"kingdom": "sand", "name": "Sand binocular 3", "near": "#5 Moe-Eye Habitat"},
+        {"kingdom": "lake", "name": "Lake binocular", "near": "Odyssey"},
+        {"kingdom": "wooded", "name": "Wooded binocular 1", "near": "#1 Iron Road: Entrance"},
+        {"kingdom": "wooded", "name": "Wooded binocular 2", "near": "#5 Summit Path"},
+        {"kingdom": "lost", "name": "Lost binocular", "near": "Odyssey"},
+        {"kingdom": "metro", "name": "Metro binocular", "near": "#2 Main Street Entrance"},
+        {"kingdom": "seaside", "name": "Seaside binocular 1", "near": "Odyssey"},
+        {"kingdom": "seaside", "name": "Seaside binocular 2", "near": "#3 Hot Spring Island"},
+        {"kingdom": "seaside", "name": "Seaside binocular 3", "near": "#6 Glass Palace"},
+        {"kingdom": "luncheon", "name": "Luncheon binocular", "near": "#1 Peronza Plaza"},
+        {"kingdom": "bowser", "name": "Bowser's binocular", "near": "#6 Main Courtyard"},
+        {"kingdom": "moon", "name": "Moon binocular", "near": "#1 Ringing-Bells Plateau"}
+      ]
+    },
+    {
+      "id": 9,
+      "capture": "Bullet Bill",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 9,
+      "n_goal_moons": 4,
+      "objectives": [
+        {"goal": "{{X}} Bullet Bill Moons", "range": [2, 4], "progression": ["e", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 7, "name": "On the Leaning Pillar", "goal": false},
+        {"kingdom": "sand", "moon": 11, "name": "On Top of the Stone Archway", "goal": false},
+        {"kingdom": "sand", "moon": 19, "name": "Bullet Bill Breakthrough", "goal": false},
+        {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "goal": false},
+        {"kingdom": "sand", "moon": 47, "name": "Underground Treasure Chest", "goal": false},
+        {"kingdom": "sand", "moon": 56, "name": "The Bullet Bill Maze: Break Through!", "goal": true},
+        {"kingdom": "sand", "moon": 57, "name": "The Bullet Bill Maze: Side Path", "goal": true},
+        {"kingdom": "metro", "moon": 47, "name": "Bullet Billding", "goal": true},
+        {"kingdom": "metro", "moon": 48, "name": "One Man's Trash...", "goal": true}
+      ],
+      "kingdom": "sand",
+      "moon_tag": "bullet_bill"
+    },
+    {
+      "id": 10,
+      "capture": "Moe-Eye",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Sand Moe-Eye Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": true},
+        {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "goal": true},
+        {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "goal": true}
+      ],
+      "kingdom": "sand",
+      "moon_tag": "moe_eye"
+    },
+    {
+      "id": 11,
+      "capture": "Cactus",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Cactus/Tree Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 36, "name": "Among the Five Cactuses", "goal": true},
+        {"kingdom": "sand", "moon": 40, "name": "Wandering Cactus", "goal": true}
+      ],
+      "kingdom": "sand",
+      "moon_tag": "cactus_tree"
+    },
+    {
+      "id": 12,
+      "capture": "Goomba",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 2,
+      "n_moons": 9,
+      "n_goal_moons": 9,
+      "objectives": [
+        {"goal": "{{X}} Goomba Moon[[s]]", "range": [1, 3, 5, 7], "progression": ["e", "m", "l", "n"], "individual_limit": 2, "progressive_ranges": true},
+        {"goal": "{{X}} Snow Goomba Moons", "range": [2], "progression": ["l"]}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 35, "name": "Love in the Heart of the Desert", "goal": true},
+        {"kingdom": "sand", "moon": 48, "name": "Goomba Tower Assembly", "goal": true},
+        {"kingdom": "wooded", "moon": 21, "name": "Love in the Forest Ruins", "goal": true},
+        {"kingdom": "wooded", "moon": 44, "name": "Flower Road Reach", "goal": true},
+        {"kingdom": "snow", "moon": 1, "name": "The Icicle Barrier", "goal": true},
+        {"kingdom": "snow", "moon": 18, "name": "Ice-Dodging Goomba Stack", "goal": true},
+        {"kingdom": "seaside", "moon": 32, "name": "Love by the Seaside", "goal": true},
+        {"kingdom": "luncheon", "moon": 24, "name": "Love Above the Lava", "goal": true},
+        {"kingdom": "bowser", "moon": 19, "name": "Stack Up Above the Wall", "goal": true}
+      ],
+      "kingdom": "sand",
+      "moon_tag": "goomba"
+    },
+    {
+      "id": 13,
+      "capture": "Knucklotec's Fist",
+      "tipo": "especial",
+      "kind": "moons",
+      "n_objectives": 0,
+      "n_moons": 1,
+      "n_goal_moons": 0,
+      "objectives": [],
+      "moons": [
+        {"kingdom": "sand", "moon": 4, "name": "The Hole in the Desert", "goal": false, "odyssey_units": 3}
+      ],
+      "kingdom": "sand"
+    },
+    {
+      "id": 14,
+      "capture": "Mini Rocket",
+      "tipo": "transporte",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 8,
+      "n_goal_moons": 8,
+      "objectives": [
+        {"goal": "{{X}} Mini Rocket Moons", "range": [2, 4, 6, 8], "progression": ["e", "m", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 60, "name": "Strange Neighborhood", "goal": true},
+        {"kingdom": "sand", "moon": 61, "name": "Above a Strange Neighborhood", "goal": true},
+        {"kingdom": "wooded", "moon": 41, "name": "Wandering in the Fog", "goal": true},
+        {"kingdom": "wooded", "moon": 42, "name": "Nut Hidden in the Fog", "goal": true},
+        {"kingdom": "metro", "moon": 45, "name": "Hanging from a High-Rise", "goal": true},
+        {"kingdom": "metro", "moon": 46, "name": "Vaulting Up a High-Rise", "goal": true},
+        {"kingdom": "seaside", "moon": 43, "name": "Wading in the Cloud Sea", "goal": true},
+        {"kingdom": "seaside", "moon": 44, "name": "Sunken Treasure in the Cloud Sea", "goal": true}
+      ],
+      "kingdom": "sand"
+    },
+    {
+      "id": 15,
+      "capture": "Glydon",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Glydon Moon[[s]]", "range": [1, 2, 3], "progression": ["m", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 20, "name": "Hey Out There, Captain Toad!", "goal": true},
+        {"kingdom": "lost", "moon": 18, "name": "Soaring Over Forgotten Isle!", "goal": true},
+        {"kingdom": "seaside", "moon": 33, "name": "Lighthouse Leaper", "goal": true}
+      ],
+      "kingdom": "wooded",
+      "moon_tag": "glydon"
+    },
+    {
+      "id": 16,
+      "capture": "Lakitu",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 5,
+      "n_goal_moons": 5,
+      "objectives": [
+        {"goal": "{{X}} Lakitu-Fishing Moon[[s]]", "range": [1, 2, 3, 4], "progression": ["e", "m", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "sand", "moon": 34, "name": "Fishing in the Oasis", "goal": true},
+        {"kingdom": "sand", "moon": 37, "name": "You're Quite a Catch, Captain Toad!", "goal": true},
+        {"kingdom": "lake", "moon": 15, "name": "Lake Fishing", "goal": true},
+        {"kingdom": "snow", "moon": 17, "name": "Fishing in the Glacier!", "goal": true},
+        {"kingdom": "bowser", "moon": 27, "name": "Fishing(?) in Bowser's Castle", "goal": true}
+      ],
+      "kingdom": "sand",
+      "moon_tag": "lakitu_fishing"
+    },
+    {
+      "id": 17,
+      "capture": "Zipper",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Lake Zipper Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "lake", "moon": 4, "name": "End of the Hidden Passage", "goal": true},
+        {"kingdom": "lake", "moon": 22, "name": "Unzip the Chasm", "goal": true},
+        {"kingdom": "lake", "moon": 23, "name": "Super-Secret Zipper", "goal": true}
+      ],
+      "kingdom": "lake",
+      "moon_tag": "zipper"
+    },
+    {
+      "id": 18,
+      "capture": "Cheep Cheep",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 8,
+      "n_goal_moons": 7,
+      "objectives": [
+        {"goal": "{{X}} Cheep Cheep Moons", "range": [2, 4, 6], "progression": ["m", "l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "lake", "moon": 3, "name": "Cheep Cheep Crossing", "goal": false},
+        {"kingdom": "lake", "moon": 16, "name": "I Met a Lake Cheep Cheep!", "goal": true},
+        {"kingdom": "lake", "moon": 18, "name": "Let's Go Swimming, Captain Toad!", "goal": true},
+        {"kingdom": "seaside", "moon": 10, "name": "Underwater Highway Tunnel", "goal": true},
+        {"kingdom": "seaside", "moon": 11, "name": "Shh! It's a Shortcut!", "goal": true},
+        {"kingdom": "seaside", "moon": 12, "name": "Gap in the Ocean Trench", "goal": true},
+        {"kingdom": "seaside", "moon": 13, "name": "Slip Through the Nesting Spot", "goal": true},
+        {"kingdom": "seaside", "moon": 39, "name": "Looking Back in the Dark Waterway", "goal": true}
+      ],
+      "kingdom": "lake",
+      "moon_tag": "cheep_cheep"
+    },
+    {
+      "id": 19,
+      "capture": "Puzzle Part (Lake Kingdom)",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 1,
+      "n_goal_moons": 1,
+      "objectives": [
+        {"goal": "{{X}} Puzzle Moon[[s]]", "range": [1, 2], "progression": ["m", "l"], "individual_limit": 2, "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "lake", "moon": 20, "name": "A Successful Repair Job", "goal": true}
+      ],
+      "kingdom": "lake"
+    },
+    {
+      "id": 20,
+      "capture": "Poison Piranha Plant",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture Poison Piranha Plant", "progression": ["m"]}
+      ],
+      "moons": [],
+      "kingdom": "wooded"
+    },
+    {
+      "id": 21,
+      "capture": "Uproot",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 2,
+      "n_moons": 13,
+      "n_goal_moons": 12,
+      "objectives": [
+        {"goal": "{{X}} Wooded Uproot Moons", "range": [4, 6, 8], "progression": ["m"]},
+        {"goal": "{{X}} Seaside Uproot Moons", "range": [2], "progression": ["l", "n"]}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 4, "name": "Defend the Secret Flower Field!", "goal": false, "odyssey_units": 3},
+        {"kingdom": "wooded", "moon": 10, "name": "Atop the Tall Tree", "goal": true},
+        {"kingdom": "wooded", "moon": 11, "name": "Tucked Away Inside the Tunnel", "goal": true},
+        {"kingdom": "wooded", "moon": 13, "name": "The Nut 'Round the Corner", "goal": true},
+        {"kingdom": "wooded", "moon": 14, "name": "Climb the Cliff to Get the Nut", "goal": true},
+        {"kingdom": "wooded", "moon": 15, "name": "The Nut in the Red Maze", "goal": true},
+        {"kingdom": "wooded", "moon": 16, "name": "The Nut at the Dead End", "goal": true},
+        {"kingdom": "wooded", "moon": 24, "name": "Nut Planted in the Tower", "goal": true},
+        {"kingdom": "wooded", "moon": 25, "name": "Stretching Your Legs", "goal": true},
+        {"kingdom": "wooded", "moon": 47, "name": "Walking on Clouds", "goal": true},
+        {"kingdom": "wooded", "moon": 48, "name": "Above the Clouds", "goal": true},
+        {"kingdom": "seaside", "moon": 47, "name": "Hurry and Stretch", "goal": true},
+        {"kingdom": "seaside", "moon": 48, "name": "Stretch on the Side Path", "goal": true}
+      ],
+      "kingdom": "wooded",
+      "moon_tag": "uproot"
+    },
+    {
+      "id": 22,
+      "capture": "Fire Bro",
+      "tipo": "minoritaria",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Fire Bro Moon[[s]]", "range": [1, 2], "progression": ["m", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 19, "name": "Fire in the Cave", "goal": true},
+        {"kingdom": "luncheon", "moon": 31, "name": "Light the Two Flames", "goal": true}
+      ],
+      "kingdom": "wooded"
+    },
+    {
+      "id": 23,
+      "capture": "Sherm",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 8,
+      "n_goal_moons": 6,
+      "objectives": [
+        {"goal": "{{X}} Sherm Moons", "range": [2, 4, 6], "progression": ["m", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 3, "name": "Path to the Secret Flower Field", "goal": false},
+        {"kingdom": "wooded", "moon": 5, "name": "Behind the Rock Wall", "goal": true},
+        {"kingdom": "wooded", "moon": 22, "name": "Inside a Rock in the Forest", "goal": true},
+        {"kingdom": "wooded", "moon": 45, "name": "Elevator Escalation", "goal": true},
+        {"kingdom": "wooded", "moon": 46, "name": "Elevator Blind Spot", "goal": true},
+        {"kingdom": "metro", "moon": 1, "name": "New Donk City's Pest Problem", "goal": false, "odyssey_units": 3},
+        {"kingdom": "metro", "moon": 41, "name": "Moon Shards Under Siege", "goal": true},
+        {"kingdom": "metro", "moon": 42, "name": "Sharpshooting Under Siege", "goal": true}
+      ],
+      "kingdom": "wooded",
+      "moon_tag": "sherm"
+    },
+    {
+      "id": 24,
+      "capture": "Coin Coffer",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 1,
+      "n_goal_moons": 1,
+      "objectives": [
+        {"goal": "{{X}} Special Seed Moon[[s]]", "range": [1, 2, 3], "progression": ["m", "l"], "individual_limit": 2, "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 33, "name": "A Treasure Made from Coins", "goal": true}
+      ],
+      "kingdom": "wooded"
+    },
+    {
+      "id": 25,
+      "capture": "Tree",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 1,
+      "n_goal_moons": 1,
+      "objectives": [
+        {"goal": "{{X}} Cactus/Tree Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 34, "name": "Beneath the Roots of the Moving Tree", "goal": true}
+      ],
+      "kingdom": "wooded"
+    },
+    {
+      "id": 26,
+      "capture": "Boulder",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture Boulder", "progression": ["m"]}
+      ],
+      "moons": [],
+      "kingdom": "wooded"
+    },
+    {"id": 27, "capture": "Picture Match Part (Goomba)", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "cloud"},
+    {
+      "id": 28,
+      "capture": "Tropical Wiggler",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 6,
+      "n_goal_moons": 6,
+      "objectives": [
+        {"goal": "{{X}} Lost Tropical Wiggler Moons", "range": [2, 3, 4, 5], "progression": ["m", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "lost", "moon": 4, "name": "On a Tree in the Swamp", "goal": true},
+        {"kingdom": "lost", "moon": 5, "name": "Over the Fuzzies, Above the Swamp", "goal": true},
+        {"kingdom": "lost", "moon": 15, "name": "Moon Shards in the Jungle", "goal": true},
+        {"kingdom": "lost", "moon": 16, "name": "Peeking Out from Under the Bridge", "goal": true},
+        {"kingdom": "lost", "moon": 17, "name": "Twist 'n' Turn-Up Treasure", "goal": true},
+        {"kingdom": "lost", "moon": 20, "name": "Get Some Rest, Captain Toad", "goal": true}
+      ],
+      "kingdom": "lost",
+      "moon_tag": "tropical_wiggler"
+    },
+    {
+      "id": 29,
+      "capture": "Pole",
+      "tipo": "transporte",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Swinging Pole Moon[[s]]", "range": [1, 3], "progression": ["m", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "wooded", "moon": 37, "name": "Wooded Kingdom Timer Challenge 1", "goal": true},
+        {"kingdom": "metro", "moon": 45, "name": "Hanging from a High-Rise", "goal": true},
+        {"kingdom": "metro", "moon": 46, "name": "Vaulting Up a High-Rise", "goal": true}
+      ],
+      "kingdom": "wooded"
+    },
+    {
+      "id": 30,
+      "capture": "Manhole",
+      "tipo": "transporte",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Metro Manhole Moons", "range": [2, 3], "progression": ["m", "l"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "metro", "moon": 35, "name": "Sewer Treasure", "goal": true},
+        {"kingdom": "metro", "moon": 43, "name": "Inside the Rotating Maze", "goal": true},
+        {"kingdom": "metro", "moon": 44, "name": "Outside the Rotating Maze", "goal": true}
+      ],
+      "kingdom": "metro"
+    },
+    {
+      "id": 31,
+      "capture": "Taxi",
+      "tipo": "transporte",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Metro Taxi Moons", "range": [2], "progression": ["m", "l"]}
+      ],
+      "moons": [
+        {"kingdom": "metro", "moon": 41, "name": "Moon Shards Under Siege", "goal": true},
+        {"kingdom": "metro", "moon": 42, "name": "Sharpshooting Under Siege", "goal": true}
+      ],
+      "kingdom": "metro"
+    },
+    {
+      "id": 32,
+      "capture": "RC Car",
+      "tipo": "minoritaria",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Metro RC Car Moons", "range": [2], "progression": ["m", "l"]}
+      ],
+      "moons": [
+        {"kingdom": "metro", "moon": 31, "name": "Remotely Captured Car", "goal": true},
+        {"kingdom": "metro", "moon": 32, "name": "RC Car Pro!", "goal": true}
+      ],
+      "kingdom": "metro"
+    },
+    {
+      "id": 33,
+      "capture": "Ty-foo",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Snow Ty-Foo Moons", "range": [2, 3], "progression": ["l"]}
+      ],
+      "moons": [
+        {"kingdom": "snow", "moon": 3, "name": "The Gusty Barrier", "goal": true},
+        {"kingdom": "snow", "moon": 9, "name": "Atop a Blustery Arch", "goal": true},
+        {"kingdom": "snow", "moon": 28, "name": "Blowing and Sliding", "goal": true}
+      ],
+      "kingdom": "snow"
+    },
+    {
+      "id": 34,
+      "capture": "Shiverian Racer",
+      "tipo": "minoritaria",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Snow Shiverian Racer Moon[[s]]", "range": [1, 2], "progression": ["l"]}
+      ],
+      "moons": [
+        {"kingdom": "snow", "moon": 5, "name": "The Bound Bowl Grand Prix", "goal": true, "odyssey_units": 3},
+        {"kingdom": "snow", "moon": 23, "name": "Snowline Circuit Class S", "goal": true}
+      ],
+      "kingdom": "snow"
+    },
+    {
+      "id": 35,
+      "capture": "Cheep Cheep (Snow Kingdom)",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture Snow Cheep Cheep", "progression": ["l"]}
+      ],
+      "moons": [],
+      "kingdom": "snow"
+    },
+    {
+      "id": 36,
+      "capture": "Gushen",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 9,
+      "n_goal_moons": 6,
+      "objectives": [
+        {"goal": "{{X}} Seaside Gushen Moons", "range": [2, 4, 6], "progression": ["l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "seaside", "moon": 1, "name": "The Stone Pillar Seal", "goal": false},
+        {"kingdom": "seaside", "moon": 3, "name": "The Hot Spring Seal", "goal": false},
+        {"kingdom": "seaside", "moon": 5, "name": "The Glass Is Half Full!", "goal": false, "odyssey_units": 3},
+        {"kingdom": "seaside", "moon": 6, "name": "On the Cliff Overlooking the Beach", "goal": true},
+        {"kingdom": "seaside", "moon": 7, "name": "Ride the Jetstream", "goal": true},
+        {"kingdom": "seaside", "moon": 26, "name": "Sea Gardening: Ocean Trench Seed", "goal": true},
+        {"kingdom": "seaside", "moon": 34, "name": "Good Job, Captain Toad!", "goal": true},
+        {"kingdom": "seaside", "moon": 45, "name": "Fly Through the Narrow Valley", "goal": true},
+        {"kingdom": "seaside", "moon": 46, "name": "Treasure Chest in the Narrow Valley", "goal": true}
+      ],
+      "kingdom": "seaside",
+      "moon_tag": "gushen"
+    },
+    {
+      "id": 37,
+      "capture": "Lava Bubble",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 10,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Luncheon Lava Bubble Moons", "range": [2, 3], "progression": ["l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "luncheon", "moon": 4, "name": "Climb Up the Cascading Magma", "goal": false},
+        {"kingdom": "luncheon", "moon": 5, "name": "Cookatiel Showdown!", "goal": false, "odyssey_units": 3},
+        {"kingdom": "luncheon", "moon": 8, "name": "Atop the Jutting Crag", "goal": true},
+        {"kingdom": "luncheon", "moon": 14, "name": "Light the Lantern on the Small Island", "goal": false},
+        {"kingdom": "luncheon", "moon": 23, "name": "Taking Notes: Swimming in Magma", "goal": false},
+        {"kingdom": "luncheon", "moon": 27, "name": "A Strong Simmer", "goal": false},
+        {"kingdom": "luncheon", "moon": 28, "name": "An Extreme Simmer", "goal": false},
+        {"kingdom": "luncheon", "moon": 36, "name": "Taking Notes: Big Pot Swim", "goal": false},
+        {"kingdom": "luncheon", "moon": 39, "name": "Magma Narrow Path", "goal": true},
+        {"kingdom": "luncheon", "moon": 40, "name": "Crossing to the Magma", "goal": true}
+      ],
+      "kingdom": "luncheon",
+      "moon_tag": "lava_bubble"
+    },
+    {
+      "id": 38,
+      "capture": "Volbonan",
+      "tipo": "minoritaria",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Luncheon Volbonan Moons", "range": [2], "progression": ["l", "n"]}
+      ],
+      "moons": [
+        {"kingdom": "luncheon", "moon": 41, "name": "Fork Flickin' to the Summit", "goal": true},
+        {"kingdom": "luncheon", "moon": 42, "name": "Fork Flickin' Detour", "goal": true}
+      ],
+      "kingdom": "luncheon"
+    },
+    {
+      "id": 39,
+      "capture": "Hammer Bro",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 5,
+      "n_goal_moons": 4,
+      "objectives": [
+        {"goal": "{{X}} Hammer Bro Moon[[s]]", "range": [2, 3], "progression": ["l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "luncheon", "moon": 2, "name": "Under the Cheese Rocks", "goal": false},
+        {"kingdom": "luncheon", "moon": 17, "name": "Golden Turnip Recipe 3", "goal": true},
+        {"kingdom": "luncheon", "moon": 30, "name": "Treasure Beneath the Cheese Rocks", "goal": true},
+        {"kingdom": "luncheon", "moon": 43, "name": "Excavate 'n' Search the Cheese Rocks", "goal": true},
+        {"kingdom": "luncheon", "moon": 44, "name": "Climb the Cheese Rocks", "goal": true}
+      ],
+      "kingdom": "luncheon",
+      "moon_tag": "hammer_bro"
+    },
+    {
+      "id": 40,
+      "capture": "Meat",
+      "tipo": "especial",
+      "kind": "moons",
+      "n_objectives": 0,
+      "n_moons": 1,
+      "n_goal_moons": 0,
+      "objectives": [],
+      "moons": [
+        {"kingdom": "luncheon", "moon": 3, "name": "Big Pot on the Volcano: Dive In!", "goal": false, "odyssey_units": 3}
+      ],
+      "kingdom": "luncheon"
+    },
+    {
+      "id": 41,
+      "capture": "Fire Piranha Plant",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 3,
+      "n_goal_moons": 3,
+      "objectives": [
+        {"goal": "{{X}} Luncheon Fire Piranha Plant Moons", "range": [2, 3], "progression": ["l", "n"], "progressive_ranges": true}
+      ],
+      "moons": [
+        {"kingdom": "luncheon", "moon": 32, "name": "Light the Far-Off Lanterns", "goal": true},
+        {"kingdom": "luncheon", "moon": 37, "name": "Magma Swamp: Floating and Sinking", "goal": true},
+        {"kingdom": "luncheon", "moon": 38, "name": "Corner of the Magma Swamp", "goal": true}
+      ],
+      "kingdom": "luncheon",
+      "moon_tag": "fire_piranha_plant"
+    },
+    {
+      "id": 42,
+      "capture": "Pokio",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 2,
+      "n_moons": 10,
+      "n_goal_moons": 8,
+      "objectives": [
+        {"goal": "{{X}} Bowser's Pokio Moons", "range": [2, 4], "progression": ["n"], "individual_limit": 2},
+        {"goal": "{{X}} Pokio Hole Moon[[s]]", "range": [1, 2, 3], "progression": ["n"], "individual_limit": 2}
+      ],
+      "moons": [
+        {"kingdom": "bowser", "moon": 2, "name": "Smart Bombing", "goal": false},
+        {"kingdom": "bowser", "moon": 4, "name": "Showdown at Bowser's Castle", "goal": false, "odyssey_units": 3},
+        {"kingdom": "bowser", "moon": 5, "name": "Behind the Big Wall", "goal": true},
+        {"kingdom": "bowser", "moon": 6, "name": "Treasure Inside the Turret", "goal": true},
+        {"kingdom": "bowser", "moon": 9, "name": "Past the Moving Wall", "goal": true},
+        {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall", "goal": true},
+        {"kingdom": "bowser", "moon": 22, "name": "Poking the Turret Wall", "goal": true},
+        {"kingdom": "bowser", "moon": 23, "name": "Poking Your Nose by the Great Gate", "goal": true},
+        {"kingdom": "bowser", "moon": 33, "name": "On Top of the Spinning Tower", "goal": true},
+        {"kingdom": "bowser", "moon": 34, "name": "Down and Up the Spinning Tower", "goal": true}
+      ],
+      "kingdom": "bowser",
+      "moon_tag": "pokio"
+    },
+    {
+      "id": 43,
+      "capture": "Jizo",
+      "tipo": "normal",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 4,
+      "n_goal_moons": 4,
+      "objectives": [
+        {"goal": "{{X}} Bowser's Jizo Moons", "range": [2, 4], "progression": ["n"], "individual_limit": 2}
+      ],
+      "moons": [
+        {"kingdom": "bowser", "moon": 24, "name": "Jizo All in a Row", "goal": true},
+        {"kingdom": "bowser", "moon": 25, "name": "Underground Jizo", "goal": true},
+        {"kingdom": "bowser", "moon": 35, "name": "Jizo's Big Adventure", "goal": true},
+        {"kingdom": "bowser", "moon": 36, "name": "Jizo and the Hidden Room", "goal": true}
+      ],
+      "kingdom": "bowser",
+      "moon_tag": "jizo"
+    },
+    {
+      "id": 44,
+      "capture": "Bowser statue",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 1,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Bowser Statue Moon", "progression": ["n"]}
+      ],
+      "moons": [
+        {"kingdom": "moon", "moon": 9, "name": "Under the Bowser Statue", "goal": false}
+      ],
+      "kingdom": "moon"
+    },
+    {
+      "id": 45,
+      "capture": "Parabones",
+      "tipo": "especial",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 1,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Moon Parabones Moon", "progression": ["n"]}
+      ],
+      "moons": [
+        {"kingdom": "moon", "moon": 10, "name": "In a Hole in the Magma", "goal": false}
+      ],
+      "kingdom": "moon"
+    },
+    {
+      "id": 46,
+      "capture": "Banzai Bill",
+      "tipo": "minoritaria",
+      "kind": "both",
+      "n_objectives": 1,
+      "n_moons": 2,
+      "n_goal_moons": 2,
+      "objectives": [
+        {"goal": "{{X}} Moon Banzai Bill Moon[[s]]", "range": [1, 2], "progression": ["n"]}
+      ],
+      "moons": [
+        {"kingdom": "moon", "moon": 11, "name": "Around the Barrier Wall", "goal": true},
+        {"kingdom": "moon", "moon": 13, "name": "Fly to the Treasure Chest and Back", "goal": true}
+      ],
+      "kingdom": "moon"
+    },
+    {
+      "id": 47,
+      "capture": "Chargin' Chuck",
+      "tipo": "especial",
+      "kind": "objectives",
+      "n_objectives": 1,
+      "n_moons": 0,
+      "n_goal_moons": 0,
+      "objectives": [
+        {"goal": "Capture Chargin' Chuck", "progression": ["n"]}
+      ],
+      "moons": [],
+      "kingdom": "moon"
+    },
+    {"id": 48, "capture": "Bowser", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "moon"},
+    {"id": 49, "capture": "Letter", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "metro"},
+    {"id": 50, "capture": "Puzzle Part (Metro Kingdom)", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "metro"},
+    {"id": 51, "capture": "Picture Match Part (Mario)", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "mushroom"},
+    {"id": 52, "capture": "Yoshi", "tipo": "postgame", "kind": "empty", "n_objectives": 0, "n_moons": 0, "n_goal_moons": 0, "objectives": [], "moons": [], "kingdom": "mushroom"}
+  ]
+}

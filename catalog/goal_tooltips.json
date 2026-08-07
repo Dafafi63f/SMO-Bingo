@@ -1,0 +1,30 @@
+{
+  "_definition": "Tooltips unicos de Combined (mismo texto → muchas goals). Solo tooltips[]; sin lista de goals. Editar en Combined y regenerar (export_combined_meta tooltips / regenerate_all).",
+  "_note": "Campos tooltips[]: tooltip, n_goals (cuantas goals lo reusan). n_unique / n_goals / n_missing = conteos.",
+  "n_unique": 21,
+  "n_goals": 293,
+  "n_missing": 0,
+  "tooltips": [
+    {"tooltip": "Completed upon Moon Get Text.", "n_goals": 179},
+    {"tooltip": "Completed on Final Coin Touch.", "n_goals": 24},
+    {"tooltip": "Completed on Final Checkpoint Touch.", "n_goals": 14},
+    {"tooltip": "Completed upon Moon Rock Activation.", "n_goals": 14},
+    {"tooltip": "Completed upon Speaking to Talkatoo.", "n_goals": 13},
+    {"tooltip": "Completed upon Moon Get Text. Multi-Moons count as 3.", "n_goals": 12},
+    {"tooltip": "Completed upon Moon Get Text. Multi-Moons do not count.", "n_goals": 8},
+    {"tooltip": "Completed upon Capture.", "n_goals": 7},
+    {"tooltip": "Completed upon Death Cutscene Start.", "n_goals": 6},
+    {"tooltip": "Completed on Confirmation of Purchase.", "n_goals": 4},
+    {"tooltip": "Completed on Final Pixel Spawned.", "n_goals": 2},
+    {"tooltip": "Completed on Call Confirmation. First Purchase (30 Coins) at Jaxi Ruins or Tostarena Night counts as that one stand only (not double).", "n_goals": 1},
+    {"tooltip": "Completed on Correct Answer Confirmation.", "n_goals": 1},
+    {"tooltip": "Completed on Final Ground-Pound Switch Activated.", "n_goals": 1},
+    {"tooltip": "Completed on Final Lever Activated.", "n_goals": 1},
+    {"tooltip": "Completed on Final Life-Up Touch. Shop Life-Up's do not count.", "n_goals": 1},
+    {"tooltip": "Completed on Final P-Switch Activated.", "n_goals": 1},
+    {"tooltip": "Completed on Gaining Cappy's Control.", "n_goals": 1},
+    {"tooltip": "Completed upon (A) Press.", "n_goals": 1},
+    {"tooltip": "Completed upon Moon Get Text of the Final Multi-Moon.", "n_goals": 1},
+    {"tooltip": "Completed upon Seed Entering the Pot.", "n_goals": 1}
+  ]
+}

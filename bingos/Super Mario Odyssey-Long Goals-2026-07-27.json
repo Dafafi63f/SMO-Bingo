@@ -1,0 +1,3112 @@
+{
+  "schema_version": 3,
+  "schema_mode": "strict",
+  "game_name": "Super Mario Odyssey",
+  "set_name": "Long Goals",
+  "tag_names": [
+    "cactustreemeat"
+  ],
+  "objectives": [
+    {
+      "goal": "{{X}} Puzzle Moon[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "lake",
+        "other",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "lake"
+      ],
+      "tooltip": "Completed upon Moon Get text. Picture Match Moons do not count.",
+      "icons": [
+        "smo/moonpuzzle.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Rocket Sub-Area Moons",
+      "range": [
+        4,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "subarea"
+      ],
+      "line_categories": [
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonrocket.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Destructible Block Moons",
+      "range": [
+        4,
+        5
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text. Moons Spawned by Breaking a Block.",
+      "icons": [
+        "smo/moonblock.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Golden Turnip Moons",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "luncheon",
+        "moontype"
+      ],
+      "line_categories": [
+        "luncheon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonturnip.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Moons",
+      "range": [
+        6,
+        8,
+        10,
+        12,
+        14
+      ],
+      "board_categories": [
+        "kingdommoons",
+        "luncheon"
+      ],
+      "line_categories": [
+        "luncheon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "Purchase {{X}} Hats",
+      "range": [
+        7,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [
+        "shopping"
+      ],
+      "tooltip": "Completed on confirmation of purchase.",
+      "icons": [
+        "smo/hats.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "Purchase {{X}} Costume Sets",
+      "range": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [
+        "shopping"
+      ],
+      "tooltip": "Completed on confirmation of purchase. Outfit + Hat.",
+      "icons": [
+        "smo/outfits.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Stickers",
+      "range": [
+        4,
+        5,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [
+        "shopping"
+      ],
+      "tooltip": "Completed on confirmation of purchase.",
+      "icons": [
+        "smo/sticker1.webp",
+        "smo/sticker2.webp",
+        "smo/sticker3.webp",
+        "smo/sticker4.webp",
+        "smo/sticker5.webp",
+        "smo/sticker6.webp",
+        "smo/sticker7.webp",
+        "smo/sticker8.webp",
+        "smo/sticker9.webp",
+        "smo/sticker10.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Souvenirs",
+      "range": [
+        6,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [
+        "shopping"
+      ],
+      "tooltip": "Completed on confirmation of purchase.",
+      "icons": [
+        "smo/souvenir1.webp",
+        "smo/souvenir2.webp",
+        "smo/souvenir3.webp",
+        "smo/souvenir4.webp",
+        "smo/souvenir5.webp",
+        "smo/souvenir6.webp",
+        "smo/souvenir7.webp",
+        "smo/souvenir8.webp",
+        "smo/souvenir9.webp",
+        "smo/souvenir10.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Shop Moons",
+      "range": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [
+        "shopping"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonshop.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Luncheon Story Moon[[s]]",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "storymoons"
+      ],
+      "line_categories": [
+        "luncheon",
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storyluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Story Moon[[s]]",
+      "range": [
+        1,
+        2
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "storymoons"
+      ],
+      "line_categories": [
+        "sand",
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storysand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Story Moon[[s]]",
+      "range": [
+        2,
+        3,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "mid",
+        "storymoons"
+      ],
+      "line_categories": [
+        "snow",
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storysnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Story Moon[[s]]",
+      "range": [
+        2,
+        3,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "mid",
+        "storymoons"
+      ],
+      "line_categories": [
+        "seaside",
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storyseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Story Moons",
+      "range": [
+        3,
+        4,
+        5
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "mid",
+        "storymoons"
+      ],
+      "line_categories": [
+        "metro",
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storymetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Total Story Moons",
+      "range": [
+        7,
+        9,
+        11
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "storymoons"
+      ],
+      "line_categories": [
+        "storymoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons do not count.",
+      "icons": [
+        "smo/storytotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Multi-Moon[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "multimoons"
+      ],
+      "line_categories": [
+        "luncheon",
+        "multimoon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multiluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Multi-Moon[[s]]",
+      "range": [
+        1,
+        2
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "multimoons"
+      ],
+      "line_categories": [
+        "multimoon",
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multisand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Multi-Moon[[s]]",
+      "range": [
+        1,
+        2
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "multimoons"
+      ],
+      "line_categories": [
+        "multimoon",
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multiwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Multi-Moon[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "mid",
+        "multimoons"
+      ],
+      "line_categories": [
+        "multimoon",
+        "snow"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multisnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Multi-Moon[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "mid",
+        "multimoons"
+      ],
+      "line_categories": [
+        "multimoon",
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multiseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Multi-Moon[[s]]",
+      "range": [
+        1,
+        2
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "mid",
+        "multimoons"
+      ],
+      "line_categories": [
+        "metro",
+        "multimoon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multimetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Total Multi-Moon[[s]]",
+      "range": [
+        5,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "multimoons",
+        "other"
+      ],
+      "line_categories": [
+        "multimoon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/multitotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "All Multi-Moons in {{X}} Kingdoms",
+      "range": [
+        3,
+        4
+      ],
+      "board_categories": [
+        "multimoons",
+        "other"
+      ],
+      "line_categories": [
+        "multimoon"
+      ],
+      "tooltip": "Completed upon Moon Get text. Kingdoms without Multi-Moons do not count.",
+      "icons": [
+        "smo/allmulti.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Cap Moons",
+      "range": [
+        6,
+        8,
+        10
+      ],
+      "board_categories": [
+        "cap",
+        "early",
+        "kingdommoons"
+      ],
+      "line_categories": [
+        "cap"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/mooncap.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Cascade Moons",
+      "range": [
+        12,
+        14,
+        16,
+        18
+      ],
+      "board_categories": [
+        "cascade",
+        "early",
+        "kingdommoons"
+      ],
+      "line_categories": [
+        "cascade"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/mooncascade.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Moons",
+      "range": [
+        26,
+        28,
+        30,
+        32,
+        34,
+        36
+      ],
+      "board_categories": [
+        "early",
+        "kingdommoons",
+        "sand"
+      ],
+      "line_categories": [
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonsand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Moons",
+      "range": [
+        16,
+        18,
+        20,
+        22
+      ],
+      "board_categories": [
+        "early",
+        "kingdommoons",
+        "lake"
+      ],
+      "line_categories": [
+        "lake"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Moons",
+      "range": [
+        28,
+        30,
+        32
+      ],
+      "board_categories": [
+        "early",
+        "kingdommoons",
+        "wooded"
+      ],
+      "line_categories": [
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lost Moons",
+      "range": [
+        14,
+        16,
+        18,
+        20
+      ],
+      "board_categories": [
+        "kingdommoons",
+        "lost",
+        "mid"
+      ],
+      "line_categories": [
+        "lost"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonlost.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Moons",
+      "range": [
+        26,
+        28,
+        30,
+        32,
+        34
+      ],
+      "board_categories": [
+        "kingdommoons",
+        "metro",
+        "mid"
+      ],
+      "line_categories": [
+        "metro"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonmetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Moons",
+      "range": [
+        12,
+        14,
+        16,
+        18
+      ],
+      "board_categories": [
+        "kingdommoons",
+        "mid",
+        "snow"
+      ],
+      "line_categories": [
+        "snow"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonsnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Moons",
+      "range": [
+        14,
+        16,
+        18,
+        20
+      ],
+      "board_categories": [
+        "kingdommoons",
+        "mid",
+        "seaside"
+      ],
+      "line_categories": [
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moonseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Moons",
+      "range": [
+        110,
+        115,
+        120,
+        125
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "kingdommoons",
+        "moontotal",
+        "other"
+      ],
+      "line_categories": [
+        "moontotal"
+      ],
+      "tooltip": "Completed upon Moon Get text. Multi-Moons count as 3.",
+      "icons": [
+        "smo/moontotal.webp"
+      ],
+      "progression": [
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Cap Sub-Area Moons",
+      "range": [
+        4,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "cap",
+        "early",
+        "subarea"
+      ],
+      "line_categories": [
+        "cap",
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamooncap.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Cascade Sub-Area Moons",
+      "range": [
+        2,
+        4,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "cascade",
+        "early",
+        "subarea"
+      ],
+      "line_categories": [
+        "cascade",
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamooncascade.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Sub-Area Moons",
+      "range": [
+        2,
+        4,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "sand",
+        "subarea"
+      ],
+      "line_categories": [
+        "moonsubarea",
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonsand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Sub-Area Moons",
+      "range": [
+        4,
+        6,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "luncheon",
+        "subarea"
+      ],
+      "line_categories": [
+        "luncheon",
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Sub-Area Moons",
+      "range": [
+        2,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "lake",
+        "subarea"
+      ],
+      "line_categories": [
+        "lake",
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Sub-Area Moons",
+      "range": [
+        4,
+        6,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "subarea",
+        "wooded"
+      ],
+      "line_categories": [
+        "moonsubarea",
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Sub-Area Moons",
+      "range": [
+        6,
+        8,
+        10
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "metro",
+        "mid",
+        "subarea"
+      ],
+      "line_categories": [
+        "metro",
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonmetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Sub-Area Moons",
+      "range": [
+        2,
+        4,
+        6
+      ],
+      "board_categories": [
+        "mid",
+        "seaside",
+        "subarea"
+      ],
+      "line_categories": [
+        "moonsubarea",
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoonseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sub-Area Moons",
+      "range": [
+        8,
+        10,
+        12,
+        14,
+        16,
+        18,
+        20,
+        22,
+        24
+      ],
+      "individual_limit": 3,
+      "board_categories": [
+        "other",
+        "subarea"
+      ],
+      "line_categories": [
+        "moonsubarea"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/subareamoontotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Cascade Checkpoints",
+      "range": [
+        4
+      ],
+      "board_categories": [
+        "cascade",
+        "checkpoints",
+        "early"
+      ],
+      "line_categories": [
+        "cascade",
+        "checkpoint"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointcascade.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Cap Checkpoints",
+      "range": [
+        2
+      ],
+      "board_categories": [
+        "cap",
+        "checkpoints",
+        "early"
+      ],
+      "line_categories": [
+        "cap",
+        "checkpoint"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointcap.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Checkpoints",
+      "range": [
+        3,
+        4,
+        5
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "checkpoints",
+        "luncheon"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "luncheon"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Checkpoints",
+      "range": [
+        7,
+        8,
+        9
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "checkpoints",
+        "early",
+        "sand"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "sand"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointsand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Checkpoints",
+      "range": [
+        4,
+        5
+      ],
+      "board_categories": [
+        "checkpoints",
+        "early",
+        "lake"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "lake"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Checkpoints",
+      "range": [
+        6,
+        7
+      ],
+      "board_categories": [
+        "checkpoints",
+        "early",
+        "wooded"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "wooded"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lost Checkpoints",
+      "range": [
+        3
+      ],
+      "board_categories": [
+        "checkpoints",
+        "lost",
+        "mid"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "lost"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointlost.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Checkpoints",
+      "range": [
+        6,
+        8
+      ],
+      "board_categories": [
+        "checkpoints",
+        "metro",
+        "mid"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "metro"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointmetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Checkpoints",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "checkpoints",
+        "mid",
+        "snow"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "snow"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointsnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Checkpoints",
+      "range": [
+        6,
+        7
+      ],
+      "board_categories": [
+        "checkpoints",
+        "mid",
+        "seaside"
+      ],
+      "line_categories": [
+        "checkpoint",
+        "seaside"
+      ],
+      "tooltip": "Completed on Final Checkpoint Touch.",
+      "icons": [
+        "smo/checkpointseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Cap Regional Coins",
+      "range": [
+        25,
+        30,
+        35,
+        40
+      ],
+      "board_categories": [
+        "cap",
+        "early",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "cap",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplecap.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Cascade Regional Coins",
+      "range": [
+        30,
+        35,
+        40,
+        45
+      ],
+      "board_categories": [
+        "cascade",
+        "early",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "cascade",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplecascade.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Regional Coins",
+      "range": [
+        40,
+        45,
+        50,
+        55,
+        60
+      ],
+      "board_categories": [
+        "early",
+        "regionalcoins",
+        "sand"
+      ],
+      "line_categories": [
+        "regionals",
+        "sand"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplesand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Regional Coins",
+      "range": [
+        15,
+        20,
+        25,
+        30
+      ],
+      "board_categories": [
+        "luncheon",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "luncheon",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purpleluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Regional Coins",
+      "range": [
+        20,
+        25,
+        30,
+        35,
+        40
+      ],
+      "board_categories": [
+        "early",
+        "lake",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "lake",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplelake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Regional Coins",
+      "range": [
+        40,
+        45,
+        50,
+        55,
+        60
+      ],
+      "board_categories": [
+        "early",
+        "regionalcoins",
+        "wooded"
+      ],
+      "line_categories": [
+        "regionals",
+        "wooded"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplewooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lost Regional Coins",
+      "range": [
+        25,
+        30,
+        35,
+        40
+      ],
+      "board_categories": [
+        "lost",
+        "mid",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "lost",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplelost.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Regional Coins",
+      "range": [
+        40,
+        45,
+        50,
+        55,
+        60
+      ],
+      "board_categories": [
+        "metro",
+        "mid",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "metro",
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplemetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Regional Coins",
+      "range": [
+        20,
+        25,
+        30,
+        35
+      ],
+      "board_categories": [
+        "mid",
+        "regionalcoins",
+        "snow"
+      ],
+      "line_categories": [
+        "regionals",
+        "snow"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purplesnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Regional Coins",
+      "range": [
+        40,
+        45,
+        50,
+        55,
+        60
+      ],
+      "board_categories": [
+        "mid",
+        "regionalcoins",
+        "seaside"
+      ],
+      "line_categories": [
+        "regionals",
+        "seaside"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purpleseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Total Regional Coins",
+      "range": [
+        150,
+        175,
+        200
+      ],
+      "board_categories": [
+        "other",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purpletotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Total Regional Coins",
+      "range": [
+        225,
+        250,
+        275
+      ],
+      "board_categories": [
+        "other",
+        "regionalcoins"
+      ],
+      "line_categories": [
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/purpletotal.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "All Regional Coins in {{X}} Small Kingdom[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "other",
+        "regionalkingdoms"
+      ],
+      "line_categories": [
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/regionalallsmall.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "All Regional Coins in {{X}} Large Kingdom[[s]]",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "other",
+        "regionalkingdoms"
+      ],
+      "line_categories": [
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/regionalalllarge.webp"
+      ],
+      "progression": [
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "All Regional Coins in {{X}} Kingdoms",
+      "range": [
+        2,
+        3
+      ],
+      "board_categories": [
+        "other",
+        "regionalkingdoms"
+      ],
+      "line_categories": [
+        "regionals"
+      ],
+      "tooltip": "Completed on Final Coin Touch.",
+      "icons": [
+        "smo/regionalall.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "luncheon",
+        "outfitdoor"
+      ],
+      "line_categories": [
+        "luncheon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sand Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "outfitdoor",
+        "sand"
+      ],
+      "line_categories": [
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitsand.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "lake",
+        "outfitdoor"
+      ],
+      "line_categories": [
+        "lake"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooded Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "outfitdoor",
+        "wooded"
+      ],
+      "line_categories": [
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Metro Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "metro",
+        "mid",
+        "outfitdoor"
+      ],
+      "line_categories": [
+        "metro"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitmetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Snow Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "mid",
+        "outfitdoor",
+        "snow"
+      ],
+      "line_categories": [
+        "snow"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitsnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Outfit Door Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "mid",
+        "outfitdoor",
+        "seaside"
+      ],
+      "line_categories": [
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfitseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Outfit Door Moons",
+      "range": [
+        4,
+        5,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "other",
+        "outfitdoor"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonoutfittotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "Cap Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "cap",
+        "captaintoad",
+        "early"
+      ],
+      "line_categories": [
+        "cap",
+        "captaintoad"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadcap.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "Cascade Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "cascade",
+        "early"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "cascade"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadcascade.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "Lake Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "early",
+        "lake"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "lake"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "Lost Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "lost",
+        "mid"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "lost"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadlost.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "Metro Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "metro",
+        "mid"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "metro"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadmetro.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "Luncheon Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "luncheon"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "luncheon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "Snow Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "mid",
+        "snow"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "snow"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadsnow.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "Seaside Captain Toad Moon",
+      "range": [],
+      "board_categories": [
+        "captaintoad",
+        "mid",
+        "seaside"
+      ],
+      "line_categories": [
+        "captaintoad",
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Captain Toad Moons",
+      "range": [
+        5,
+        6,
+        7
+      ],
+      "board_categories": [
+        "captaintoad",
+        "other"
+      ],
+      "line_categories": [
+        "captaintoad"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/toadtotal.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Nut Moons",
+      "range": [
+        7,
+        8,
+        9,
+        10
+      ],
+      "board_categories": [
+        "early",
+        "moontype",
+        "wooded"
+      ],
+      "line_categories": [
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonnut.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "Call Jaxi from {{X}} Stands",
+      "range": [
+        4,
+        5,
+        6
+      ],
+      "board_categories": [
+        "early",
+        "miscellaneous",
+        "sand"
+      ],
+      "line_categories": [
+        "sand"
+      ],
+      "tooltip": "Completed on call confirmation.",
+      "icons": [
+        "smo/jaxicall.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Lake Seed[[s]] Planted",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "lake",
+        "miscellaneous"
+      ],
+      "line_categories": [
+        "lake"
+      ],
+      "tooltip": "Completed upon Seed entering the Pot.",
+      "icons": [
+        "smo/plantedseedlake.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Seeds Planted",
+      "range": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Seed entering the Pot.",
+      "icons": [
+        "smo/plantedseed.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Seed Moon (No Time Travel)",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "other",
+        "uniquemoons"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonseed.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Key Moons",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonkey.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Slots Moons",
+      "range": [
+        2,
+        3
+      ],
+      "board_categories": [
+        "other",
+        "uniquemoons"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonslots.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Lakitu-Fishing Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "lake",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "lake"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonfishing.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "Look at {{X}} Hint-Arts",
+      "range": [
+        3,
+        4,
+        5
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [
+        "hintart"
+      ],
+      "tooltip": "Completed upon (A) Press.",
+      "icons": [
+        "smo/lookhintart.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Hint-Art Moon[[s]]",
+      "range": [
+        1,
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [
+        "hintart"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonhintart.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Warp-Painting Moon[[s]]",
+      "range": [
+        2,
+        3,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonpainting.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Correct Sphynx Questions",
+      "range": [
+        6,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Correct Answer Confirmation.",
+      "icons": [
+        "smo/sphynxquestions.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Timer Challenge Moons",
+      "range": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text. Music Note Moons do not count.",
+      "icons": [
+        "smo/moontimer.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Moon Shard Moons",
+      "range": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonshard.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} 8-Bit Moons",
+      "range": [
+        5,
+        7,
+        9
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moon8bit.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Music Note Moons",
+      "range": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonnote.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Shiny Rock Moons",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonshinyrock.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Deep Woods Moons",
+      "range": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "moontype"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moondeepwoods.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Goomba Moon[[s]]",
+      "range": [
+        2,
+        3,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moongoomba.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Wooden Crate Moons",
+      "range": [
+        3,
+        4
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/mooncrate.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Unique Life Up Hearts",
+      "range": [
+        7,
+        8,
+        9
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed on Final Life-Up Touch. Shop Life-Up's do not count.",
+      "icons": [
+        "smo/lifeup.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Unique Captures",
+      "range": [
+        24,
+        26,
+        28,
+        30,
+        32
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Capture.",
+      "icons": [
+        "smo/captures.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "Capture the Cactus + Meat",
+      "range": [],
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Capture.",
+      "icons": [
+        "smo/cactusmeat.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "weighting": 20,
+      "tag": "cactustreemeat"
+    },
+    {
+      "goal": "Capture the Cactus, Tree and Meat",
+      "range": [],
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Capture.",
+      "icons": [
+        "smo/cactustreemeat.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "weighting": 40,
+      "tag": "cactustreemeat"
+    },
+    {
+      "goal": "Capture the Tree + Meat",
+      "range": [],
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Capture.",
+      "icons": [
+        "smo/treemeat.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "weighting": 20,
+      "tag": "cactustreemeat"
+    },
+    {
+      "goal": "Capture the Cactus + Tree",
+      "range": [],
+      "board_categories": [
+        "miscellaneous",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Capture.",
+      "icons": [
+        "smo/cactustree.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "weighting": 20,
+      "tag": "cactustreemeat"
+    },
+    {
+      "goal": "{{X}} Treasure Chest Moons",
+      "range": [
+        7,
+        9,
+        11
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonchest.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Wooded Ground Pound Moons",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "early",
+        "moontype",
+        "wooded"
+      ],
+      "line_categories": [
+        "wooded"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moongroundpoundwooded.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Seaside Ground Pound Moons",
+      "range": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "mid",
+        "moontype",
+        "seaside"
+      ],
+      "line_categories": [
+        "seaside"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moongroundpoundseaside.webp"
+      ],
+      "progression": [
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Luncheon Ground Pound Moons",
+      "range": [
+        3,
+        4,
+        5
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "luncheon",
+        "moontype"
+      ],
+      "line_categories": [
+        "luncheon"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moongroundpoundluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Ground Pound Moons",
+      "range": [
+        11,
+        13,
+        15
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moongroundpound.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Broodal Fights",
+      "range": [
+        5,
+        6,
+        7
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "boss",
+        "other"
+      ],
+      "line_categories": [
+        "bosses"
+      ],
+      "tooltip": "Completed upon Death Cutscene Start.",
+      "icons": [
+        "smo/broodals.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Boss Fights",
+      "range": [
+        7,
+        8,
+        9
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "boss",
+        "other"
+      ],
+      "line_categories": [
+        "bosses"
+      ],
+      "tooltip": "Completed upon Death Cutscene Start.",
+      "icons": [
+        "smo/bosses.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "{{X}} Rabbit Chase Moon[[s]]",
+      "range": [
+        2,
+        3
+      ],
+      "individual_limit": 2,
+      "board_categories": [
+        "moontype",
+        "other"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonrabbit.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ],
+      "progressive_ranges": true
+    },
+    {
+      "goal": "Snow Boxer Shorts Moon",
+      "range": [],
+      "board_categories": [
+        "other",
+        "shopping"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed on wear confirmation.",
+      "icons": [
+        "smo/boxershorts.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    },
+    {
+      "goal": "{{X}} Sheep Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "sand",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonsheep.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Koopa Trace-Walking Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "sand",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "sand"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonwalking.webp"
+      ],
+      "progression": [
+        "e",
+        "m"
+      ]
+    },
+    {
+      "goal": "{{X}} Jump Rope Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "metro",
+        "mid",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "metro"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonjumprope.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Picture Match Moon",
+      "range": [
+        1
+      ],
+      "board_categories": [
+        "early",
+        "uniquemoons"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonmatch1.webp",
+        "smo/moonmatch2.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} RC Car Moons",
+      "range": [
+        2
+      ],
+      "board_categories": [
+        "metro",
+        "mid",
+        "uniquemoons"
+      ],
+      "line_categories": [
+        "metro"
+      ],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moonrccar.webp"
+      ],
+      "progression": [
+        "m",
+        "l"
+      ]
+    },
+    {
+      "goal": "{{X}} Talkatoo Moons",
+      "range": [
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "board_categories": [
+        "moontype",
+        "other",
+        "talkatoo"
+      ],
+      "line_categories": [],
+      "tooltip": "Completed upon Moon Get text.",
+      "icons": [
+        "smo/moontalkatoo.webp"
+      ],
+      "progression": [
+        "e",
+        "m",
+        "l",
+        "n"
+      ]
+    }
+  ],
+  "limits": {
+    "board": {
+      "boss": 8,
+      "cap": 12,
+      "captaintoad": 12,
+      "cascade": 12,
+      "checkpoints": 12,
+      "early": 35,
+      "kingdommoons": 12,
+      "lake": 14,
+      "lost": 14,
+      "luncheon": 20,
+      "metro": 15,
+      "mid": 28,
+      "miscellaneous": 24,
+      "moontotal": 5,
+      "moontype": 18,
+      "multimoons": 8,
+      "other": 40,
+      "outfitdoor": 12,
+      "regionalcoins": 28,
+      "regionalkingdoms": 20,
+      "sand": 12,
+      "seaside": 16,
+      "shopping": 12,
+      "snow": 16,
+      "storymoons": 12,
+      "subarea": 28,
+      "talkatoo": 6,
+      "uniquemoons": 40,
+      "wooded": 14
+    },
+    "line": {
+      "bosses": 0,
+      "cap": 40,
+      "captaintoad": 40,
+      "cascade": 40,
+      "checkpoint": 40,
+      "hintart": 0,
+      "lake": 40,
+      "lost": 40,
+      "luncheon": 40,
+      "metro": 40,
+      "moonsubarea": 0,
+      "moontotal": 15,
+      "multimoon": 0,
+      "regionals": 40,
+      "sand": 40,
+      "seaside": 40,
+      "shopping": 40,
+      "snow": 40,
+      "storymoon": 40,
+      "wooded": 40
+    }
+  }
+}
