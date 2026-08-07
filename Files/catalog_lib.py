@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 import re
 import shutil
 from dataclasses import dataclass
@@ -1625,17 +1626,6 @@ def dumps_catalog_json(
     return fmt(data, 0) + "\n"
 
 
-def _ensure_path_under_root(path: Path) -> Path:
-    """Resuelve path y exige que quede dentro del repo (anti path-traversal)."""
-    resolved = path.resolve()
-    root = ROOT.resolve()
-    try:
-        resolved.relative_to(root)
-    except ValueError as exc:
-        raise ValueError(f"Path fuera del repo: {path}") from exc
-    return resolved
-
-
 def write_catalog_json(
     path: Path,
     data: object,
@@ -1643,13 +1633,17 @@ def write_catalog_json(
     multiline_string_list_keys: frozenset[str] | None = None,
 ) -> None:
     """Escribe catalogo JSON con objetos internos compactos."""
-    safe_path = _ensure_path_under_root(path)
-    safe_path.write_text(
-        dumps_catalog_json(
-            data, multiline_string_list_keys=multiline_string_list_keys
-        ),
-        encoding="utf-8",
+    root = os.path.realpath(str(ROOT))
+    target = os.path.realpath(str(path))
+    text = dumps_catalog_json(
+        data, multiline_string_list_keys=multiline_string_list_keys
     )
+    # open solo en la rama validada (sanitizer reconocible por SAST).
+    if target == root or target.startswith(root + os.sep):
+        with open(target, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        return
+    raise ValueError(f"Path fuera del repo: {path}")
 
 
 def finalize_bingo_groups_doc(bingo: dict) -> dict:
