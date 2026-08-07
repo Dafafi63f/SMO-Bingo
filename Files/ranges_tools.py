@@ -182,4 +182,3 @@ SINGLE_VALUE_OK = {
     "{{X}} Wooded Flower Road Moons",
     "All Regional Coins in {{X}} Large Kingdom",
 }
-

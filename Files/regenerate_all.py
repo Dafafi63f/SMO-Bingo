@@ -1,7 +1,8 @@
 """Regenera Combined sync + todos los exports del proyecto.
 
 Uso:
-  python regenerate_all.py
+  python Files/regenerate_all.py
+  # o desde Files/: python regenerate_all.py
 
 Cuándo:
   Tras cambios en Combined, progressions, ranges, grupos, tags o lunas.
@@ -36,11 +37,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent
+FILES_DIR = Path(__file__).resolve().parent
+ROOT = FILES_DIR.parent
 # Fuerza UTF-8 en los subprocesos: varios scripts imprimen “→” y en consola
 # Windows (cp1252) sin esto revienta con UnicodeEncodeError.
 SUBPROCESS_ENV = dict(os.environ)
 SUBPROCESS_ENV.setdefault("PYTHONIOENCODING", "utf-8")
+# Imports entre scripts (catalog_lib, …) con cwd=Files.
+_path = SUBPROCESS_ENV.get("PYTHONPATH", "")
+SUBPROCESS_ENV["PYTHONPATH"] = (
+    str(FILES_DIR) if not _path else str(FILES_DIR) + os.pathsep + _path
+)
 
 # Orden importa: sync grupos → progression/normalize (+ sort Combined) → exports.
 # capturas_lunas antes que lunas-objetivos (tags de captura leen el JSON).
@@ -83,7 +90,7 @@ STEPS: list[tuple[str, list[str]]] = [
 def main() -> int:
     for label, cmd in STEPS:
         print(f"\n=== {label} ===")
-        r = subprocess.run(cmd, cwd=ROOT, env=SUBPROCESS_ENV)
+        r = subprocess.run(cmd, cwd=FILES_DIR, env=SUBPROCESS_ENV)
         if r.returncode != 0:
             print(f"FALLO ({r.returncode}): {label}", file=sys.stderr)
             return r.returncode

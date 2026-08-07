@@ -30,12 +30,11 @@ from pathlib import Path
 from catalog_lib import (
     CATALOG_DIR,
     JSON_PATH,
+    ROOT,
     load_combined_objectives_by_goal,
     objective_ref_from_combined,
     write_catalog_json,
 )
-
-ROOT = Path(__file__).parent
 
 
 def _uniq(goals: list[str]) -> list[str]:

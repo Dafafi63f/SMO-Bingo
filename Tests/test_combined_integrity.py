@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from typing import Any, ClassVar
 
 from catalog_lib import JSON_PATH, ZONE_ORDER, load_active_combined_objectives
 
@@ -18,6 +19,9 @@ REQUIRED_FIELDS = (
 
 
 class CombinedIntegrityTests(unittest.TestCase):
+    data: ClassVar[dict[str, Any]]
+    objectives: ClassVar[list[dict[str, Any]]]
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.data = json.loads(JSON_PATH.read_text(encoding="utf-8"))

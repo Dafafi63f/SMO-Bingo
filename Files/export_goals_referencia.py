@@ -16,6 +16,7 @@ from catalog_lib import (
     JSON_PATH,
     KINGDOM_COLUMNS,
     KINGDOM_GOAL_PREFIXES,
+    ROOT,
     STORY_ORDER,
     build_matrix_moon_registry,
     compute_in_scope_moon_totals,
@@ -41,7 +42,6 @@ from goal_list_lib import (
     sort_lista_items,
 )
 
-ROOT = Path(__file__).parent
 OUT_JSON = CATALOG_DIR / "goals_referencia.json"
 
 NON_MOON_GOAL_MARKERS = (

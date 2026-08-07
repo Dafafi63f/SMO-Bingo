@@ -17,9 +17,10 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-ROOT = Path(__file__).parent
-BINGOS_DIR = ROOT / "bingos"
-CATALOG_DIR = ROOT / "catalog"
+FILES_DIR = Path(__file__).resolve().parent
+ROOT = FILES_DIR.parent
+BINGOS_DIR = ROOT / "Bingos"
+CATALOG_DIR = ROOT / "Catalog"
 CAPTURES_LUNAS_JSON = CATALOG_DIR / "capturas_lunas.json"
 # Captura normal con ≥N lunas → tag concreta junto a `captures`.
 # Especial o minoritaria (<N) → basta `captures`.

@@ -46,6 +46,7 @@ from catalog_lib import (
     CATALOG_DIR,
     KINGDOM_COLUMNS,
     KINGDOM_DISPLAY,
+    ROOT,
     build_matrix_moon_registry,
     enrich_moon_ref_odyssey,
     group_moons,
@@ -57,7 +58,6 @@ from catalog_lib import (
 )
 from fill_captures_cappy import MARIOWIKI_URLS, fetch, parse_mariowiki_table
 
-ROOT = Path(__file__).parent
 OUT_JSON = CATALOG_DIR / "capturas_lunas.json"
 
 # Lista in-game. postgame=True → fuera del CSV salvo que haya lunas in-scope.

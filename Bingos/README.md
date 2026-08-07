@@ -10,6 +10,6 @@ JSON importables en [lockout.live](https://lockout.live/) para Super Mario Odyss
 | `Super Mario Odyssey-Long Goals-2026-07-27.json` | Referencia lockout (126 goals) |
 | `Super Mario Odyssey-All Kingdoms-2026-07-24.json` | Referencia lockout (más completo; umbrales altos) |
 
-Tras cambiar Combined: `python regenerate_all.py`
+Tras cambiar Combined: `python Files/regenerate_all.py`
 
-Datos derivados (grupos, líneas, icons, referencia): `catalog/`.
+Datos derivados (grupos, líneas, icons, referencia): `Catalog/`.

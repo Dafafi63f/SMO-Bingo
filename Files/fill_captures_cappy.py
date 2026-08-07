@@ -43,7 +43,6 @@ from catalog_lib import (
 )
 from export_lunas_tags import export_lunas, export_tags
 
-ROOT = Path(__file__).parent
 USER_AGENT = "BingoMoonTagger/1.1 (captures/cappy; +https://www.mariowiki.com)"
 
 MARIOWIKI_URLS: dict[str, str] = {

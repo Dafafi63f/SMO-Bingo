@@ -12,5 +12,6 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+.mypy_cache/
 *.swp
 *~

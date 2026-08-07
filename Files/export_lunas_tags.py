@@ -42,6 +42,7 @@ from catalog_lib import (
     KINGDOM_COLUMNS,
     LUNAS_CATALOG_EXCLUDE,
     PRIMARY_TAGS,
+    ROOT,
     TAG_ACTION,
     TAG_CONTEXT,
     TAG_KINGDOM,
@@ -64,8 +65,6 @@ from catalog_lib import (
     strip_kingdom_prefix_from_id,
     write_catalog_json,
 )
-
-ROOT = Path(__file__).parent
 
 # ---------------------------------------------------------------------------
 # tags: inventario de tags de lunas (unica fuente de tags permitidas).

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from typing import Any, ClassVar
 
 from catalog_lib import (
     ALL_KINGDOMS_REFERENCE_PATH,
@@ -52,6 +53,11 @@ class CatalogFilesExistTests(unittest.TestCase):
 
 
 class GoalsReferenciaSyncTests(unittest.TestCase):
+    combined: ClassVar[dict[str, Any]]
+    ref: ClassVar[dict[str, Any]]
+    combined_goals: ClassVar[set[str]]
+    ref_goals: ClassVar[set[str]]
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.combined = json.loads(JSON_PATH.read_text(encoding="utf-8"))
