@@ -16,7 +16,7 @@
     {"tooltip": "Completed upon Death Cutscene Start.", "n_goals": 6},
     {"tooltip": "Completed on Confirmation of Purchase.", "n_goals": 4},
     {"tooltip": "Completed on Final Pixel Spawned.", "n_goals": 2},
-    {"tooltip": "Completed on Call Confirmation. First Purchase (30 Coins) at Jaxi Ruins or Tostarena Night counts as that one stand only (not double).", "n_goals": 1},
+    {"tooltip": "Completed on Call Confirmation.", "n_goals": 1},
     {"tooltip": "Completed on Correct Answer Confirmation.", "n_goals": 1},
     {"tooltip": "Completed on Final Ground-Pound Switch Activated.", "n_goals": 1},
     {"tooltip": "Completed on Final Lever Activated.", "n_goals": 1},

@@ -5553,7 +5553,7 @@
         "miscellaneous",
         "sand"
       ],
-      "tooltip": "Completed on Call Confirmation. First Purchase (30 Coins) at Jaxi Ruins or Tostarena Night counts as that one stand only (not double).",
+      "tooltip": "Completed on Call Confirmation.",
       "icons": [
         "smo/jaxicall.webp"
       ],
