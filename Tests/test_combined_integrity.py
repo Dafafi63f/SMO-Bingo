@@ -64,7 +64,7 @@ class CombinedIntegrityTests(unittest.TestCase):
                 prog = obj["progression"]
                 self.assertIsInstance(prog, list)
                 self.assertGreaterEqual(len(prog), 1)
-                self.assertTrue(set(prog) <= allowed)
+                self.assertLessEqual(set(prog), allowed)
                 # Sin duplicados y en orden de zona
                 self.assertEqual(prog, [z for z in ZONE_ORDER if z in prog])
 
