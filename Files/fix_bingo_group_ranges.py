@@ -1154,6 +1154,41 @@ def _suggest_after_pool(
     return _suggest_other_counters(goal, combined=combined, current=current)
 
 
+def _suggest_kingdom_or_pool(
+    goal: str,
+    *,
+    gid: str,
+    group: dict,
+    is_kingdom: bool,
+    moons: list,
+    current: list[int],
+    combined: dict[str, dict],
+    obj: dict,
+    registry: dict[tuple[str, int], dict],
+    moons_by_goal: dict[str, list[dict]],
+    pairs: list[frozenset[tuple[str, int]]],
+) -> tuple[list[int] | None, str] | None:
+    if is_kingdom:
+        km = _suggest_kingdom_moons(
+            goal,
+            gid=gid,
+            moons=moons,
+            current=current,
+            combined=combined,
+            obj=obj,
+            registry=registry,
+        )
+        if km is not None:
+            return km
+    return _suggest_pool_moons(
+        goal,
+        group=group,
+        is_kingdom=is_kingdom,
+        moons_by_goal=moons_by_goal,
+        pairs=pairs,
+    )
+
+
 def suggest_for_objective(
     *,
     gid: str,
@@ -1190,28 +1225,21 @@ def suggest_for_objective(
         if result is not None:
             return result
 
-    if is_kingdom:
-        km = _suggest_kingdom_moons(
-            goal,
-            gid=gid,
-            moons=moons,
-            current=current,
-            combined=combined,
-            obj=obj,
-            registry=registry,
-        )
-        if km is not None:
-            return km
-
-    pool = _suggest_pool_moons(
+    mid = _suggest_kingdom_or_pool(
         goal,
+        gid=gid,
         group=group,
         is_kingdom=is_kingdom,
+        moons=moons,
+        current=current,
+        combined=combined,
+        obj=obj,
+        registry=registry,
         moons_by_goal=moons_by_goal,
         pairs=pairs,
     )
-    if pool is not None:
-        return pool
+    if mid is not None:
+        return mid
 
     after = _suggest_after_pool(
         goal,
