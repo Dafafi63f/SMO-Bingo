@@ -1625,6 +1625,17 @@ def dumps_catalog_json(
     return fmt(data, 0) + "\n"
 
 
+def _ensure_path_under_root(path: Path) -> Path:
+    """Resuelve path y exige que quede dentro del repo (anti path-traversal)."""
+    resolved = path.resolve()
+    root = ROOT.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"Path fuera del repo: {path}") from exc
+    return resolved
+
+
 def write_catalog_json(
     path: Path,
     data: object,
@@ -1632,7 +1643,8 @@ def write_catalog_json(
     multiline_string_list_keys: frozenset[str] | None = None,
 ) -> None:
     """Escribe catalogo JSON con objetos internos compactos."""
-    path.write_text(
+    safe_path = _ensure_path_under_root(path)
+    safe_path.write_text(
         dumps_catalog_json(
             data, multiline_string_list_keys=multiline_string_list_keys
         ),
