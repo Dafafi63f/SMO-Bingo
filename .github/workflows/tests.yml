@@ -48,7 +48,7 @@ jobs:
           python-version-file: .python-version
 
       - name: Install dependencies
-        run: "pip install --only-binary=:all: -r requirements-dev.txt"
+        run: "pip install --only-binary :all: -r requirements-dev.txt"
 
       - name: Run MyPy
         run: mypy .
