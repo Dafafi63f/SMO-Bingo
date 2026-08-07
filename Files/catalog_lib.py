@@ -660,7 +660,7 @@ def clear_runtime_caches() -> None:
         Path.home()
         / ".cursor"
         / "projects"
-        / "c-Users-34681-Documents-Videojuegos-Bingo"
+        / "c-Users-34681-Documents-Videojuegos-SMO-Bingo"
         / "agent-tools"
     )
     if agent_tools.is_dir():
