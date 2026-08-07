@@ -21,6 +21,11 @@ Python 3 estándar; no hace falta `pip install` (solo librería estándar).
 |------|-----|
 | [`bingos/`](bingos/README.md) | JSONs lockout; Combined = **fuente de verdad** |
 | [`catalog/`](catalog/) | Datos derivados (grupos, líneas, icons, lunas, tags, referencia) |
+| [`tests/`](tests/README.md) | Unit + integridad Combined/catálogo |
 | `*.py` | Sync, ranges, progression y exports |
+
+```bash
+python -m unittest discover -s tests -t . -v
+```
 
 Detalle de cada set lockout: [`bingos/README.md`](bingos/README.md).
