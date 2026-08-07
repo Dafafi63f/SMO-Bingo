@@ -366,7 +366,8 @@ def _parse_mariowiki_row(cells: list[str]) -> tuple[int, dict[str, str]] | None:
     name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
     name = name.rstrip("❸②①").strip()
     desc_idx = 3 if len(cells) >= 5 else 2
-    description = strip_tags(cells[desc_idx]) if len(cells) > desc_idx else ""
+    # Tras el guard len(cells) < 3, siempre hay celda en desc_idx.
+    description = strip_tags(cells[desc_idx])
     return moon, {"name": name, "description": description}
 
 
@@ -458,11 +459,16 @@ def classify_action(name: str, description: str, existing_tags: set[str]) -> str
     return None
 
 
-def main(*, export: bool = True) -> None:
-    wiki = load_wiki_moon_meta()
-    rules = load_kingdom_availability()
-    registry = build_matrix_moon_registry()
+def _kingdom_sort_key(kv: tuple) -> tuple:
+    kingdom, moon = kv[0]
+    try:
+        idx = KINGDOM_COLUMNS.index(kingdom)
+    except ValueError:
+        idx = 99  # mushroom u otros fuera de columnas bingo
+    return (idx, moon)
 
+
+def _fetch_guides() -> dict[str, dict[int, dict[str, str]]]:
     guides: dict[str, dict[int, dict[str, str]]] = {}
     for kingdom in KINGDOM_COLUMNS:
         print(f"  Mario Wiki: {KINGDOM_DISPLAY.get(kingdom, kingdom)}...")
@@ -472,22 +478,65 @@ def main(*, export: bool = True) -> None:
             print(f"    AVISO: {exc}")
             guides[kingdom] = {}
         time.sleep(0.35)
+    return guides
 
+
+def _resolve_moon_action(
+    kingdom: str, moon: int, name: str, description: str, tags: set[str]
+) -> str | None:
+    """'captures' | 'cappy' | 'both' | None (a pie / mario)."""
+    if (kingdom, moon) in ROCKET_FLOWER_MOONS:
+        return None
+    if (kingdom, moon) in ALLOW_CAPTURES_AND_CAPPY:
+        return "both"
+    if (kingdom, moon) in FORCE_ACTION:
+        return FORCE_ACTION[kingdom, moon]
+    return classify_action(name, description, tags)
+
+
+def _append_classified_moon(
+    *,
+    kingdom: str,
+    moon: int,
+    name: str,
+    action: str,
+    wiki_entry: dict | None,
+    rules: dict,
+    items: list[dict],
+    counts: Counter[str],
+) -> None:
+    if action == "both":
+        tags = ["captures", "cappy"]
+        counts["captures"] += 1
+        counts["cappy"] += 1
+    else:
+        tags = [action]
+        counts[action] += 1
+    items.append(
+        {
+            "kingdom": kingdom,
+            "moon": moon,
+            "name": name,
+            "availability": infer_availability(
+                kingdom, moon, name, wiki_entry, rules, tags
+            ),
+            "tags": tags,
+        }
+    )
+
+
+def _classify_registry_moons(
+    registry: dict,
+    guides: dict[str, dict[int, dict[str, str]]],
+    wiki: dict,
+    rules: dict,
+) -> tuple[list[dict], list[dict], Counter[str], int]:
     items: list[dict] = []
     mario_items: list[dict] = []
     counts: Counter[str] = Counter()
     neither = 0
 
-    def _kingdom_sort_key(kv: tuple) -> tuple:
-        kingdom, moon = kv[0]
-        try:
-            idx = KINGDOM_COLUMNS.index(kingdom)
-        except ValueError:
-            idx = 99  # mushroom u otros fuera de columnas bingo
-        return (idx, moon)
-
     for (kingdom, moon), entry in sorted(registry.items(), key=_kingdom_sort_key):
-        # mushroom u otros fuera de columnas bingo solo si FORCE_IN_SCOPE
         if kingdom not in KINGDOM_COLUMNS and (kingdom, moon) not in FORCE_IN_SCOPE_MOONS:
             continue
         wiki_entry = wiki.get(kingdom, {}).get(moon)
@@ -497,48 +546,32 @@ def main(*, export: bool = True) -> None:
         guide = guides.get(kingdom, {}).get(moon) or {}
         name = entry["name"]
         description = guide.get("description", "")
-        if (kingdom, moon) in ROCKET_FLOWER_MOONS:
-            neither += 1
-            continue
-        if (kingdom, moon) in ALLOW_CAPTURES_AND_CAPPY:
-            action = "both"
-        elif (kingdom, moon) in FORCE_ACTION:
-            action = FORCE_ACTION[kingdom, moon]
-        else:
-            action = classify_action(name, description, set(entry["tags"]))
-
+        action = _resolve_moon_action(
+            kingdom, moon, name, description, set(entry["tags"])
+        )
         if action is None:
             neither += 1
-            # Tag mario solo en el pool curado (goal {{X}} Mario Moons).
             if (kingdom, moon) in MARIO_MOONS:
                 mario_items.append(
-                    {
-                        "kingdom": kingdom,
-                        "moon": moon,
-                        "name": name,
-                    }
+                    {"kingdom": kingdom, "moon": moon, "name": name}
                 )
             continue
-
-        if action == "both":
-            tags = ["captures", "cappy"]
-            counts["captures"] += 1
-            counts["cappy"] += 1
-        else:
-            tags = [action]
-            counts[action] += 1
-        items.append(
-            {
-                "kingdom": kingdom,
-                "moon": moon,
-                "name": name,
-                "availability": infer_availability(
-                    kingdom, moon, name, wiki_entry, rules, tags
-                ),
-                "tags": tags,
-            }
+        _append_classified_moon(
+            kingdom=kingdom,
+            moon=moon,
+            name=name,
+            action=action,
+            wiki_entry=wiki_entry,
+            rules=rules,
+            items=items,
+            counts=counts,
         )
+    return items, mario_items, counts, neither
 
+
+def _upsert_action_groups(
+    items: list[dict], mario_items: list[dict]
+) -> tuple[int, int, int]:
     captures = [i for i in items if "captures" in i["tags"]]
     cappy = [i for i in items if "cappy" in i["tags"]]
     n_cap = upsert_moon_tag_group(
@@ -575,8 +608,45 @@ def main(*, export: bool = True) -> None:
             {"goal": "{{X}} Mario Moons"},
         ],
     )
+    return n_cap, n_cappy, n_mario
 
-    print(f"\nActualizado bingo_groups: captures={n_cap}  cappy={n_cappy}  mario={n_mario}")
+
+def _report_captures_cappy_overlap(reg2: dict) -> None:
+    both = [
+        (k, m, e["name"], sorted(e["tags"]))
+        for (k, m), e in reg2.items()
+        if TAG_CAPTURES_AND_CAPPY <= set(e["tags"])
+    ]
+    allowed_both = [row for row in both if (row[0], row[1]) in ALLOW_CAPTURES_AND_CAPPY]
+    unexpected = [
+        row for row in both if (row[0], row[1]) not in ALLOW_CAPTURES_AND_CAPPY
+    ]
+    if allowed_both:
+        print(f"OK excepciones captures+cappy ({len(allowed_both)}):")
+        for row in allowed_both:
+            print(" ", row)
+    if unexpected:
+        print(f"AVISO: {len(unexpected)} lunas con captures+cappy no permitidas:")
+        for row in unexpected[:20]:
+            print(" ", row)
+    elif not allowed_both:
+        print("OK: ninguna luna con captures+cappy a la vez.")
+
+
+def main(*, export: bool = True) -> None:
+    wiki = load_wiki_moon_meta()
+    rules = load_kingdom_availability()
+    registry = build_matrix_moon_registry()
+    guides = _fetch_guides()
+
+    items, mario_items, counts, neither = _classify_registry_moons(
+        registry, guides, wiki, rules
+    )
+    n_cap, n_cappy, n_mario = _upsert_action_groups(items, mario_items)
+
+    print(
+        f"\nActualizado bingo_groups: captures={n_cap}  cappy={n_cappy}  mario={n_mario}"
+    )
     print(
         f"  (wiki: captures={counts['captures']} cappy={counts['cappy']} "
         f"a_pie={neither} mario_tag={len(mario_items)})"
@@ -590,24 +660,7 @@ def main(*, export: bool = True) -> None:
     export_tags()
 
     reg2 = build_matrix_moon_registry()
-    both = [
-        (k, m, e["name"], sorted(e["tags"]))
-        for (k, m), e in reg2.items()
-        if TAG_CAPTURES_AND_CAPPY <= set(e["tags"])
-    ]
-    allowed_both = [row for row in both if (row[0], row[1]) in ALLOW_CAPTURES_AND_CAPPY]
-    unexpected = [row for row in both if (row[0], row[1]) not in ALLOW_CAPTURES_AND_CAPPY]
-    if allowed_both:
-        print(f"OK excepciones captures+cappy ({len(allowed_both)}):")
-        for row in allowed_both:
-            print(" ", row)
-    if unexpected:
-        print(f"AVISO: {len(unexpected)} lunas con captures+cappy no permitidas:")
-        for row in unexpected[:20]:
-            print(" ", row)
-    elif not allowed_both:
-        print("OK: ninguna luna con captures+cappy a la vez.")
-
+    _report_captures_cappy_overlap(reg2)
     with_action = sum(1 for e in reg2.values() if set(e["tags"]) & TAG_ACTION)
     no_extra = sum(1 for e in reg2.values() if not e["tags"])
     print(f"Con captures/cappy/mario: {with_action}")

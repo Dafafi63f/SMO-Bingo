@@ -238,6 +238,70 @@ def _should_skip_sand_ice_as_sub_area(level_l: str, moons: list[int]) -> bool:
     return level_l in SAND_ICE_LEVELS_NOT_SUB_AREA or len(moons) != 2
 
 
+def _append_level_pair(
+    *,
+    kingdom: str,
+    level: str,
+    moons: list[int],
+    registry: dict,
+    levels: list[dict],
+    moon_refs: list[dict],
+    seen: set[tuple[str, int]],
+) -> None:
+    levels.append(
+        {
+            "kingdom": kingdom,
+            "level": level,
+            "moons": moons,
+            "names": [registry[(kingdom, m)]["name"] for m in moons],
+        }
+    )
+    for moon in moons:
+        key = (kingdom, moon)
+        if key in seen:
+            continue
+        seen.add(key)
+        moon_refs.append(group_moon_ref(registry[key]))
+
+
+def _handle_level_bucket(
+    kingdom: str,
+    level: str,
+    moons: list[int],
+    registry: dict,
+    *,
+    levels: list[dict],
+    moon_refs: list[dict],
+    deep_refs: list[dict],
+    sand_ice_refs: list[dict],
+    seen: set[tuple[str, int]],
+) -> None:
+    moons = sorted(set(moons))
+    level_l = level.lower()
+
+    if level_l == "deep woods" or level_l.startswith("deep woods "):
+        for moon in moons:
+            deep_refs.append(group_moon_ref(registry[(kingdom, moon)]))
+        return
+
+    if kingdom == "sand" and level_l in SAND_ICE_LEVELS:
+        sand_ice_refs.extend(_collect_sand_ice_refs(registry, kingdom, moons))
+        if _should_skip_sand_ice_as_sub_area(level_l, moons):
+            return
+
+    if len(moons) != 2:
+        return
+    _append_level_pair(
+        kingdom=kingdom,
+        level=level,
+        moons=moons,
+        registry=registry,
+        levels=levels,
+        moon_refs=moon_refs,
+        seen=seen,
+    )
+
+
 def _process_kingdom_levels(
     kingdom: str,
     registry: dict,
@@ -267,35 +331,17 @@ def _process_kingdom_levels(
         by_level[level].append(moon)
 
     for level, moons in sorted(by_level.items(), key=lambda kv: min(kv[1])):
-        moons = sorted(set(moons))
-        level_l = level.lower()
-
-        if level_l == "deep woods" or level_l.startswith("deep woods "):
-            for moon in moons:
-                deep_refs.append(group_moon_ref(registry[(kingdom, moon)]))
-            continue
-
-        if kingdom == "sand" and level_l in SAND_ICE_LEVELS:
-            sand_ice_refs.extend(_collect_sand_ice_refs(registry, kingdom, moons))
-            if _should_skip_sand_ice_as_sub_area(level_l, moons):
-                continue
-
-        if len(moons) != 2:
-            continue
-        levels.append(
-            {
-                "kingdom": kingdom,
-                "level": level,
-                "moons": moons,
-                "names": [registry[(kingdom, m)]["name"] for m in moons],
-            }
+        _handle_level_bucket(
+            kingdom,
+            level,
+            moons,
+            registry,
+            levels=levels,
+            moon_refs=moon_refs,
+            deep_refs=deep_refs,
+            sand_ice_refs=sand_ice_refs,
+            seen=seen,
         )
-        for moon in moons:
-            key = (kingdom, moon)
-            if key in seen:
-                continue
-            seen.add(key)
-            moon_refs.append(group_moon_ref(registry[key]))
 
 
 def _write_sub_area_goal_lists(levels: list[dict]) -> None:

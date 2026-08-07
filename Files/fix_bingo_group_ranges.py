@@ -182,23 +182,27 @@ def _invent_fixed_small_cap(cap: int, min_early: int | None) -> list[int] | None
     """Rangos fijos para pools pequeños / enormes; None si hay que inventar."""
     if cap <= 0:
         return []
-    if cap == 1:
-        return [1, 1, 1, 1]
-    if cap == 2:
-        return [1, 1, 2, 2]
-    if cap == 3:
-        return [1, 2, 3, 3]
-    if min_early is None:
-        if cap == 4:
-            return [1, 2, 3, 3]
-        if cap == 5:
-            return [2, 2, 4, 4]
-        if cap == 6:
-            return [2, 2, 4, 4]
-        if cap == 7:
-            return [1, 3, 5, 5]
-        if cap >= 80:
-            return [20, 40, 60, 70] if cap < 100 else [20, 40, 60, 80]
+    fixed_no_early = {
+        1: [1, 1, 1, 1],
+        2: [1, 1, 2, 2],
+        3: [1, 2, 3, 3],
+    }
+    if cap in fixed_no_early:
+        return list(fixed_no_early[cap])
+    if min_early is not None:
+        return None
+    fixed_open = {
+        4: [1, 2, 3, 3],
+        5: [2, 2, 4, 4],
+        6: [2, 2, 4, 4],
+        7: [1, 3, 5, 5],
+    }
+    if cap in fixed_open:
+        return list(fixed_open[cap])
+    if cap >= 100:
+        return [20, 40, 60, 80]
+    if cap >= 80:
+        return [20, 40, 60, 70]
     return None
 
 
@@ -1129,6 +1133,27 @@ def _suggest_other_counters(
     return invent_count_range(4), "invent_other_default"
 
 
+def _suggest_after_pool(
+    goal: str,
+    *,
+    gid: str,
+    is_kingdom: bool,
+    obj: dict,
+    combined: dict[str, dict],
+    current: list[int],
+) -> tuple[list[int] | None, str] | None:
+    if is_kingdom:
+        sub = _suggest_kingdom_sub(goal, combined=combined, current=current)
+        if sub is not None:
+            return sub
+    lista = _suggest_lista_pool(
+        goal, obj=obj, gid=gid, is_kingdom=is_kingdom, combined=combined
+    )
+    if lista is not None:
+        return lista
+    return _suggest_other_counters(goal, combined=combined, current=current)
+
+
 def suggest_for_objective(
     *,
     gid: str,
@@ -1188,20 +1213,16 @@ def suggest_for_objective(
     if pool is not None:
         return pool
 
-    if is_kingdom:
-        sub = _suggest_kingdom_sub(goal, combined=combined, current=current)
-        if sub is not None:
-            return sub
-
-    lista = _suggest_lista_pool(
-        goal, obj=obj, gid=gid, is_kingdom=is_kingdom, combined=combined
+    after = _suggest_after_pool(
+        goal,
+        gid=gid,
+        is_kingdom=is_kingdom,
+        obj=obj,
+        combined=combined,
+        current=current,
     )
-    if lista is not None:
-        return lista
-
-    other = _suggest_other_counters(goal, combined=combined, current=current)
-    if other is not None:
-        return other
+    if after is not None:
+        return after
 
     if current:
         return invent_from_existing_max(current), "invent_keep_shape"
@@ -1223,20 +1244,26 @@ def _merge_moons_into_index(
             seen.add(key)
 
 
+def _index_group_moons_by_goal(
+    out: dict[str, list[dict]], group: dict
+) -> None:
+    gid = str(group.get("id") or "")
+    if gid in KINGDOM_COLUMNS:
+        return
+    moons = group.get("moons") or []
+    if not moons:
+        return
+    for obj in group.get("objectives") or []:
+        goal = str((obj or {}).get("goal") or "")
+        if goal:
+            _merge_moons_into_index(out, goal, moons)
+
+
 def _index_moons_by_goal(bingo: dict) -> dict[str, list[dict]]:
     """goal → moons de grupos temáticos (unión si varios declaran el mismo)."""
     out: dict[str, list[dict]] = {}
     for group in bingo.get("groups") or []:
-        gid = str(group.get("id") or "")
-        if gid in KINGDOM_COLUMNS:
-            continue
-        moons = group.get("moons") or []
-        if not moons:
-            continue
-        for obj in group.get("objectives") or []:
-            goal = str((obj or {}).get("goal") or "")
-            if goal:
-                _merge_moons_into_index(out, goal, moons)
+        _index_group_moons_by_goal(out, group)
     return out
 
 
@@ -1244,7 +1271,6 @@ def _apply_suggested_range(
     obj: dict,
     *,
     gid: str,
-    goal: str,
     suggested: list[int],
     source: str,
     expected_prog: list,
@@ -1259,6 +1285,62 @@ def _apply_suggested_range(
         tip = checkpoint_tooltip_for(gid)
         if obj.get("tooltip") != tip:
             obj["tooltip"] = tip
+
+
+def _process_one_objective_range(
+    *,
+    gid: str,
+    group: dict,
+    obj: dict,
+    allowed: set[str],
+    combined: dict[str, dict],
+    tiers: dict,
+    pairs: list[frozenset[tuple[str, int]]],
+    moons_by_goal: dict[str, list[dict]],
+    registry: dict[tuple[str, int], dict],
+    apply: bool,
+    changes: list[tuple[str, str, list[int], list[int], str]],
+    by_source: dict[str, int],
+) -> int:
+    """Devuelve 1 si el rango sugerido tiene longitud incorrecta; 0 si no."""
+    goal = str(obj["goal"])
+    suggested, source = suggest_for_objective(
+        gid=gid,
+        group=group,
+        obj=obj,
+        allowed=allowed,
+        combined=combined,
+        tiers=tiers,
+        pairs=pairs,
+        moons_by_goal=moons_by_goal,
+        registry=registry,
+    )
+    by_source[source] = by_source.get(source, 0) + 1
+    if suggested is None:
+        return 0
+    suggested = finalize_range(goal, suggested)
+    combined_obj = combined.get(goal) or {}
+    expected_prog = list(
+        combined_obj.get("progression")
+        or obj.get("progression")
+        or FULL_PROGRESSION
+    )
+    bad = 0
+    if goal not in SINGLE_VALUE_OK and len(suggested) != RANGE_LEN:
+        bad = 1
+    cur_range = list(obj.get("range") or [])
+    cur_prog = list(obj.get("progression") or [])
+    if suggested != cur_range or cur_prog != expected_prog:
+        changes.append((gid, goal, cur_range, suggested, source))
+    if apply:
+        _apply_suggested_range(
+            obj,
+            gid=gid,
+            suggested=suggested,
+            source=source,
+            expected_prog=expected_prog,
+        )
+    return bad
 
 
 def _collect_range_changes(
@@ -1281,8 +1363,7 @@ def _collect_range_changes(
         for obj in group.get("objectives") or []:
             if not isinstance(obj, dict) or not obj.get("goal"):
                 continue
-            goal = str(obj["goal"])
-            suggested, source = suggest_for_objective(
+            bad_len += _process_one_objective_range(
                 gid=gid,
                 group=group,
                 obj=obj,
@@ -1292,32 +1373,10 @@ def _collect_range_changes(
                 pairs=pairs,
                 moons_by_goal=moons_by_goal,
                 registry=registry,
+                apply=apply,
+                changes=changes,
+                by_source=by_source,
             )
-            by_source[source] = by_source.get(source, 0) + 1
-            if suggested is None:
-                continue
-            suggested = finalize_range(goal, suggested)
-            combined_obj = combined.get(goal) or {}
-            expected_prog = list(
-                combined_obj.get("progression")
-                or obj.get("progression")
-                or FULL_PROGRESSION
-            )
-            if goal not in SINGLE_VALUE_OK and len(suggested) != RANGE_LEN:
-                bad_len += 1
-            cur_range = list(obj.get("range") or [])
-            cur_prog = list(obj.get("progression") or [])
-            if suggested != cur_range or cur_prog != expected_prog:
-                changes.append((gid, goal, cur_range, suggested, source))
-            if apply:
-                _apply_suggested_range(
-                    obj,
-                    gid=gid,
-                    goal=goal,
-                    suggested=suggested,
-                    source=source,
-                    expected_prog=expected_prog,
-                )
     return changes, by_source, bad_len
 
 

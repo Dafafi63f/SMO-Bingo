@@ -470,6 +470,34 @@ def _consider_goal_moons(
         best_key[goal] = key
 
 
+def _process_group_goal_moons(
+    best: dict[str, list[dict]],
+    best_key: dict[str, tuple[int, int, int]],
+    group: dict,
+    story_like: list[str],
+) -> None:
+    raw_moons = group_moons(group)
+    if not raw_moons:
+        return
+    n_goals = sum(
+        1
+        for o in group.get("objectives") or []
+        if isinstance(o, dict) and o.get("goal")
+    )
+    pool_only = _pool_only_score(group, n_goals)
+    for obj in group.get("objectives") or []:
+        goal = obj.get("goal") if isinstance(obj, dict) else None
+        if not goal:
+            continue
+        g = str(goal)
+        if _is_non_power_moon_goal(g):
+            continue
+        selected = filter_moons_for_goal(g, raw_moons, story_like)
+        _consider_goal_moons(
+            best, best_key, goal=g, selected=selected, pool_only=pool_only
+        )
+
+
 def build_goal_moons() -> dict[str, list[dict]]:
     """goal → lunas del grupo pool (apply_moon_tag=False) o el mas especifico."""
     best: dict[str, list[dict]] = {}
@@ -478,26 +506,7 @@ def build_goal_moons() -> dict[str, list[dict]]:
     story_like = list(KINGDOM_COLUMNS) + ["cloud", "ruined"]
 
     for group in load_bingo_groups():
-        raw_moons = group_moons(group)
-        if not raw_moons:
-            continue
-        n_goals = sum(
-            1
-            for o in group.get("objectives") or []
-            if isinstance(o, dict) and o.get("goal")
-        )
-        pool_only = _pool_only_score(group, n_goals)
-        for obj in group.get("objectives") or []:
-            goal = obj.get("goal") if isinstance(obj, dict) else None
-            if not goal:
-                continue
-            g = str(goal)
-            if _is_non_power_moon_goal(g):
-                continue
-            selected = filter_moons_for_goal(g, raw_moons, story_like)
-            _consider_goal_moons(
-                best, best_key, goal=g, selected=selected, pool_only=pool_only
-            )
+        _process_group_goal_moons(best, best_key, group, story_like)
     return best
 
 
