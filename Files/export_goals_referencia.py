@@ -62,11 +62,11 @@ def is_moon_count_objective(goal: str, obj: dict) -> bool:
         return True
     if any(m.lower() in gl for m in NON_MOON_GOAL_MARKERS):
         return False
-    if goal.startswith("Defeat ") or goal.startswith("Win "):
+    if goal.startswith(("Defeat ", "Win ")):
         return False
-    if goal.startswith("Purchase ") or goal.startswith("Buy ") or goal.startswith("Wear "):
+    if goal.startswith(("Purchase ", "Buy ", "Wear ")):
         return False
-    if goal.startswith("Activate ") or goal.startswith("Look at ") or goal.startswith("Talk to "):
+    if goal.startswith(("Activate ", "Look at ", "Talk to ")):
         return False
     if "freerunning" in gl:
         return False
@@ -74,11 +74,14 @@ def is_moon_count_objective(goal: str, obj: dict) -> bool:
         return True
     return False
 
+GOAL_TOTAL_MOONS = "{{X}} Total Moons"
+GOAL_X_LOWER = "{{x}}"
+
 _HYBRID_NO_MOON_GOALS = frozenset(
     {
         "{{X}} Talkatoos",
         "{{X}} Moon Rocks",
-        "{{X}} Total Moons",
+        GOAL_TOTAL_MOONS,
         "{{X}} Seed Moon (No Time Travel)",
     }
 )
@@ -176,6 +179,408 @@ def collect_membership() -> dict[str, list[tuple[str, list[dict]]]]:
     return membership
 
 
+_SUB_AREA_SPECIFIC = frozenset({"hybrid_2d"})
+
+_STANDARD_SEED_POTS = {
+    ("sand", 25),
+    ("sand", 26),
+    ("sand", 27),
+    ("metro", 21),
+    ("metro", 22),
+    ("metro", 23),
+    ("seaside", 23),
+    ("seaside", 24),
+    ("seaside", 25),
+}
+
+_SPECIAL_SEED_KEYS = {("lake", 9), ("wooded", 33), ("seaside", 26)}
+
+_KD_FILTER_GOAL_RE = re.compile(
+    r"\b(Shop|Talkatoo|Moon Rock|Captain Toad|Hint Art|Outfit Door|"
+    r"Warp-Painting|Story|Multi-Moon|Ground Pound|Seed)\b"
+)
+
+_FALLBACK_BOWSER_STATUE = [
+    {"kingdom": "moon", "moon": 9, "name": "Under the Bowser Statue"}
+]
+_FALLBACK_SHEEP = [
+    {"kingdom": "sand", "moon": 33, "name": "Herding Sheep in the Dunes"}
+]
+_FALLBACK_FESTIVAL = [
+    {"kingdom": "metro", "moon": 36, "name": "Celebrating in the Streets!"}
+]
+_FALLBACK_FIRE_PIRANHA = [
+    {"kingdom": "luncheon", "moon": 32, "name": "Light the Far-Off Lanterns"}
+]
+_FALLBACK_BANZAI = [
+    {"kingdom": "moon", "moon": 11, "name": "Around the Barrier Wall"},
+    {"kingdom": "moon", "moon": 13, "name": "Fly to the Treasure Chest and Back"},
+]
+_FALLBACK_PARABONES = [
+    {"kingdom": "moon", "moon": 10, "name": "In a Hole in the Magma"}
+]
+_FALLBACK_SPECIAL_SEED = [
+    {
+        "kingdom": "lake",
+        "moon": 9,
+        "name": "Lake Gardening: Spiky Passage Seed",
+    },
+    {
+        "kingdom": "wooded",
+        "moon": 33,
+        "name": "A Treasure Made from Coins",
+    },
+    {
+        "kingdom": "seaside",
+        "moon": 26,
+        "name": "Sea Gardening: Ocean Trench Seed",
+    },
+]
+
+
+def _moon_name(m: dict) -> str:
+    return str(m.get("name") or "").lower()
+
+
+def _try_sub_area_pool(
+    entries: list[tuple[str, list[dict]]],
+    kd: str | None,
+    gl: str,
+) -> tuple[list[str], list[dict], str] | None:
+    """Sub-Area: pool dedicado o grupo temático (hybrid_2d)."""
+    if "sub-area" not in gl:
+        return None
+    specific = [
+        (gid, ms)
+        for gid, ms in entries
+        if gid != "sub_area" and ms and gid in _SUB_AREA_SPECIFIC
+    ]
+    if specific:
+        specific.sort(key=lambda gm: (len(gm[1]), gm[0]))
+        gid, moons = specific[0]
+        return [gid], moons, f"{gid} pool"
+    for gid, ms in entries:
+        if gid != "sub_area" or not ms:
+            continue
+        moons = list(ms)
+        if kd:
+            filtered = [m for m in moons if m.get("kingdom") == kd]
+            if filtered:
+                moons = filtered
+        return ["sub_area"], moons, "sub_area pool"
+    return None
+
+
+def _prefer_shared_over_kingdom(
+    chosen_gid: str,
+    moons: list[dict],
+    with_moons: list[tuple[str, list[dict]]],
+    kingdom_ids: set[str],
+) -> tuple[str, list[dict]]:
+    if chosen_gid not in kingdom_ids:
+        return chosen_gid, moons
+    shared = [
+        gm
+        for gm in with_moons
+        if gm[0] in _SHARED_POOLS or gm[0] not in kingdom_ids
+    ]
+    if not shared:
+        return chosen_gid, moons
+    shared.sort(key=lambda gm: (len(gm[1]), gm[0]))
+    return shared[0]
+
+
+def _pick_smallest_pool(
+    goal: str, with_moons: list[tuple[str, list[dict]]], kingdom_ids: set[str]
+) -> tuple[str, list[dict]]:
+    with_moons = sorted(with_moons, key=lambda gm: (len(gm[1]), gm[0]))
+    min_n = len(with_moons[0][1])
+    candidates = [gm for gm in with_moons if len(gm[1]) == min_n]
+    stem = re.sub(r"[^a-z0-9]+", "_", goal.lower())
+    preferred = next(
+        (
+            gm
+            for gm in candidates
+            if gm[0] in stem or stem.startswith(gm[0]) or gm[0] in goal.lower()
+        ),
+        candidates[0],
+    )
+    return _prefer_shared_over_kingdom(
+        preferred[0], preferred[1], with_moons, kingdom_ids
+    )
+
+
+def _choose_pool_moons(
+    goal: str,
+    entries: list[tuple[str, list[dict]]],
+    kingdom_ids: set[str],
+) -> tuple[list[str], list[dict]]:
+    """Elige group_ids + moons del membership (pool_only / concreto / shared)."""
+    thematic = [(g, m) for g, m in entries if g not in kingdom_ids]
+    pool = thematic if thematic else entries
+    concrete = [(g, m) for g, m in pool if g not in _UMBRELLA]
+    if concrete:
+        pool = concrete
+
+    with_moons = [(g, m) for g, m in pool if m]
+    pool_only = [(g, m) for g, m in with_moons if _group_is_pool_only(g)]
+    if pool_only:
+        pool_only.sort(key=lambda gm: (-len(gm[1]), gm[0]))
+        chosen_gid, moons = pool_only[0]
+        return [chosen_gid], moons
+    if not with_moons:
+        return [g for g, _ in pool], []
+    chosen_gid, moons = _pick_smallest_pool(goal, with_moons, kingdom_ids)
+    return [chosen_gid], moons
+
+
+def _maybe_filter_by_kingdom(
+    goal: str,
+    gl: str,
+    kd: str | None,
+    used: list[str],
+    entries: list[tuple[str, list[dict]]],
+    moons: list[dict],
+) -> list[dict]:
+    if not kd or "special seed" in gl:
+        return moons
+    needs = (
+        any(g in _SHARED_POOLS for g in used)
+        or any(g == kd for g, _ in entries)
+        or bool(_KD_FILTER_GOAL_RE.search(goal))
+    )
+    if not needs:
+        return moons
+    filtered = [m for m in moons if m["kingdom"] == kd]
+    return filtered if filtered else moons
+
+
+def _kd_name_or_first(
+    moons: list[dict], kd: str, *needles: str
+) -> list[dict]:
+    hit = [
+        m
+        for m in moons
+        if m["kingdom"] == kd and any(n in _moon_name(m) for n in needles)
+    ]
+    return hit or [m for m in moons if m["kingdom"] == kd][:1]
+
+
+def _name_any(moons: list[dict], *needles: str) -> list[dict]:
+    return [m for m in moons if any(n in _moon_name(m) for n in needles)]
+
+
+def _filter_festival(moons: list[dict]) -> list[dict]:
+    hit = [
+        m
+        for m in moons
+        if "celebrating" in _moon_name(m)
+        or ("festival" in _moon_name(m) and "traditional" not in _moon_name(m))
+    ]
+    return hit or list(_FALLBACK_FESTIVAL)
+
+
+def _filter_special_seed(moons: list[dict]) -> list[dict]:
+    hit = [
+        m
+        for m in moons
+        if (m.get("kingdom"), int(m.get("moon") or 0)) in _SPECIAL_SEED_KEYS
+        or "spiky passage seed" in _moon_name(m)
+        or "treasure made from coins" in _moon_name(m)
+        or "ocean trench seed" in _moon_name(m)
+    ]
+    return hit or list(_FALLBACK_SPECIAL_SEED)
+
+
+def _sheep_moons(registry: dict) -> list[dict]:
+    hit = [
+        {"kingdom": k, "moon": m, "name": e.get("name") or "?"}
+        for (k, m), e in registry.items()
+        if k == "sand" and "sheep" in str(e.get("name") or "").lower()
+    ]
+    return hit or list(_FALLBACK_SHEEP)
+
+
+def _snow_boxer_moons(moons: list[dict]) -> list[dict]:
+    return [
+        m
+        for m in moons
+        if m.get("kingdom") == "snow" and int(m.get("moon") or 0) == 20
+    ]
+
+
+# (needle in gl, handler) — orden = prioridad de la cadena elif original.
+# handler(moons, kd, registry) → (moons, used_override|None)
+_SINGULAR_GL_HANDLERS: list[tuple[str, object]] = []
+
+
+def _init_singular_handlers() -> None:
+    """Tabla de filtros singulares (evita cadena elif larga)."""
+    if _SINGULAR_GL_HANDLERS:
+        return
+
+    def shop(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _kd_name_or_first(moons, kd, "shopping"), None
+
+    def toad(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _kd_name_or_first(moons, kd, "captain toad"), None
+
+    def hint(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _kd_name_or_first(moons, kd, "art"), None
+
+    def warp(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _kd_name_or_first(moons, kd, "secret path"), None
+
+    def outfit(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return [m for m in moons if m["kingdom"] == kd], None
+
+    def multi(moons: list[dict], kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return [m for m in moons if m["kingdom"] == kd], None
+
+    def statue(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _name_any(moons, "bowser statue") or list(_FALLBACK_BOWSER_STATUE), None
+
+    def sheep(_moons: list[dict], _kd: str, reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _sheep_moons(reg), ["fauna"]
+
+    def festival(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _filter_festival(moons), None
+
+    def puzzle(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _name_any(moons, "puzzle", "repair", "blowing and sliding"), None
+
+    def fire_p(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return (
+            _name_any(moons, "far-off lanterns", "magma swamp", "fire piranha")
+            or list(_FALLBACK_FIRE_PIRANHA)
+        ), None
+
+    def banzai(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return (
+            _name_any(
+                moons, "around the barrier", "treasure chest and back", "banzai"
+            )
+            or list(_FALLBACK_BANZAI)
+        ), None
+
+    def parabones(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return (
+            _name_any(moons, "hole in the magma", "parabones")
+            or list(_FALLBACK_PARABONES)
+        ), None
+
+    def special(moons: list[dict], _kd: str, _reg: dict) -> tuple[list[dict], list[str] | None]:
+        return _filter_special_seed(moons), None
+
+    _SINGULAR_GL_HANDLERS.extend(
+        [
+            ("shop moon", shop),
+            ("captain toad", toad),
+            ("hint art", hint),
+            ("warp-painting", warp),
+            ("warp painting", warp),
+            ("outfit door", outfit),
+            ("multi-moon", multi),
+            ("bowser statue", statue),
+            ("sheep", sheep),
+            ("festival", festival),
+            ("puzzle", puzzle),
+            ("fire piranha", fire_p),
+            ("banzai", banzai),
+            ("parabones", parabones),
+            ("special seed", special),
+        ]
+    )
+
+
+def _apply_singular_goal_moons(
+    goal: str,
+    gl: str,
+    kd: str | None,
+    moons: list[dict],
+    used: list[str],
+    registry: dict,
+) -> tuple[list[dict], list[str]]:
+    """Filtros de goals singulares (shop / toad / statue / …)."""
+    if goal == "Snow Boxer Shorts Moon":
+        return _snow_boxer_moons(moons), used
+    if GOAL_X_LOWER in gl or not moons or not kd:
+        return moons, used
+
+    _init_singular_handlers()
+    for needle, handler in _SINGULAR_GL_HANDLERS:
+        if needle not in gl:
+            continue
+        new_moons, used_override = handler(moons, kd, registry)
+        return new_moons, used_override if used_override is not None else used
+    return moons, used
+
+
+def _filter_standard_seed_pots(moons: list[dict]) -> list[dict]:
+    return [
+        m
+        for m in moons
+        if (m.get("kingdom"), int(m.get("moon") or 0)) in _STANDARD_SEED_POTS
+    ]
+
+
+def _volleyball_moons(entries: list[tuple[str, list[dict]]]) -> list[dict]:
+    return [
+        m
+        for _g, ms in entries
+        for m in ms
+        if "volleyball" in _moon_name(m)
+    ]
+
+
+def _slots_moons(entries: list[tuple[str, list[dict]]]) -> list[dict]:
+    return [
+        m
+        for _g, ms in entries
+        for m in ms
+        if "slots" in _moon_name(m)
+    ]
+
+
+def _apply_seed_and_minigame_filters(
+    gl: str,
+    moons: list[dict],
+    used: list[str],
+    entries: list[tuple[str, list[dict]]],
+) -> tuple[list[dict], list[str]]:
+    is_ntt_seed = "seed moon (no time travel)" in gl
+    is_seeds_planted = "seeds planted" in gl and "lake seed" not in gl
+    if is_ntt_seed or is_seeds_planted:
+        moons = _filter_standard_seed_pots(moons)
+    elif "golden turnip" in gl:
+        moons = _name_any(moons, "golden turnip", "turnip recipe")
+
+    if "volleyball" in gl:
+        return _volleyball_moons(entries), ["minigame/volleyball"]
+    if "slots moon" in gl:
+        return _slots_moons(entries), ["slots"]
+    return moons, used
+
+
+def _dedup_sort_moons(moons: list[dict]) -> list[dict]:
+    by_key: dict[tuple[str, int], dict] = {}
+    for raw in moons:
+        if "kingdom" not in raw or "moon" not in raw:
+            continue
+        key = (raw["kingdom"], int(raw["moon"]))
+        by_key[key] = raw
+    return [
+        by_key[k]
+        for k in sorted(
+            by_key,
+            key=lambda km: (
+                KINGDOM_COLUMNS.index(km[0]) if km[0] in KINGDOM_COLUMNS else 99,
+                km[1],
+            ),
+        )
+    ]
+
+
 def pick_moons_for_goal(
     goal: str,
     entries: list[tuple[str, list[dict]]],
@@ -190,323 +595,15 @@ def pick_moons_for_goal(
     kd = goal_kingdom(goal, board)
     gl = goal.lower()
 
-    # Sub-Area: pool del grupo sub_area (no el reino entero; sub_area es umbrella).
-    # Goals temáticas (Hybrid 2D, etc.) tienen grupo propio → preferir ese pool.
-    _SUB_AREA_SPECIFIC = frozenset({"hybrid_2d"})
-    if "sub-area" in gl:
-        specific = [
-            (gid, ms)
-            for gid, ms in entries
-            if gid != "sub_area" and ms and gid in _SUB_AREA_SPECIFIC
-        ]
-        if specific:
-            specific.sort(key=lambda gm: (len(gm[1]), gm[0]))
-            gid, moons = specific[0]
-            return [gid], moons, f"{gid} pool"
-        for gid, ms in entries:
-            if gid == "sub_area" and ms:
-                moons = list(ms)
-                if kd:
-                    filtered = [m for m in moons if m.get("kingdom") == kd]
-                    if filtered:
-                        moons = filtered
-                return ["sub_area"], moons, "sub_area pool"
+    early = _try_sub_area_pool(entries, kd, gl)
+    if early is not None:
+        return early
 
-    thematic = [(g, m) for g, m in entries if g not in kingdom_ids]
-    pool = thematic if thematic else entries
-    concrete = [(g, m) for g, m in pool if g not in _UMBRELLA]
-    if concrete:
-        pool = concrete
-
-    # Preferir grupo pool (apply_moon_tag=False) frente a tags concretas
-    # que heredan el mismo CAPTURE_OBJECTIVE.
-    with_moons = [(g, m) for g, m in pool if m]
-    pool_only = [(g, m) for g, m in with_moons if _group_is_pool_only(g)]
-    if pool_only:
-        pool_only.sort(key=lambda gm: (-len(gm[1]), gm[0]))
-        chosen_gid, moons = pool_only[0]
-        used = [chosen_gid]
-    elif with_moons:
-        with_moons.sort(key=lambda gm: (len(gm[1]), gm[0]))
-        # Si hay varios con el minimo, preferir shared-pool o stem en el id
-        min_n = len(with_moons[0][1])
-        candidates = [gm for gm in with_moons if len(gm[1]) == min_n]
-        stem = re.sub(r"[^a-z0-9]+", "_", goal.lower())
-        preferred = next(
-            (
-                gm
-                for gm in candidates
-                if gm[0] in stem or stem.startswith(gm[0]) or gm[0] in goal.lower()
-            ),
-            candidates[0],
-        )
-        # Si el mas pequeno es un reino con muchas lunas y hay shared pool
-        # del mismo tamano relativo, ya elegimos preferred.
-        chosen_gid, moons = preferred
-        # Si hay varios grupos pequenos utiles (beanstalk + nada), OK.
-        # Si preferred es reino enorme y existe shared con filtro, usar shared.
-        shared = [
-            gm
-            for gm in with_moons
-            if gm[0] in _SHARED_POOLS or gm[0] not in kingdom_ids
-        ]
-        if chosen_gid in kingdom_ids and shared:
-            shared.sort(key=lambda gm: (len(gm[1]), gm[0]))
-            chosen_gid, moons = shared[0]
-        used = [chosen_gid]
-    else:
-        used = [g for g, _ in pool]
-        moons = []
-
-    # Filtro por reino en pools compartidos o goals de reino
-    skip_kd_filter = "special seed" in gl
-    if kd and not skip_kd_filter and (
-        any(g in _SHARED_POOLS for g in used)
-        or any(g == kd for g, _ in entries)
-        or re.search(r"\b(Shop|Talkatoo|Moon Rock|Captain Toad|Hint Art|Outfit Door|"
-                     r"Warp-Painting|Story|Multi-Moon|Ground Pound|Seed)\b", goal)
-    ):
-        filtered = [m for m in moons if m["kingdom"] == kd]
-        if filtered:
-            moons = filtered
-        elif any(g == kd for g, m in entries for _ in [1]):
-            # fallback: buscar en grupo tematico del mismo tipo por nombre
-            pass
-
-    # Goals singulares de shop / toad / etc.: una luna del reino
-    if goal == "Snow Boxer Shorts Moon":
-        # snow#20 I'm Not Cold! (traje boxers al NPC)
-        moons = [
-            m
-            for m in moons
-            if m.get("kingdom") == "snow" and int(m.get("moon") or 0) == 20
-        ]
-    elif "{{x}}" not in gl and moons and kd:
-        if "shop moon" in gl:
-            moons = [
-                m
-                for m in moons
-                if m["kingdom"] == kd
-                and "shopping" in str(m.get("name") or "").lower()
-            ] or [m for m in moons if m["kingdom"] == kd][:1]
-        elif "captain toad" in gl:
-            moons = [
-                m
-                for m in moons
-                if m["kingdom"] == kd
-                and "captain toad" in str(m.get("name") or "").lower()
-            ] or [m for m in moons if m["kingdom"] == kd][:1]
-        elif "hint art" in gl:
-            moons = [
-                m
-                for m in moons
-                if m["kingdom"] == kd
-                and "art" in str(m.get("name") or "").lower()
-            ] or [m for m in moons if m["kingdom"] == kd][:1]
-        elif "warp-painting" in gl or "warp painting" in gl:
-            moons = [
-                m
-                for m in moons
-                if m["kingdom"] == kd
-                and "secret path" in str(m.get("name") or "").lower()
-            ] or [m for m in moons if m["kingdom"] == kd][:1]
-        elif "outfit door" in gl and "{{x}}" not in gl:
-            moons = [m for m in moons if m["kingdom"] == kd]
-        elif "multi-moon" in gl and "{{x}}" not in gl:
-            moons = [m for m in moons if m["kingdom"] == kd]
-        elif "bowser statue" in gl:
-            moons = [
-                m
-                for m in moons
-                if "bowser statue" in str(m.get("name") or "").lower()
-            ] or [
-                {
-                    "kingdom": "moon",
-                    "moon": 9,
-                    "name": "Under the Bowser Statue",
-                }
-            ]
-        elif "sheep" in gl:
-            moons = [
-                {"kingdom": k, "moon": m, "name": e.get("name") or "?"}
-                for (k, m), e in registry.items()
-                if k == "sand" and "sheep" in str(e.get("name") or "").lower()
-            ] or [
-                {"kingdom": "sand", "moon": 33, "name": "Herding Sheep in the Dunes"}
-            ]
-            used = ["fauna"]
-        elif "festival" in gl:
-            # 8-bit Celebrating in the Streets — no #7 A Traditional Festival!
-            moons = [
-                m
-                for m in moons
-                if "celebrating" in str(m.get("name") or "").lower()
-                or (
-                    "festival" in str(m.get("name") or "").lower()
-                    and "traditional" not in str(m.get("name") or "").lower()
-                )
-            ] or [
-                {
-                    "kingdom": "metro",
-                    "moon": 36,
-                    "name": "Celebrating in the Streets!",
-                }
-            ]
-        elif "puzzle" in gl:
-            moons = [
-                m
-                for m in moons
-                if "puzzle" in str(m.get("name") or "").lower()
-                or "repair" in str(m.get("name") or "").lower()
-                or "blowing and sliding" in str(m.get("name") or "").lower()
-            ]
-        elif "fire piranha" in gl:
-            moons = [
-                m
-                for m in moons
-                if "far-off lanterns" in str(m.get("name") or "").lower()
-                or "magma swamp" in str(m.get("name") or "").lower()
-                or "fire piranha" in str(m.get("name") or "").lower()
-            ] or [
-                {
-                    "kingdom": "luncheon",
-                    "moon": 32,
-                    "name": "Light the Far-Off Lanterns",
-                }
-            ]
-        elif "banzai" in gl:
-            moons = [
-                m
-                for m in moons
-                if "around the barrier" in str(m.get("name") or "").lower()
-                or "treasure chest and back" in str(m.get("name") or "").lower()
-                or "banzai" in str(m.get("name") or "").lower()
-            ] or [
-                {
-                    "kingdom": "moon",
-                    "moon": 11,
-                    "name": "Around the Barrier Wall",
-                },
-                {
-                    "kingdom": "moon",
-                    "moon": 13,
-                    "name": "Fly to the Treasure Chest and Back",
-                },
-            ]
-        elif "parabones" in gl:
-            moons = [
-                m
-                for m in moons
-                if "hole in the magma" in str(m.get("name") or "").lower()
-                or "parabones" in str(m.get("name") or "").lower()
-            ] or [
-                {
-                    "kingdom": "moon",
-                    "moon": 10,
-                    "name": "In a Hole in the Magma",
-                }
-            ]
-        elif "special seed" in gl:
-            _SPECIAL_SEED_KEYS = {("lake", 9), ("wooded", 33), ("seaside", 26)}
-            moons = [
-                m
-                for m in moons
-                if (m.get("kingdom"), int(m.get("moon") or 0)) in _SPECIAL_SEED_KEYS
-                or "spiky passage seed" in str(m.get("name") or "").lower()
-                or "treasure made from coins" in str(m.get("name") or "").lower()
-                or "ocean trench seed" in str(m.get("name") or "").lower()
-            ] or [
-                {
-                    "kingdom": "lake",
-                    "moon": 9,
-                    "name": "Lake Gardening: Spiky Passage Seed",
-                },
-                {
-                    "kingdom": "wooded",
-                    "moon": 33,
-                    "name": "A Treasure Made from Coins",
-                },
-                {
-                    "kingdom": "seaside",
-                    "moon": 26,
-                    "name": "Sea Gardening: Ocean Trench Seed",
-                },
-            ]
-
-    # NTT y Seeds Planted: 9 macetas (3 sand + 3 metro + 3 seaside #23–#25).
-    _STANDARD_SEED_POTS = {
-        ("sand", 25),
-        ("sand", 26),
-        ("sand", 27),
-        ("metro", 21),
-        ("metro", 22),
-        ("metro", 23),
-        ("seaside", 23),
-        ("seaside", 24),
-        ("seaside", 25),
-    }
-    if "seed moon (no time travel)" in gl:
-        moons = [
-            m
-            for m in moons
-            if (m.get("kingdom"), int(m.get("moon") or 0)) in _STANDARD_SEED_POTS
-        ]
-    elif "seeds planted" in gl and "lake seed" not in gl:
-        moons = [
-            m
-            for m in moons
-            if (m.get("kingdom"), int(m.get("moon") or 0)) in _STANDARD_SEED_POTS
-        ]
-    elif "golden turnip" in gl:
-        moons = [
-            m
-            for m in moons
-            if "golden turnip" in str(m.get("name") or "").lower()
-            or "turnip recipe" in str(m.get("name") or "").lower()
-        ]
-
-    if "volleyball" in gl:
-        moons = [
-            m
-            for g, ms in entries
-            for m in ms
-            if "volleyball" in str(m.get("name") or "").lower()
-        ]
-        used = ["minigame/volleyball"]
-
-    if "slots moon" in gl:
-        moons = [
-            m
-            for g, ms in entries
-            for m in ms
-            if "slots" in str(m.get("name") or "").lower()
-        ]
-        if not moons:
-            # grupo slots o minigame
-            for g, ms in entries:
-                moons.extend(
-                    m for m in ms if "slots" in str(m.get("name") or "").lower()
-                )
-        used = ["slots"]
-
-    # Dedup + sort
-    by_key: dict[tuple[str, int], dict] = {}
-    for raw in moons:
-        if "kingdom" not in raw or "moon" not in raw:
-            continue
-        key = (raw["kingdom"], int(raw["moon"]))
-        by_key[key] = raw
-    moons = [
-        by_key[k]
-        for k in sorted(
-            by_key,
-            key=lambda km: (
-                KINGDOM_COLUMNS.index(km[0]) if km[0] in KINGDOM_COLUMNS else 99,
-                km[1],
-            ),
-        )
-    ]
-    return used, moons, ""
+    used, moons = _choose_pool_moons(goal, entries, kingdom_ids)
+    moons = _maybe_filter_by_kingdom(goal, gl, kd, used, entries, moons)
+    moons, used = _apply_singular_goal_moons(goal, gl, kd, moons, used, registry)
+    moons, used = _apply_seed_and_minigame_filters(gl, moons, used, entries)
+    return used, _dedup_sort_moons(moons), ""
 
 
 def needs_lista(goal: str, moonish: bool, n_moons: int) -> bool:
@@ -514,7 +611,7 @@ def needs_lista(goal: str, moonish: bool, n_moons: int) -> bool:
         return False
     if not moonish:
         return True
-    if goal in _HYBRID_NO_MOON_GOALS and goal != "{{X}} Total Moons":
+    if goal in _HYBRID_NO_MOON_GOALS and goal != GOAL_TOTAL_MOONS:
         return True
     return n_moons == 0
 
@@ -579,7 +676,7 @@ _KINGDOM_AGG_KEYS = frozenset(
 _ALWAYS_BY_KINGDOM_MOON_GOALS = frozenset(
     {
         "{{X}} Sub-Area Moons",
-        "{{X}} Total Moons",
+        GOAL_TOTAL_MOONS,
     }
 )
 
@@ -601,6 +698,13 @@ def lista_is_kingdom_aggregate(lista: list[dict]) -> bool:
     return True
 
 
+def _bucket_to_kingdom_row(k: str, row: dict) -> dict:
+    entry: dict = {"kingdom": k, "n_moons": row["n_moons"]}
+    if row["n_odyssey_units"] != row["n_moons"]:
+        entry["n_odyssey_units"] = row["n_odyssey_units"]
+    return entry
+
+
 def by_kingdom_from_moons(moon_refs: list[dict]) -> list[dict]:
     """Resumen {kingdom, n_moons[, n_odyssey_units]} en orden de historia."""
     buckets: dict[str, dict] = {}
@@ -620,18 +724,11 @@ def by_kingdom_from_moons(moon_refs: list[dict]) -> list[dict]:
         if k not in buckets:
             continue
         seen.add(k)
-        row = buckets[k]
-        entry: dict = {"kingdom": k, "n_moons": row["n_moons"]}
-        if row["n_odyssey_units"] != row["n_moons"]:
-            entry["n_odyssey_units"] = row["n_odyssey_units"]
-        out.append(entry)
+        out.append(_bucket_to_kingdom_row(k, buckets[k]))
     for k, row in sorted(buckets.items(), key=lambda kv: kingdom_story_index(kv[0])):
         if k in seen:
             continue
-        entry = {"kingdom": k, "n_moons": row["n_moons"]}
-        if row["n_odyssey_units"] != row["n_moons"]:
-            entry["n_odyssey_units"] = row["n_odyssey_units"]
-        out.append(entry)
+        out.append(_bucket_to_kingdom_row(k, row))
     return out
 
 
@@ -696,6 +793,133 @@ def lista_n(lista: list[dict]) -> int:
     return len(lista)
 
 
+def _want_kingdom_lista(
+    want_lista: bool,
+    regional: dict | None,
+    checkpoint_meta: dict | None,
+    gl: str,
+) -> bool:
+    if not want_lista:
+        return False
+    if regional is None or checkpoint_meta is not None:
+        return True
+    return any(
+        needle in gl
+        for needle in ("total regional", "large kingdom", "small kingdom")
+    )
+
+
+def _regional_total_lista(
+    regional: dict, kd: str | None, rz: dict | None
+) -> list[dict]:
+    row: dict = {"total": int(regional["regional_total"])}
+    if kd:
+        row["kingdom"] = kd
+    elif rz and rz.get("kingdom"):
+        row["kingdom"] = str(rz["kingdom"])
+    return [row]
+
+
+def _lista_from_rz_or_totals(
+    *,
+    goal: str,
+    moon_refs: list[dict],
+    kd: str | None,
+    rz: dict | None,
+    all_multi: bool,
+    registry: dict,
+) -> tuple[list[dict], bool] | None:
+    """Early lista paths (regionales / totals / multi). None = seguir."""
+    if rz and rz.get("groups"):
+        return [dict(g) for g in rz["groups"]], False
+    if rz and rz.get("by_kingdom"):
+        return [dict(x) for x in rz["by_kingdom"]], False
+    if goal == GOAL_TOTAL_MOONS:
+        return odyssey_units_by_kingdom_rows(registry), True
+    if should_summarize_moons_by_kingdom(goal, moon_refs, kd):
+        return by_kingdom_from_moons(moon_refs), True
+    if all_multi:
+        return multi_moon_totals_lista(), False
+    return None
+
+
+def _build_goal_lista(
+    *,
+    goal: str,
+    obj: dict,
+    moonish: bool,
+    moon_refs: list[dict],
+    kd: str | None,
+    regional: dict | None,
+    checkpoint_meta: dict | None,
+    rz: dict | None,
+    all_multi: bool,
+    registry: dict,
+) -> tuple[list[dict], bool]:
+    """Construye lista[] y si moons[] se resume por reino."""
+    early = _lista_from_rz_or_totals(
+        goal=goal,
+        moon_refs=moon_refs,
+        kd=kd,
+        rz=rz,
+        all_multi=all_multi,
+        registry=registry,
+    )
+    if early is not None:
+        return early
+
+    want_lista = needs_lista(goal, moonish, len(moon_refs))
+    gl = goal.lower()
+    if _want_kingdom_lista(want_lista, regional, checkpoint_meta, gl):
+        return build_goal_lista(goal, obj, kingdom=kd), False
+    if regional and regional.get("regional_total") is not None:
+        return _regional_total_lista(regional, kd, rz), False
+    if rz and rz.get("total") is not None and rz.get("kingdom"):
+        return [
+            {"kingdom": str(rz["kingdom"]), "total": int(rz["total"])}
+        ], False
+    return [], False
+
+
+def _attach_moon_counts(
+    record: dict,
+    *,
+    goal: str,
+    moon_refs: list[dict],
+    moon_detail: list[dict],
+    summarize_moons: bool,
+    lista: list[dict],
+    registry: dict,
+) -> None:
+    if moon_refs and (moon_detail or summarize_moons):
+        record["n_moons"] = len(moon_refs)
+        odyssey_units = sum(int(m.get("odyssey_units") or 1) for m in moon_refs)
+        if odyssey_units != len(moon_refs):
+            record["n_odyssey_units"] = odyssey_units
+        return
+    if goal == GOAL_TOTAL_MOONS and lista:
+        totals = compute_in_scope_moon_totals(registry)
+        record["n_moons"] = int(totals["moon_count"])
+        record["n_odyssey_units"] = int(totals["odyssey_units"])
+
+
+def _sorted_lista_for_goal(
+    goal: str, lista: list[dict], rz: dict | None
+) -> list[dict]:
+    enriched = enrich_lista_locations(lista)
+    if goal == "{{X}} Unique Captures":
+        return sorted(enriched, key=lambda x: int(x.get("id") or 0))
+    if rz and rz.get("groups"):
+        return sorted(
+            enriched,
+            key=lambda x: (
+                kingdom_story_index(str(x.get("kingdom") or "")),
+                int(x.get("id") or 0),
+            ),
+        )
+    return sort_lista_items(enriched)
+
+
 def build_goal_record(
     orden: int,
     goal: str,
@@ -706,7 +930,6 @@ def build_goal_record(
     board = list(obj.get("board_categories") or [])
     moonish = is_moon_count_objective(goal, obj)
     moons: list[dict] = []
-    # All Multi-Moons: cuenta reinos (by_kingdom), no lunas sueltas.
     all_multi = goal.startswith("All Multi-Moons")
     if not all_multi and (moonish or goal in _MOONS_POOL_NON_GET) and entries:
         _, moons, _note = pick_moons_for_goal(goal, entries, board, registry)
@@ -717,52 +940,18 @@ def build_goal_record(
     checkpoint_meta = checkpoint_goal_fields(goal)
     rz = regionales_zonas_entry(goal)
 
-    lista: list[dict] = []
-    summarize_moons = False
-
-    # Multi-reino / umbrellas / regionales → lista[].
-    if rz and rz.get("groups"):
-        # Clusters de monedas regionales (regionales_zonas.groups).
-        lista = [dict(g) for g in rz["groups"]]
-    elif rz and rz.get("by_kingdom"):
-        lista = [dict(x) for x in rz["by_kingdom"]]
-    elif goal == "{{X}} Total Moons":
-        lista = odyssey_units_by_kingdom_rows(registry)
-        summarize_moons = True
-    elif should_summarize_moons_by_kingdom(goal, moon_refs, kd):
-        lista = by_kingdom_from_moons(moon_refs)
-        summarize_moons = True
-    elif all_multi:
-        lista = multi_moon_totals_lista()
-    else:
-        want_lista = needs_lista(goal, moonish, len(moon_refs))
-        gl = goal.lower()
-        # Total Regional / All Large|Small / checkpoints: lista por reino
-        if want_lista and (
-            regional is None
-            or "total regional" in gl
-            or "large kingdom" in gl
-            or "small kingdom" in gl
-            or checkpoint_meta is not None
-        ):
-            lista = build_goal_lista(goal, obj, kingdom=kd)
-        elif regional and regional.get("regional_total") is not None:
-            # Fallback si no hay groups[] en regionales_zonas.
-            row: dict = {"total": int(regional["regional_total"])}
-            if kd:
-                row["kingdom"] = kd
-            elif rz and rz.get("kingdom"):
-                row["kingdom"] = str(rz["kingdom"])
-            lista = [row]
-        elif rz and rz.get("total") is not None and rz.get("kingdom"):
-            lista = [
-                {
-                    "kingdom": str(rz["kingdom"]),
-                    "total": int(rz["total"]),
-                }
-            ]
-
-    # moons[] solo si no resumimos por reino
+    lista, summarize_moons = _build_goal_lista(
+        goal=goal,
+        obj=obj,
+        moonish=moonish,
+        moon_refs=moon_refs,
+        kd=kd,
+        regional=regional,
+        checkpoint_meta=checkpoint_meta,
+        rz=rz,
+        all_multi=all_multi,
+        registry=registry,
+    )
     moon_detail = [] if summarize_moons else moon_refs
 
     pool = goal_pool(
@@ -782,16 +971,15 @@ def build_goal_record(
     if pool:
         record["pool"] = pool
 
-    if moon_refs and (moon_detail or summarize_moons):
-        record["n_moons"] = len(moon_refs)
-        odyssey_units = sum(int(m.get("odyssey_units") or 1) for m in moon_refs)
-        if odyssey_units != len(moon_refs):
-            record["n_odyssey_units"] = odyssey_units
-    elif goal == "{{X}} Total Moons" and lista:
-        totals = compute_in_scope_moon_totals(registry)
-        record["n_moons"] = int(totals["moon_count"])
-        record["n_odyssey_units"] = int(totals["odyssey_units"])
-
+    _attach_moon_counts(
+        record,
+        goal=goal,
+        moon_refs=moon_refs,
+        moon_detail=moon_detail,
+        summarize_moons=summarize_moons,
+        lista=lista,
+        registry=registry,
+    )
     if moon_detail:
         record["moons"] = moon_detail
 
@@ -800,20 +988,7 @@ def build_goal_record(
         record["moon_count_mode"] = count_mode
     if lista:
         record["n_lista"] = lista_n(lista)
-        enriched = enrich_lista_locations(lista)
-        if goal == "{{X}} Unique Captures":
-            record["lista"] = sorted(enriched, key=lambda x: int(x.get("id") or 0))
-        elif rz and rz.get("groups"):
-            # Grupos regionales: reino (historia) → id.
-            record["lista"] = sorted(
-                enriched,
-                key=lambda x: (
-                    kingdom_story_index(str(x.get("kingdom") or "")),
-                    int(x.get("id") or 0),
-                ),
-            )
-        else:
-            record["lista"] = sort_lista_items(enriched)
+        record["lista"] = _sorted_lista_for_goal(goal, lista, rz)
     notas = goal_notas(goal, obj)
     if notas:
         record["notas"] = notas
@@ -822,7 +997,7 @@ def build_goal_record(
 
 def main() -> None:
     registry = build_matrix_moon_registry()
-    for (k, m), e in list(registry.items()):
+    for (k, m), e in registry.items():
         e.setdefault("kingdom", k)
         e.setdefault("moon", m)
 

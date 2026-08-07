@@ -49,6 +49,10 @@ from export_capturas_lunas import CAPTURE_LIST
 
 FULL_ZONE_PROGRESSION = list(ZONE_ORDER)  # e, m, l, n
 
+GOAL_CAPPY_MOONS = "{{X}} Cappy Moons"
+GOAL_MARIO_MOONS = "{{X}} Mario Moons"
+GOAL_TOURIST_MOONS = "{{X}} Tourist Moons"
+
 GLOBAL_FROM_MID: frozenset[str] = frozenset(
     {
         "{{X}} Total Moons",
@@ -65,8 +69,8 @@ GLOBAL_FROM_CAP: frozenset[str] = frozenset(
         "{{X}} Timer Challenge Moons",
         "{{X}} Music Note Moons",
         "{{X}} Moon Shard Moons",
-        "{{X}} Cappy Moons",
-        "{{X}} Mario Moons",
+        GOAL_CAPPY_MOONS,
+        GOAL_MARIO_MOONS,
         "{{X}} Capture Moons",
         "{{X}} Captain Toad Moons",
         "{{X}} Shop Moons",
@@ -80,7 +84,7 @@ GLOBAL_FROM_CAP: frozenset[str] = frozenset(
         "{{X}} Souvenirs",
         "{{X}} Stickers",
         "{{X}} NPC Moons",
-        "{{X}} Tourist Moons",
+        GOAL_TOURIST_MOONS,
         "{{X}} Minigame Moons",
         "{{X}} Warp-Painting Moons",
         "{{X}} Outfit Door Moons",
@@ -101,7 +105,7 @@ GLOBAL_FROM_CAP: frozenset[str] = frozenset(
 
 # Ranges curados: no recalcular con acumulado por reino (pools grandes).
 RANGE_PRESERVE: dict[str, list[int]] = {
-    "{{X}} Tourist Moons": [1, 2, 3, 4],
+    GOAL_TOURIST_MOONS: [1, 2, 3, 4],
     "{{X}} Bullet Bill Moons": [2, 4],
     "{{X}} Cheep Cheep Moons": [2, 4, 6],
     "{{X}} Critter Moons": [1, 2, 3],
@@ -118,8 +122,8 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Luncheon Fire Piranha Plant Moons": [2, 3],
     "{{X}} Luncheon Lantern Moon[[s]]": [1, 2, 3],
     "{{X}} Luncheon Lava Bubble Moons": [2, 3],
-    "{{X}} Mario Moons": [3, 6, 9, 12],
-    "{{X}} Cappy Moons": [3, 6, 9, 12],
+    GOAL_MARIO_MOONS: [3, 6, 9, 12],
+    GOAL_CAPPY_MOONS: [3, 6, 9, 12],
     "{{X}} Bowser's Pokio Moons": [2, 4],
     "{{X}} Shiny Rock Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Spark Pylon Moons": [2, 4],
@@ -150,10 +154,10 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     # Techos por entrada: e=1 m=3 l=6 n=7 → rango [2,3,4] desde mid
     "{{X}} Warp-Painting Moons": ["m", "l", "n"],
     # Multireino a pie: todas las zonas aunque falten lunas en alguna (puente Rush).
-    "{{X}} Mario Moons": ["e", "m", "l", "n"],
-    "{{X}} Cappy Moons": ["e", "m", "l", "n"],
+    GOAL_MARIO_MOONS: ["e", "m", "l", "n"],
+    GOAL_CAPPY_MOONS: ["e", "m", "l", "n"],
     # Cadena turista: 1ª luna tras Metro WP (late); Moon cierra en full.
-    "{{X}} Tourist Moons": ["l", "n"],
+    GOAL_TOURIST_MOONS: ["l", "n"],
     # key: sand(e) + lost(l) + metro(l) + luncheon×2(n)
     "{{X}} Key Moon[[s]]": ["e", "m", "l", "n"],
     # Mirar Hint-Arts (pinturas; sin contador Moon Get global).
@@ -424,6 +428,48 @@ def filter_moons_for_goal(goal: str, moons: list[dict], story_order: list[str]) 
     return list(moons)
 
 
+_NON_POWER_MOON_GOALS = frozenset(
+    {
+        "lake seed planted",
+        "wooded seed moon",
+        "correct wooded sphynx question",
+        "defeat bowser in cloud kingdom",
+    }
+)
+
+
+def _is_non_power_moon_goal(goal: str) -> bool:
+    gl = goal.lower()
+    if "pixel" in gl or gl.startswith("look at ") or "klepto" in gl:
+        return True
+    if gl.startswith(("wear ", "purchase ", "activate ")):
+        return True
+    return gl in _NON_POWER_MOON_GOALS
+
+
+def _pool_only_score(group: dict, n_goals: int) -> int:
+    # Solo pools dedicados (1 goal), no umbrellas flora/nature/…
+    return 0 if group.get("apply_moon_tag") is False and n_goals == 1 else 1
+
+
+def _consider_goal_moons(
+    best: dict[str, list[dict]],
+    best_key: dict[str, tuple[int, int, int]],
+    *,
+    goal: str,
+    selected: list[dict],
+    pool_only: int,
+) -> None:
+    kingdoms = {m["kingdom"] for m in selected if m.get("kingdom")}
+    if not kingdoms:
+        return
+    key = (pool_only, len(kingdoms), len(selected))
+    prev = best_key.get(goal)
+    if prev is None or key < prev:
+        best[goal] = selected
+        best_key[goal] = key
+
+
 def build_goal_moons() -> dict[str, list[dict]]:
     """goal → lunas del grupo pool (apply_moon_tag=False) o el mas especifico."""
     best: dict[str, list[dict]] = {}
@@ -440,41 +486,18 @@ def build_goal_moons() -> dict[str, list[dict]]:
             for o in group.get("objectives") or []
             if isinstance(o, dict) and o.get("goal")
         )
-        # Solo pools dedicados (1 goal), no umbrellas flora/nature/…
-        pool_only = (
-            0 if group.get("apply_moon_tag") is False and n_goals == 1 else 1
-        )
+        pool_only = _pool_only_score(group, n_goals)
         for obj in group.get("objectives") or []:
             goal = obj.get("goal") if isinstance(obj, dict) else None
             if not goal:
                 continue
             g = str(goal)
-            # Goals del grupo que no cuentan Power Moons (pixels, mirar, Klepto).
-            gl = g.lower()
-            if (
-                "pixel" in gl
-                or gl.startswith("look at ")
-                or "klepto" in gl
-                or gl.startswith("wear ")
-                or gl.startswith("purchase ")
-                or gl.startswith("activate ")
-                or gl in (
-                    "lake seed planted",
-                    "wooded seed moon",
-                    "correct wooded sphynx question",
-                    "defeat bowser in cloud kingdom",
-                )
-            ):
+            if _is_non_power_moon_goal(g):
                 continue
             selected = filter_moons_for_goal(g, raw_moons, story_like)
-            kingdoms = {m["kingdom"] for m in selected if m.get("kingdom")}
-            if not kingdoms:
-                continue
-            key = (pool_only, len(kingdoms), len(selected))
-            prev = best_key.get(g)
-            if prev is None or key < prev:
-                best[g] = selected
-                best_key[g] = key
+            _consider_goal_moons(
+                best, best_key, goal=g, selected=selected, pool_only=pool_only
+            )
     return best
 
 
@@ -521,22 +544,43 @@ def range_from_kingdom_counts(
     return unique_ascending(cumul)
 
 
+def _kingdoms_from_goal_name(goal: str, story_order: list[str]) -> set[str] | None:
+    """Reinos del nombre; set vacío = no match; None = agregado global (saltar)."""
+    if goal in GLOBAL_AGGREGATE_GOALS:
+        return None
+    slug, _ = parse_kingdom_prefixed_goal(goal)
+    if slug and slug in story_order:
+        return {slug}
+    mentioned = kingdom_mentioned_in_goal(goal)
+    if mentioned and mentioned in story_order:
+        return {mentioned}
+    return set()
+
+
+def _kingdoms_from_board_categories(obj: dict, story_order: list[str]) -> set[str]:
+    cats = list(obj.get("board_categories") or []) + list(
+        obj.get("line_categories") or []
+    )
+    return {c for c in cats if c in story_order}
+
+
+def _kingdoms_from_special_fragments(gl: str, story_order: list[str]) -> set[str]:
+    for frag, kingdom in SPECIAL_KINGDOM_FRAGMENTS:
+        if frag in gl and kingdom in story_order:
+            return {kingdom}
+    return set()
+
+
 def fallback_kingdoms(
     goal: str,
     obj: dict,
     story_order: list[str],
 ) -> set[str]:
     # Agregados globales: no parsear {{X}} Moon Rocks como reino Moon.
-    if goal not in GLOBAL_AGGREGATE_GOALS:
-        slug, _ = parse_kingdom_prefixed_goal(goal)
-        if slug and slug in story_order:
-            return {slug}
+    named = _kingdoms_from_goal_name(goal, story_order)
+    if named:  # non-empty set → match; None/empty → seguir
+        return named
 
-        mentioned = kingdom_mentioned_in_goal(goal)
-        if mentioned and mentioned in story_order:
-            return {mentioned}
-
-    # Activate / listas curadas: reinos de la lista contable (no board storymoons).
     lista_k = kingdoms_from_goal_lista(goal, obj)
     if lista_k:
         return {k for k in lista_k if k in story_order}
@@ -547,20 +591,17 @@ def fallback_kingdoms(
     if re.search(r"(?<![a-z])ruined(?![a-z])", gl):
         return {"ruined"}
 
-    cats = list(obj.get("board_categories") or []) + list(
-        obj.get("line_categories") or []
-    )
-    bk = [c for c in cats if c in story_order]
+    bk = _kingdoms_from_board_categories(obj, story_order)
     if bk:
-        return set(bk)
+        return bk
 
     cap = capture_entry(goal)
     if cap:
         return {k for k in cap["reinos"] if k in story_order}
 
-    for frag, kingdom in SPECIAL_KINGDOM_FRAGMENTS:
-        if frag in gl and kingdom in story_order:
-            return {kingdom}
+    special = _kingdoms_from_special_fragments(gl, story_order)
+    if special:
+        return special
 
     if goal in GLOBAL_FROM_CAP or goal in GLOBAL_FROM_MID or "binocular" in gl:
         return {k for k in KINGDOM_COLUMNS if k in story_order}
@@ -707,6 +748,59 @@ def sort_combined_json() -> dict:
     return data
 
 
+def _set_objective_range_fields(
+    obj: dict, new_p: list[str], new_r: list[int] | None
+) -> None:
+    obj["progression"] = new_p
+    if new_r is None:
+        obj.pop("range", None)
+        obj.pop("progressive_ranges", None)
+        return
+    obj["range"] = new_r
+    # progressive_ranges solo si hay varios umbrales Y varios progression
+    if len(new_r) > 1 and len(new_p) > 1:
+        obj["progressive_ranges"] = True
+    else:
+        obj.pop("progressive_ranges", None)
+
+
+def _apply_weighting(obj: dict, new_w: int) -> int:
+    """Escribe weighting (omite default 100). Devuelve el valor previo efectivo."""
+    old_w = obj.get("weighting", 100)
+    if new_w == 100:
+        obj.pop("weighting", None)
+    else:
+        obj["weighting"] = new_w
+    return old_w
+
+
+def _update_combined_objective(
+    obj: dict,
+    *,
+    goal_moons: dict[str, list[dict]],
+    story_order: list[str],
+    ceilings: dict[str, str],
+) -> tuple | None:
+    if obj.get("disabled"):
+        return None
+    goal = obj["goal"]
+    old_p = list(obj.get("progression") or [])
+    old_r = list(obj["range"]) if obj.get("range") else None
+    new_p, new_r = apply_objective(
+        goal,
+        obj,
+        goal_moons=goal_moons,
+        story_order=story_order,
+        ceilings=ceilings,
+    )
+    _set_objective_range_fields(obj, new_p, new_r)
+    new_w = weighting_for_progression(new_p)
+    old_w = _apply_weighting(obj, new_w)
+    if old_p != new_p or old_r != new_r or old_w != new_w:
+        return (goal, old_p, new_p, old_r, new_r)
+    return None
+
+
 def main() -> None:
     clear_runtime_caches()
     meta = load_meta()
@@ -717,39 +811,14 @@ def main() -> None:
     data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     changed = []
     for obj in data["objectives"]:
-        if obj.get("disabled"):
-            continue
-        goal = obj["goal"]
-        old_p = list(obj.get("progression") or [])
-        old_r = list(obj["range"]) if obj.get("range") else None
-        new_p, new_r = apply_objective(
-            goal,
+        change = _update_combined_objective(
             obj,
             goal_moons=goal_moons,
             story_order=story_order,
             ceilings=ceilings,
         )
-        obj["progression"] = new_p
-        if new_r is None:
-            obj.pop("range", None)
-            obj.pop("progressive_ranges", None)
-        else:
-            obj["range"] = new_r
-            # progressive_ranges solo si hay varios umbrales Y varios progression
-            # (si solo hay una zona e/m/l/n, los valores de range son equiprobables).
-            if len(new_r) > 1 and len(new_p) > 1:
-                obj["progressive_ranges"] = True
-            else:
-                obj.pop("progressive_ranges", None)
-        # Rush: menos Late/Endgame exclusivas en el pool de 90.
-        new_w = weighting_for_progression(new_p)
-        old_w = obj.get("weighting", 100)
-        if new_w == 100:
-            obj.pop("weighting", None)  # default Lockout = 100
-        else:
-            obj["weighting"] = new_w
-        if old_p != new_p or old_r != new_r or old_w != new_w:
-            changed.append((goal, old_p, new_p, old_r, new_r))
+        if change is not None:
+            changed.append(change)
 
     JSON_PATH.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

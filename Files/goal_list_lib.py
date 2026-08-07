@@ -35,6 +35,7 @@ REGIONAL_COINS_SMALL = 50
 REGIONAL_COINS_LARGE = 100
 # Compat: tope de un reino grande (p. ej. docs / All Large Kingdom).
 REGIONAL_COINS_PER_KINGDOM = REGIONAL_COINS_LARGE
+GOAL_X = "{{X}}"
 
 LARGE_KINGDOMS = ("sand", "wooded", "metro", "seaside", "luncheon", "bowser")
 SMALL_KINGDOMS = ("cap", "cascade", "lake", "lost", "snow", "moon")
@@ -132,6 +133,25 @@ def checkpoint_name(kingdom: str, checkpoint: int) -> str | None:
     return None
 
 
+def _format_checkpoint_near(kingdom: str, checkpoint: int) -> str:
+    name = checkpoint_name(kingdom, int(checkpoint))
+    return f"#{int(checkpoint)} {name}" if name else f"#{int(checkpoint)}"
+
+
+def _resolve_near_field(item: dict) -> None:
+    """Mutates item: near_odyssey / near_checkpoint(s) → near; drops curation keys."""
+    if item.pop("near_odyssey", None):
+        item["near"] = "Odyssey"
+        return
+    cps = item.pop("near_checkpoints", None)
+    cp = item.pop("near_checkpoint", None)
+    k = str(item.get("kingdom") or "")
+    if cps is not None:
+        item["near"] = " / ".join(_format_checkpoint_near(k, int(c)) for c in cps)
+    elif cp is not None:
+        item["near"] = _format_checkpoint_near(k, int(cp))
+
+
 def enrich_lista_locations(items: list[dict]) -> list[dict]:
     """Resuelve near_checkpoint(s) / near_odyssey → near.
 
@@ -144,21 +164,7 @@ def enrich_lista_locations(items: list[dict]) -> list[dict]:
     out: list[dict] = []
     for raw in items:
         item = dict(raw)
-        if item.pop("near_odyssey", None):
-            item["near"] = "Odyssey"
-        else:
-            cps = item.pop("near_checkpoints", None)
-            cp = item.pop("near_checkpoint", None)
-            k = str(item.get("kingdom") or "")
-            if cps is not None:
-                parts: list[str] = []
-                for c in cps:
-                    name = checkpoint_name(k, int(c))
-                    parts.append(f"#{int(c)} {name}" if name else f"#{int(c)}")
-                item["near"] = " / ".join(parts)
-            elif cp is not None:
-                name = checkpoint_name(k, int(cp))
-                item["near"] = f"#{int(cp)} {name}" if name else f"#{int(cp)}"
+        _resolve_near_field(item)
         item.pop("near_checkpoint_name", None)
         item.pop("near_reference", None)
         item.pop("_note", None)
@@ -189,20 +195,26 @@ def _group_moons(group_id: str) -> list[dict]:
     return []
 
 
+def _kingdoms_from_fixed_objectives(group: dict) -> list[str]:
+    kingdoms: list[str] = []
+    for ref in group.get("objectives") or []:
+        goal = str(ref.get("goal") or "")
+        if goal.startswith(GOAL_X):
+            continue
+        for cat in ref.get("board_categories") or []:
+            if cat in KINGDOM_COLUMNS:
+                kingdoms.append(cat)
+                break
+    return kingdoms
+
+
 def kingdoms_from_group(group_id: str) -> list[str]:
     """Reinos con goal fija en un grupo bingo (p. ej. talkatoo, moon_rock)."""
     kingdoms: list[str] = []
     for group in load_bingo_groups():
         if group.get("id") != group_id:
             continue
-        for ref in group.get("objectives") or []:
-            goal = str(ref.get("goal") or "")
-            if goal.startswith("{{X}}"):
-                continue
-            for cat in ref.get("board_categories") or []:
-                if cat in KINGDOM_COLUMNS:
-                    kingdoms.append(cat)
-                    break
+        kingdoms.extend(_kingdoms_from_fixed_objectives(group))
     return sorted(set(kingdoms), key=lambda k: KINGDOM_COLUMNS.index(k))
 
 
@@ -349,9 +361,28 @@ def checkpoint_goal_fields(goal: str) -> dict | None:
         return None
     if goal.startswith("All Checkpoints"):
         return None
-    if "total" in gl and goal.startswith("{{X}}"):
+    if "total" in gl and goal.startswith(GOAL_X):
         lista = checkpoint_totals_lista()
         return {"checkpoint_total": sum(int(x["total"]) for x in lista)}
+    return None
+
+
+_REGIONAL_ZONE_TOTALS: tuple[tuple[tuple[str, ...], int], ...] = (
+    (("8-bit", "regional"), 29),
+    (("deep woods",), 9),
+    (("shiveria", "regional"), 37),
+    (("snow overworld", "regional"), 13),
+    (("tostarena", "regional"), 29),
+    (("sand ruins", "regional"), 16),
+    (("sand ice", "regional"), 11),
+    (("jaxi", "regional"), 12),
+)
+
+
+def _regional_zone_total(gl: str) -> int | None:
+    for frags, total in _REGIONAL_ZONE_TOTALS:
+        if all(f in gl for f in frags):
+            return total
     return None
 
 
@@ -363,35 +394,12 @@ def regional_goal_fields(goal: str, kingdom: str | None) -> dict | None:
     if "total regional" in gl:
         lista = regional_totals_lista()
         return {"regional_total": sum(int(x["total"]) for x in lista)}
-    if "large kingdom" in gl:
+    if "large kingdom" in gl or "small kingdom" in gl:
         return None  # lista en regional_size_lista; sin regional_total agregado
-    if "small kingdom" in gl:
-        return None
-    # Clusters purple en secciones 8-bit (multi-reino; ver regionales_zonas).
-    if "8-bit" in gl and "regional" in gl:
-        return {"regional_total": 29}
-    # Subzona Wooded: 9 purple coins (3 clusters), no es un reino.
-    if "deep woods" in gl:
-        return {"regional_total": 9}
-    # Pueblo Shiveria + cavernas del agujero (sin overworld).
-    if "shiveria" in gl and "regional" in gl:
-        return {"regional_total": 37}
-    # Superficie Snow (Above the Ice Well), fuera del agujero.
-    if "snow overworld" in gl and "regional" in gl:
-        return {"regional_total": 13}
-    # Pueblo Tostarena + Strange Neighborhood (sin desierto/ruinas/oasis).
-    if "tostarena" in gl and "regional" in gl:
-        return {"regional_total": 29}
-    # Ruinas de Tostarena (entrada → torre + Sphynx/path Moe-Eye; sin Ice Cave).
-    if "sand ruins" in gl and "regional" in gl:
-        return {"regional_total": 16}
     # Pirámide invertida: sin goal regional propia.
-    # Ice Cave + Underground Temple (solo ice; purple Ice Cave no en Ruins).
-    if "sand ice" in gl and "regional" in gl:
-        return {"regional_total": 11}
-    # Jaxi Ruins (veneno + cueva).
-    if "jaxi" in gl and "regional" in gl:
-        return {"regional_total": 12}
+    zone = _regional_zone_total(gl)
+    if zone is not None:
+        return {"regional_total": zone}
     # Clusters dentro de Levels sub_area (catalog/regionales_zonas.json).
     if "sub-area" in gl and "regional" in gl:
         rz = regionales_zonas_entry(goal)
@@ -473,90 +481,94 @@ def talkatoo_entry(kingdom: str) -> dict:
     return {"kingdom": kingdom, "name": "Talkatoo"}
 
 
+def _checkpoint_lista(goal: str, kingdom: str | None) -> list[dict]:
+    gl = goal.lower()
+    if goal.startswith("All Checkpoints"):
+        return checkpoint_totals_lista(for_all=True)
+    if "total" in gl:
+        return checkpoint_totals_lista()
+    if kingdom and kingdom in KINGDOM_CHECKPOINT_META:
+        return checkpoints_for_kingdom(kingdom)
+    return checkpoint_totals_lista()
+
+
+def _regional_lista(goal: str) -> list[dict]:
+    gl = goal.lower()
+    if "total regional" in gl:
+        return regional_totals_lista()
+    if "large kingdom" in gl:
+        return regional_size_lista(large=True)
+    if "small kingdom" in gl:
+        return regional_size_lista(large=False)
+    return []
+
+
+_FIXED_GOAL_LISTAS: dict[str, list[dict]] = {
+    "{{X}} Boss Fights": BOSS_FIGHTS,
+    "{{X}} Kingdom Boss Fight[[s]]": NON_BROODAL_BOSS_FIGHTS,
+    "{{X}} Broodal Fights": BROODAL_FIGHTS,
+    "Defeat Bowser in Cloud Kingdom": [
+        {"kingdom": "cloud", "name": "Bowser (Boss)"}
+    ],
+    "Defeat Madame Broode in Moon Kingdom": [
+        {"kingdom": "moon", "name": "Madame Broode (Broodal, rematch)"}
+    ],
+    "Defeat Ruined Dragon": [
+        {"kingdom": "ruined", "name": "Ruined Dragon (Boss)"}
+    ],
+    "Save Cappy From Klepto": [
+        {"kingdom": "lost", "name": "Klepto (Boss)"}
+    ],
+    "Correct Wooded Sphynx Question": [
+        {"kingdom": "wooded", "name": "Wooded Sphynx"}
+    ],
+}
+
+_CURATED_GOAL_LISTAS: dict[str, str] = {
+    "{{X}} Talkatoos": "talkatoos",
+    "{{X}} Moon Rocks": "moon_rocks",
+    "Call Jaxi from {{X}} Stands": "jaxi_stands",
+    "{{X}} Unique Life Up Hearts": "life_up_hearts",
+    "Capture {{X}} Binoculars": "binoculars",
+    "Activate {{X}} Levers": "levers",
+    "Activate {{X}} P-Switch[[es]]": "p_switches",
+    "Activate {{X}} Ground-Pound Switch[[es]]": "ground_pound_switches",
+    "{{X}} Pixel Cat Marios/Peaches": "pixel_cat_mario_peach",
+    "{{X}} Pixel Luigis": "pixel_luigis",
+    "{{X}} Souvenirs": "souvenirs",
+    "{{X}} Stickers": "stickers",
+    "Purchase {{X}} Costume Sets": "costume_sets",
+    "Purchase {{X}} Hats": "hats",
+}
+
+
 def build_goal_lista(
     goal: str,
-    obj: dict,
+    _obj: dict,
     *,
     kingdom: str | None,
 ) -> list[dict]:
     """Devuelve la lista de elementos que cuentan para completar la goal."""
     gl = goal.lower()
-    items: list[dict]
 
     if goal in CAPTURE_SOLO:
         items = capture_solo_lista(goal)
-    elif goal == "{{X}} Boss Fights":
-        items = list(BOSS_FIGHTS)
-    elif goal == "{{X}} Kingdom Boss Fight[[s]]":
-        items = list(NON_BROODAL_BOSS_FIGHTS)
-    elif goal == "{{X}} Broodal Fights":
-        items = list(BROODAL_FIGHTS)
-    elif goal == "Defeat Bowser in Cloud Kingdom":
-        items = [{"kingdom": "cloud", "name": "Bowser (Boss)"}]
-    elif goal == "Defeat Madame Broode in Moon Kingdom":
-        items = [{"kingdom": "moon", "name": "Madame Broode (Broodal, rematch)"}]
-    elif goal == "Defeat Ruined Dragon":
-        items = [{"kingdom": "ruined", "name": "Ruined Dragon (Boss)"}]
-    elif goal == "Save Cappy From Klepto":
-        items = [{"kingdom": "lost", "name": "Klepto (Boss)"}]
-    elif goal == "Correct Wooded Sphynx Question":
-        items = [{"kingdom": "wooded", "name": "Wooded Sphynx"}]
-    elif goal.endswith(" Talkatoo") and "{{X}}" not in goal and kingdom:
+    elif goal in _FIXED_GOAL_LISTAS:
+        items = list(_FIXED_GOAL_LISTAS[goal])
+    elif goal.endswith(" Talkatoo") and GOAL_X not in goal and kingdom:
         items = [talkatoo_entry(kingdom)]
-    elif goal == "{{X}} Talkatoos":
-        items = curated_list("talkatoos")
     elif goal.endswith(" Moon Rock") and kingdom:
         items = [moon_rock_entry(kingdom)]
-    elif goal == "{{X}} Moon Rocks":
-        items = curated_list("moon_rocks")
+    elif goal in _CURATED_GOAL_LISTAS:
+        items = curated_list(_CURATED_GOAL_LISTAS[goal])
     elif goal.startswith("All Multi-Moons"):
         items = multi_moon_totals_lista()
     elif "checkpoint" in gl:
-        if goal.startswith("All Checkpoints"):
-            items = checkpoint_totals_lista(for_all=True)
-        elif "total" in gl:
-            items = checkpoint_totals_lista()
-        elif kingdom and kingdom in KINGDOM_CHECKPOINT_META:
-            items = checkpoints_for_kingdom(kingdom)
-        else:
-            items = checkpoint_totals_lista()
+        items = _checkpoint_lista(goal, kingdom)
     elif "regional coin" in gl:
-        if "total regional" in gl:
-            items = regional_totals_lista()
-        elif "large kingdom" in gl:
-            items = regional_size_lista(large=True)
-        elif "small kingdom" in gl:
-            items = regional_size_lista(large=False)
-        else:
-            items = []
-    elif goal == "Call Jaxi from {{X}} Stands":
-        items = curated_list("jaxi_stands")
-    elif goal == "{{X}} Unique Life Up Hearts":
-        items = curated_list("life_up_hearts")
-    elif goal == "Capture {{X}} Binoculars":
-        items = curated_list("binoculars")
-    elif goal == "Activate {{X}} Levers":
-        items = curated_list("levers")
-    elif goal == "Activate {{X}} P-Switch[[es]]":
-        items = curated_list("p_switches")
-    elif goal == "Activate {{X}} Ground-Pound Switch[[es]]":
-        items = curated_list("ground_pound_switches")
-    elif goal == "{{X}} Pixel Cat Marios/Peaches":
-        items = curated_list("pixel_cat_mario_peach")
-    elif goal == "{{X}} Pixel Luigis":
-        items = curated_list("pixel_luigis")
-    elif goal == "{{X}} Souvenirs":
-        items = curated_list("souvenirs")
-    elif goal == "{{X}} Stickers":
-        items = curated_list("stickers")
-    elif goal == "Purchase {{X}} Costume Sets":
-        items = curated_list("costume_sets")
-    elif goal == "Purchase {{X}} Hats":
-        items = curated_list("hats")
+        items = _regional_lista(goal)
     elif goal == "{{X}} Unique Captures":
         items = unique_captures_list()
-    elif goal == "{{X}} Total Moons":
-        items = []
     else:
         items = []
 

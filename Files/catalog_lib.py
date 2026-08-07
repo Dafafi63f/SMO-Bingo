@@ -23,6 +23,10 @@ ROOT = FILES_DIR.parent
 BINGOS_DIR = ROOT / "Bingos"
 CATALOG_DIR = ROOT / "Catalog"
 CAPTURES_LUNAS_JSON = CATALOG_DIR / "capturas_lunas.json"
+MOON_NAMES_WIKI_JSON = "moon_names_wiki.json"
+GOAL_X = "{{X}}"
+GOAL_X_PREFIX = "{{X}} "
+GOAL_UNIQUE_CAPTURES = "{{X}} Unique Captures"
 # Captura normal con ≥N lunas → tag concreta junto a `captures`.
 # Especial o minoritaria (<N) → basta `captures`.
 CAPTURE_TAG_MIN = 3
@@ -455,6 +459,43 @@ def clear_capture_tag_cache() -> None:
     _CAPTURE_TAG_BY_MOON = None
 
 
+def _capture_row_display_name(row: dict) -> str:
+    return (
+        row.get("capture")
+        or row.get("name")
+        or row.get("captura")
+        or ""
+    ).strip()
+
+
+def _moon_key_from_raw(moon: object) -> tuple[str, int] | None:
+    if not isinstance(moon, dict):
+        return None
+    if "kingdom" not in moon or "moon" not in moon:
+        return None
+    return (str(moon["kingdom"]), int(moon["moon"]))
+
+
+def _ingest_capture_row(
+    row: dict,
+    moons_by_tag: dict[str, set[tuple[str, int]]],
+    moon_to_tag: dict[tuple[str, int], str],
+) -> None:
+    name = _capture_row_display_name(row)
+    if not name:
+        return
+    tag = _slugify_capture_name(name)
+    for moon in row.get("moons") or []:
+        key = _moon_key_from_raw(moon)
+        if key is None:
+            continue
+        # Cuenta para el umbral de familia aunque no etiquete la luna.
+        moons_by_tag.setdefault(tag, set()).add(key)
+        if isinstance(moon, dict) and moon.get("goal") is False:
+            continue
+        moon_to_tag[key] = tag
+
+
 def load_capture_tag_by_moon() -> dict[tuple[str, int], str | None]:
     """(reino, luna) → tag concreta de captura, o None si especial/minoritaria.
 
@@ -476,28 +517,12 @@ def load_capture_tag_by_moon() -> dict[tuple[str, int], str | None]:
     if CAPTURES_LUNAS_JSON.exists():
         data = json.loads(CAPTURES_LUNAS_JSON.read_text(encoding="utf-8"))
         for row in data.get("captures") or []:
-            name = (
-                row.get("capture")
-                or row.get("name")
-                or row.get("captura")
-                or ""
-            ).strip()
-            if not name:
-                continue
-            tag = _slugify_capture_name(name)
-            for moon in row.get("moons") or []:
-                if not isinstance(moon, dict):
-                    continue
-                if "kingdom" not in moon or "moon" not in moon:
-                    continue
-                key = (str(moon["kingdom"]), int(moon["moon"]))
-                # Cuenta para el umbral de familia aunque no etiquete la luna.
-                moons_by_tag.setdefault(tag, set()).add(key)
-                if moon.get("goal") is False:
-                    continue
-                moon_to_tag[key] = tag
+            if isinstance(row, dict):
+                _ingest_capture_row(row, moons_by_tag, moon_to_tag)
 
-    majority = {tag for tag, moons in moons_by_tag.items() if len(moons) >= CAPTURE_TAG_MIN}
+    majority = {
+        tag for tag, moons in moons_by_tag.items() if len(moons) >= CAPTURE_TAG_MIN
+    }
     mapping: dict[tuple[str, int], str | None] = {
         key: (tag if tag in majority else None) for key, tag in moon_to_tag.items()
     }
@@ -530,6 +555,44 @@ def majority_capture_tags() -> frozenset[str]:
     return frozenset(t for t in load_capture_tag_by_moon().values() if t)
 
 
+def _add_specific_capture_tags(out: set[str], kingdom: str, moon: int) -> None:
+    if "captures" not in out:
+        return
+    specific = load_capture_tag_by_moon().get((kingdom, moon))
+    if not specific:
+        return
+    out.add(specific)
+    if specific == "pokio_hole":
+        out.discard("pokio")
+    umbrella = CAPTURE_UMBRELLA.get(specific)
+    if umbrella:
+        out.add(umbrella)
+
+
+def _apply_moon_tag_policy(out: set[str]) -> None:
+    # Captura de planta (uproot/cactus_tree): sin flora encima.
+    if "captures" in out and out & PLANT_CAPTURE_TAGS:
+        out.discard("flora")
+    # Acceso concreto (mini_rocket / beanstalk / outfit_door): sin sub_area.
+    if out & ACCESS_DROPS_SUB_AREA:
+        out.discard("sub_area")
+    # nature: solo grupo/goal agregado; en lunas usamos fauna o flora.
+    out.discard("nature")
+    # transport: solo grupo/goals (Beanstalk + Mini Rocket); en lunas
+    # usamos beanstalk / mini_rocket (Rocket Flower = flora, fuera del paraguas).
+    out.discard("transport")
+    # 8-bit: la luna es el segmento 2D; captura solo de acceso no cuenta.
+    if "8bit" in out:
+        out.discard("captures")
+        out -= majority_capture_tags() | PLANT_CAPTURE_TAGS
+    # Captura especial (Coin Coffer, Ty-foo, …): special_capture_moons XOR captures.
+    if "special_capture_moons" in out:
+        out.discard("captures")
+    # Puerta con outfit: outfit_door, nunca npc.
+    if "outfit_door" in out:
+        out.discard("npc")
+
+
 def normalize_moon_tags(
     tags: set[str] | list[str] | None,
     *,
@@ -553,36 +616,9 @@ def normalize_moon_tags(
         out.add(tag)
     if kingdom:
         out.add(kingdom)
-    if "captures" in out and kingdom and moon is not None:
-        specific = load_capture_tag_by_moon().get((kingdom, moon))
-        if specific:
-            out.add(specific)
-            if specific == "pokio_hole":
-                out.discard("pokio")
-            umbrella = CAPTURE_UMBRELLA.get(specific)
-            if umbrella:
-                out.add(umbrella)
-    # Captura de planta (uproot/cactus_tree): sin flora encima.
-    if "captures" in out and out & PLANT_CAPTURE_TAGS:
-        out.discard("flora")
-    # Acceso concreto (mini_rocket / beanstalk / outfit_door): sin sub_area.
-    if out & ACCESS_DROPS_SUB_AREA:
-        out.discard("sub_area")
-    # nature: solo grupo/goal agregado; en lunas usamos fauna o flora.
-    out.discard("nature")
-    # transport: solo grupo/goals (Beanstalk + Mini Rocket); en lunas
-    # usamos beanstalk / mini_rocket (Rocket Flower = flora, fuera del paraguas).
-    out.discard("transport")
-    # 8-bit: la luna es el segmento 2D; captura solo de acceso no cuenta.
-    if "8bit" in out:
-        out.discard("captures")
-        out -= majority_capture_tags() | PLANT_CAPTURE_TAGS
-    # Captura especial (Coin Coffer, Ty-foo, …): special_capture_moons XOR captures.
-    if "special_capture_moons" in out:
-        out.discard("captures")
-    # Puerta con outfit: outfit_door, nunca npc.
-    if "outfit_door" in out:
-        out.discard("npc")
+    if kingdom and moon is not None:
+        _add_specific_capture_tags(out, kingdom, moon)
+    _apply_moon_tag_policy(out)
     if allowed is not None:
         out = {t for t in out if t in allowed or t == kingdom}
     return out
@@ -649,7 +685,7 @@ def clear_runtime_caches() -> None:
     regenerate_all.py ya limpia como último paso.
     """
     clear_group_context_tags_cache()
-    for fn in list(_EXTRA_CACHE_CLEARS):
+    for fn in _EXTRA_CACHE_CLEARS:
         try:
             fn()
         except Exception:
@@ -673,6 +709,34 @@ def clear_runtime_caches() -> None:
 atexit.register(clear_runtime_caches)
 
 
+def _group_is_large_particular(group: dict, particular: object, n: int) -> bool:
+    return bool(
+        particular
+        and particular != GROUP_MOON_TAG
+        and (
+            n >= GROUP_LARGE_MIN
+            or group.get("large") is True
+            or group.get("umbrella") is True
+            or particular in UMBRELLA_MOON_TAGS
+        )
+    )
+
+
+def _add_small_group_context_ids(tags: set[str]) -> None:
+    if not BINGO_GROUPS_PATH.exists():
+        return
+    for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
+        gid = group.get("id")
+        if not gid or group.get("apply_moon_tag") is False:
+            continue
+        particular = group.get("moon_tag") or group.get("tag")
+        n = len(group.get("moons") or [])
+        if _group_is_large_particular(group, particular, n):
+            continue
+        # Misma tag que en lunas: sin prefijo de reino (cap_frog → frog).
+        tags.add(strip_kingdom_prefix_from_id(str(gid)))
+
+
 def load_group_context_tags() -> frozenset[str]:
     """Tags de contexto de grupo: no cuentan como metodo de obtencion.
 
@@ -683,29 +747,7 @@ def load_group_context_tags() -> frozenset[str]:
     if _GROUP_CONTEXT_TAGS_CACHE is not None:
         return _GROUP_CONTEXT_TAGS_CACHE
     tags: set[str] = set(TAG_CONTEXT)
-    if BINGO_GROUPS_PATH.exists():
-        for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
-            gid = group.get("id")
-            if not gid:
-                continue
-            if group.get("apply_moon_tag") is False:
-                continue
-            particular = group.get("moon_tag") or group.get("tag")
-            n = len(group.get("moons") or [])
-            is_large_particular = bool(
-                particular
-                and particular != GROUP_MOON_TAG
-                and (
-                    n >= GROUP_LARGE_MIN
-                    or group.get("large") is True
-                    or group.get("umbrella") is True
-                    or particular in UMBRELLA_MOON_TAGS
-                )
-            )
-            if is_large_particular:
-                continue
-            # Misma tag que en lunas: sin prefijo de reino (cap_frog → frog).
-            tags.add(strip_kingdom_prefix_from_id(str(gid)))
+    _add_small_group_context_ids(tags)
     tags |= majority_capture_tags()
     _GROUP_CONTEXT_TAGS_CACHE = frozenset(tags)
     return _GROUP_CONTEXT_TAGS_CACHE
@@ -762,6 +804,63 @@ def _obtain_tags(tag_set: set[str]) -> set[str]:
     )
 
 
+def _incompatible_pair_issues(
+    tag_set: set[str],
+    *,
+    kingdom: str | None,
+    moon: int | None,
+) -> list[str]:
+    issues: list[str] = []
+    for pair in INCOMPATIBLE_TAG_PAIRS:
+        if not pair.issubset(tag_set):
+            continue
+        if (
+            pair == TAG_CAPTURES_AND_CAPPY
+            and kingdom is not None
+            and moon is not None
+            and (kingdom, moon) in ALLOW_CAPTURES_AND_CAPPY
+        ):
+            continue
+        a, b = sorted(pair)
+        issues.append(f"incompatible: {a} + {b}")
+    return issues
+
+
+def _implied_tag_issues(tag_set: set[str]) -> list[str]:
+    issues: list[str] = []
+    for tag, required in IMPLIED_TAGS.items():
+        if tag in tag_set and not required.issubset(tag_set):
+            missing = ", ".join(sorted(required - tag_set))
+            issues.append(f"{tag} requiere tambien: {missing}")
+    return issues
+
+
+def _capture_specific_tag_issue(
+    tag_set: set[str],
+    *,
+    kingdom: str | None,
+    moon: int | None,
+) -> str | None:
+    if "captures" not in tag_set or not kingdom or moon is None:
+        return None
+    specific = load_capture_tag_by_moon().get((kingdom, moon))
+    if specific and specific not in tag_set:
+        return f"captures requiere tambien: {specific}"
+    return None
+
+
+def _multi_obtain_issue(tag_set: set[str]) -> str | None:
+    obtain = _obtain_tags(tag_set)
+    if len(obtain) <= 1:
+        return None
+    if any(
+        combo.issubset(obtain) and obtain.issubset(combo)
+        for combo in ALLOWED_MULTI_OBTAIN
+    ):
+        return None
+    return "multiples metodos de obtencion: " + ", ".join(sorted(obtain))
+
+
 def tag_combination_violations(
     tags: set[str] | list[str],
     *,
@@ -770,41 +869,16 @@ def tag_combination_violations(
 ) -> list[str]:
     """Return human-readable issues for an invalid tag set."""
     tag_set = set(tags)
-    issues: list[str] = []
-
-    for pair in INCOMPATIBLE_TAG_PAIRS:
-        if pair.issubset(tag_set):
-            if (
-                pair == TAG_CAPTURES_AND_CAPPY
-                and kingdom is not None
-                and moon is not None
-                and (kingdom, moon) in ALLOW_CAPTURES_AND_CAPPY
-            ):
-                continue
-            a, b = sorted(pair)
-            issues.append(f"incompatible: {a} + {b}")
-
-    for tag, required in IMPLIED_TAGS.items():
-        if tag in tag_set and not required.issubset(tag_set):
-            missing = ", ".join(sorted(required - tag_set))
-            issues.append(f"{tag} requiere tambien: {missing}")
-
-    if "captures" in tag_set and kingdom and moon is not None:
-        specific = load_capture_tag_by_moon().get((kingdom, moon))
-        if specific and specific not in tag_set:
-            issues.append(f"captures requiere tambien: {specific}")
-
-    obtain = _obtain_tags(tag_set)
-    if len(obtain) <= 1:
-        return issues
-
-    if any(combo.issubset(obtain) and obtain.issubset(combo) for combo in ALLOWED_MULTI_OBTAIN):
-        return issues
-
-    issues.append(
-        "multiples metodos de obtencion: " + ", ".join(sorted(obtain))
+    issues = _incompatible_pair_issues(tag_set, kingdom=kingdom, moon=moon)
+    issues.extend(_implied_tag_issues(tag_set))
+    capture_issue = _capture_specific_tag_issue(
+        tag_set, kingdom=kingdom, moon=moon
     )
-
+    if capture_issue:
+        issues.append(capture_issue)
+    multi_issue = _multi_obtain_issue(tag_set)
+    if multi_issue:
+        issues.append(multi_issue)
     return issues
 
 
@@ -829,7 +903,7 @@ SKIP_CATALOGS = {
     "meta.json",  # legado
     "kingdom_availability.json",  # legado
     "kingdom_range_tiers.json",  # legado
-    "moon_names_wiki.json",
+    MOON_NAMES_WIKI_JSON,
     "bingo_groups.json",  # grupos de objetivo; tags via apply_bingo_group_tags
     "bingo_lineas.json",  # categorias board/line Combined (no tags de luna)
     "goal_icons.json",  # iconos de goals Combined
@@ -880,7 +954,7 @@ GLOBAL_AGGREGATE_GOALS = {
     "{{X}} Total Checkpoints",
     "{{X}} Total Multi-Moons",
     "{{X}} Total Story Moons",
-    "{{X}} Unique Captures",
+    GOAL_UNIQUE_CAPTURES,
     "{{X}} Unique Life Up Hearts",
     "{{X}} Souvenirs",
     "{{X}} Stickers",
@@ -990,7 +1064,7 @@ EXCLUDED_NAME_MARKERS = (
 
 
 def load_wiki_moon_meta() -> dict[str, dict[int, dict[str, str]]]:
-    path = CATALOG_DIR / "moon_names_wiki.json"
+    path = CATALOG_DIR / MOON_NAMES_WIKI_JSON
     with open(path, encoding="utf-8") as f:
         raw = json.load(f)
     result: dict[str, dict[int, dict[str, str]]] = {}
@@ -1018,7 +1092,7 @@ def load_wiki_moon_meta() -> dict[str, dict[int, dict[str, str]]]:
 
 def stamp_moon_names_wiki_counts(path: Path | None = None) -> dict[str, int]:
     """Añade n_kingdoms / n_moons al cache wiki (sin tocar entradas)."""
-    path = path or (CATALOG_DIR / "moon_names_wiki.json")
+    path = path or (CATALOG_DIR / MOON_NAMES_WIKI_JSON)
     raw = json.loads(path.read_text(encoding="utf-8"))
     kingdoms = {
         k: v
@@ -1203,7 +1277,7 @@ def goal_moon_count_mode(goal: str, obj: dict, *, moonish: bool = False) -> str 
     if moonish or "moon" in goal.lower():
         if goal.startswith("All Multi-Moons") or "multi-moon[[" in goal.lower():
             return "physical_moons"
-        if "{{X}}" in goal and "moon" in goal.lower():
+        if GOAL_X in goal and "moon" in goal.lower():
             return "physical_moons"
     return None
 
@@ -1302,7 +1376,7 @@ def _prereq_requires_any_marker(
 
 def _is_peach_moon(name: str) -> bool:
     low = name.lower()
-    return low.startswith("peach in the ") or low.startswith("peach in bowser")
+    return low.startswith(("peach in the ", "peach in bowser"))
 
 
 def is_postgame_wiki_entry(
@@ -1341,6 +1415,71 @@ def _is_painting_or_hint_art_moon(
     )
 
 
+def _clean_wiki_prerequisite(wiki_entry: dict[str, str] | None) -> str:
+    prerequisite = _normalize_prerequisite(
+        (wiki_entry or {}).get("prerequisite", "")
+    )
+    # Quitar restos de refs wiki que a veces quedan en el texto.
+    prerequisite = re.sub(r"<ref[^>]*>.*?</ref>", " ", prerequisite, flags=re.I | re.S)
+    return re.sub(r"\s+", " ", prerequisite).strip()
+
+
+def _availability_for_simple_kingdom(
+    kingdom: str,
+    moon: int,
+    kingdom_rules: dict,
+) -> str | None:
+    if kingdom in BOSS_ONLY_KINGDOMS:
+        return "base"
+    if kingdom == "cap":
+        return "revisit"
+    if kingdom == "cascade":
+        if moon in kingdom_rules.get("base_moons", []):
+            return "base"
+        if moon in kingdom_rules.get("revisit_moons", []):
+            return "revisit"
+        return "world_peace"
+    if kingdom == "lost":
+        if moon == kingdom_rules.get("revisit_moon"):
+            return "revisit"
+        return "base"
+    if kingdom == "moon":
+        return "base"
+    return None
+
+
+def _story_markers_for(
+    kingdom: str,
+    kingdom_rules: dict,
+    *,
+    final: bool,
+) -> list[str]:
+    key = "final_story_markers" if final else "mid_story_markers"
+    defaults = FINAL_STORY_MARKERS if final else MID_STORY_MARKERS
+    markers = list(kingdom_rules.get(key, []))
+    markers.extend(defaults.get(kingdom, ()))
+    return [m.lower() for m in markers]
+
+
+def _availability_from_prerequisite(
+    prerequisite: str,
+    kingdom: str,
+    kingdom_rules: dict,
+) -> str:
+    if prerequisite == "second visit":
+        return "revisit"
+    final_markers = _story_markers_for(kingdom, kingdom_rules, final=True)
+    if final_markers and _prereq_requires_any_marker(prerequisite, final_markers):
+        return "world_peace"
+    if "or second visit" in prerequisite:
+        return "world_peace"
+    mid_markers = _story_markers_for(kingdom, kingdom_rules, final=False)
+    if mid_markers and _prereq_requires_any_marker(prerequisite, mid_markers):
+        return "mid_story"
+    # Wiki «None» / prereq temprano = al llegar o antes de la 1ª multi.
+    return "base"
+
+
 def infer_availability(
     kingdom: str,
     moon: int,
@@ -1363,15 +1502,7 @@ def infer_availability(
         rules = load_kingdom_availability()
 
     kingdom_rules = rules.get("kingdoms", {}).get(kingdom, {})
-    prerequisite = _normalize_prerequisite(
-        (wiki_entry or {}).get("prerequisite", "")
-    )
-    # Quitar restos de refs wiki que a veces quedan en el texto.
-    prerequisite = re.sub(r"<ref[^>]*>.*?</ref>", " ", prerequisite, flags=re.I | re.S)
-    prerequisite = re.sub(r"\s+", " ", prerequisite).strip()
-
-    if kingdom in BOSS_ONLY_KINGDOMS:
-        return "base"
+    prerequisite = _clean_wiki_prerequisite(wiki_entry)
 
     key = (kingdom, int(moon))
     if key in AVAILABILITY_OVERRIDES:
@@ -1381,44 +1512,11 @@ def infer_availability(
     if name.lower().startswith("secret path to"):
         return SECRET_PATH_AVAILABILITY.get(key, "base")
 
-    if kingdom == "cap":
-        return "revisit"
+    simple = _availability_for_simple_kingdom(kingdom, moon, kingdom_rules)
+    if simple is not None:
+        return simple
 
-    if kingdom == "cascade":
-        if moon in kingdom_rules.get("base_moons", []):
-            return "base"
-        if moon in kingdom_rules.get("revisit_moons", []):
-            return "revisit"
-        return "world_peace"
-
-    if kingdom == "lost":
-        if moon == kingdom_rules.get("revisit_moon"):
-            return "revisit"
-        return "base"
-
-    if kingdom == "moon":
-        return "base"
-
-    if prerequisite == "second visit":
-        return "revisit"
-
-    final_markers = list(kingdom_rules.get("final_story_markers", []))
-    final_markers.extend(FINAL_STORY_MARKERS.get(kingdom, ()))
-    final_markers = [m.lower() for m in final_markers]
-    if final_markers and _prereq_requires_any_marker(prerequisite, final_markers):
-        return "world_peace"
-
-    if "or second visit" in prerequisite:
-        return "world_peace"
-
-    mid_markers = list(kingdom_rules.get("mid_story_markers", []))
-    mid_markers.extend(MID_STORY_MARKERS.get(kingdom, ()))
-    mid_markers = [m.lower() for m in mid_markers]
-    if mid_markers and _prereq_requires_any_marker(prerequisite, mid_markers):
-        return "mid_story"
-
-    # Wiki «None» / prereq temprano = al llegar o antes de la 1ª multi.
-    return "base"
+    return _availability_from_prerequisite(prerequisite, kingdom, kingdom_rules)
 
 
 def is_postgame_moon(kingdom: str, moon: int, rules: dict | None = None) -> bool:
@@ -1558,6 +1656,74 @@ def _is_flat_json_value(value: object) -> bool:
     return False
 
 
+def _fmt_catalog_scalar_list(
+    value: list,
+    level: int,
+    *,
+    indent: int,
+    multiline: bool,
+) -> str:
+    pad = " " * (indent * level)
+    pad_in = " " * (indent * (level + 1))
+    if not value:
+        return "[]"
+    if not multiline or len(value) <= 1:
+        return (
+            "["
+            + ", ".join(json.dumps(x, ensure_ascii=False) for x in value)
+            + "]"
+        )
+    lines = [f"{pad_in}{json.dumps(x, ensure_ascii=False)}" for x in value]
+    return "[\n" + ",\n".join(lines) + "\n" + pad + "]"
+
+
+def _fmt_catalog_json_value(
+    value: object,
+    level: int,
+    *,
+    indent: int,
+    multi_keys: frozenset[str],
+    key: str | None = None,
+) -> str:
+    pad = " " * (indent * level)
+    pad_in = " " * (indent * (level + 1))
+
+    if isinstance(value, dict):
+        if not value:
+            return "{}"
+        if _is_flat_json_value(value):
+            inner = ", ".join(
+                f"{json.dumps(k, ensure_ascii=False)}: "
+                f"{json.dumps(v, ensure_ascii=False)}"
+                for k, v in value.items()
+            )
+            return "{" + inner + "}"
+        lines = [
+            f"{pad_in}{json.dumps(k, ensure_ascii=False)}: "
+            f"{_fmt_catalog_json_value(v, level + 1, indent=indent, multi_keys=multi_keys, key=str(k))}"
+            for k, v in value.items()
+        ]
+        return "{\n" + ",\n".join(lines) + "\n" + pad + "}"
+
+    if isinstance(value, list):
+        if not value:
+            return "[]"
+        if all(isinstance(x, (str, int, float, bool)) or x is None for x in value):
+            return _fmt_catalog_scalar_list(
+                value,
+                level,
+                indent=indent,
+                multiline=bool(key and key in multi_keys),
+            )
+        lines = [
+            f"{pad_in}{_fmt_catalog_json_value(x, level + 1, indent=indent, multi_keys=multi_keys)}"
+            for x in value
+        ]
+        return "[\n" + ",\n".join(lines) + "\n" + pad + "]"
+
+    return json.dumps(value, ensure_ascii=False)
+
+
 def dumps_catalog_json(
     data: object,
     *,
@@ -1573,57 +1739,12 @@ def dumps_catalog_json(
     una por linea (p. ej. goals en goal_icons).
     """
     multi_keys = multiline_string_list_keys or frozenset()
-
-    def fmt_scalar_list(value: list, level: int, *, multiline: bool) -> str:
-        pad = " " * (indent * level)
-        pad_in = " " * (indent * (level + 1))
-        if not value:
-            return "[]"
-        if not multiline or len(value) <= 1:
-            return (
-                "["
-                + ", ".join(json.dumps(x, ensure_ascii=False) for x in value)
-                + "]"
-            )
-        lines = [f"{pad_in}{json.dumps(x, ensure_ascii=False)}" for x in value]
-        return "[\n" + ",\n".join(lines) + "\n" + pad + "]"
-
-    def fmt(value: object, level: int, *, key: str | None = None) -> str:
-        pad = " " * (indent * level)
-        pad_in = " " * (indent * (level + 1))
-
-        if isinstance(value, dict):
-            if not value:
-                return "{}"
-            if _is_flat_json_value(value):
-                inner = ", ".join(
-                    f"{json.dumps(k, ensure_ascii=False)}: "
-                    f"{json.dumps(v, ensure_ascii=False)}"
-                    for k, v in value.items()
-                )
-                return "{" + inner + "}"
-            lines = [
-                f"{pad_in}{json.dumps(k, ensure_ascii=False)}: "
-                f"{fmt(v, level + 1, key=str(k))}"
-                for k, v in value.items()
-            ]
-            return "{\n" + ",\n".join(lines) + "\n" + pad + "}"
-
-        if isinstance(value, list):
-            if not value:
-                return "[]"
-            if all(isinstance(x, (str, int, float, bool)) or x is None for x in value):
-                return fmt_scalar_list(
-                    value,
-                    level,
-                    multiline=bool(key and key in multi_keys),
-                )
-            lines = [f"{pad_in}{fmt(x, level + 1)}" for x in value]
-            return "[\n" + ",\n".join(lines) + "\n" + pad + "]"
-
-        return json.dumps(value, ensure_ascii=False)
-
-    return fmt(data, 0) + "\n"
+    return (
+        _fmt_catalog_json_value(
+            data, 0, indent=indent, multi_keys=multi_keys
+        )
+        + "\n"
+    )
 
 
 def write_catalog_json(
@@ -1678,7 +1799,7 @@ OBJECTIVE_REF_FIELDS = (
 
 def objective_goal_sort_key(goal: str) -> tuple:
     """{{X}}… primero, luego alfabetico (como Combined / sort_combined_json)."""
-    return (0 if goal.startswith("{{X}}") else 1, goal.lower())
+    return (0 if goal.startswith(GOAL_X) else 1, goal.lower())
 
 
 def kingdom_story_index(kingdom: str) -> int:
@@ -1705,6 +1826,57 @@ def natural_name_key(name: str) -> tuple:
     return tuple(out)
 
 
+def _entity_near_sort_key(item: dict, k_ord: int) -> tuple | None:
+    empty_name: tuple = ()
+    if item.get("near_odyssey") or item.get("near") == "Odyssey":
+        return (k_ord, 0, 0, 0, empty_name)
+    near = item.get("near")
+    if isinstance(near, str) and near.startswith("#"):
+        head = near[1:].split(None, 1)[0]
+        try:
+            return (k_ord, 0, int(head), 0, empty_name)
+        except ValueError:
+            return None
+    return None
+
+
+def _entity_id_sort_key(item: dict, k_ord: int) -> tuple | None:
+    empty_name: tuple = ()
+    for key in ("moon", "checkpoint", "near_checkpoint", "id"):
+        val = item.get(key)
+        if val is None:
+            continue
+        try:
+            return (k_ord, 0, int(val), 0, empty_name)
+        except (TypeError, ValueError):
+            continue
+    moons = item.get("moons")
+    if isinstance(moons, list) and moons:
+        try:
+            return (k_ord, 0, int(min(int(m) for m in moons)), 0, empty_name)
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _entity_shop_sort_key(
+    item: dict, k_ord: int, name_key: tuple
+) -> tuple | None:
+    if "regional" not in item and "coins" not in item:
+        return None
+    if "regional" in item:
+        try:
+            return (k_ord, 1, 0, int(item["regional"]), name_key)
+        except (TypeError, ValueError):
+            pass
+    if "coins" in item:
+        try:
+            return (k_ord, 1, 1, int(item["coins"]), name_key)
+        except (TypeError, ValueError):
+            pass
+    return None
+
+
 def entity_sort_key(item: dict) -> tuple:
     """Orden proyecto: reino (historia) → id numerico → precio → nombre.
 
@@ -1712,43 +1884,22 @@ def entity_sort_key(item: dict) -> tuple:
     near_odyssey / near=\"Odyssey\" → checkpoint 0.
     near=\"#N …\" (post-enrich) → N.
     Tienda: regional antes que coins, luego importe, luego nombre.
+
+    Siempre (k_ord, bucket, a, b, name_key) — misma longitud en todos los caminos.
     """
     k_ord = kingdom_story_index(str(item.get("kingdom") or ""))
-    if item.get("near_odyssey") or item.get("near") == "Odyssey":
-        return (k_ord, 0, 0)
-    near = item.get("near")
-    if isinstance(near, str) and near.startswith("#"):
-        head = near[1:].split(None, 1)[0]
-        try:
-            return (k_ord, 0, int(head))
-        except ValueError:
-            pass
-    for key in ("moon", "checkpoint", "near_checkpoint", "id"):
-        val = item.get(key)
-        if val is not None:
-            try:
-                return (k_ord, 0, int(val))
-            except (TypeError, ValueError):
-                pass
-    moons = item.get("moons")
-    if isinstance(moons, list) and moons:
-        try:
-            return (k_ord, 0, int(min(int(m) for m in moons)))
-        except (TypeError, ValueError):
-            pass
+    near_key = _entity_near_sort_key(item, k_ord)
+    if near_key is not None:
+        return near_key
+    id_key = _entity_id_sort_key(item, k_ord)
+    if id_key is not None:
+        return id_key
     name = str(item.get("name") or item.get("capture") or item.get("level") or "")
-    if "regional" in item or "coins" in item:
-        if "regional" in item:
-            try:
-                return (k_ord, 1, 0, int(item["regional"]), natural_name_key(name))
-            except (TypeError, ValueError):
-                pass
-        if "coins" in item:
-            try:
-                return (k_ord, 1, 1, int(item["coins"]), natural_name_key(name))
-            except (TypeError, ValueError):
-                pass
-    return (k_ord, 2, natural_name_key(name))
+    name_key = natural_name_key(name)
+    shop_key = _entity_shop_sort_key(item, k_ord, name_key)
+    if shop_key is not None:
+        return shop_key
+    return (k_ord, 2, 0, 0, name_key)
 
 
 def objective_goal(raw: object) -> str | None:
@@ -1832,6 +1983,42 @@ def _capture_name_to_goal() -> dict[str, str]:
     return out
 
 
+def _captures_umbrella_goal_names(
+    active: dict[str, dict],
+    capture_goals: dict[str, str],
+) -> list[str]:
+    names = {g for g in capture_goals.values() if g in active}
+    # Subgoals de grupos con capture (p. ej. pokio_hole) no listados en CAPTURE_OBJECTIVE.
+    if BINGO_GROUPS_PATH.exists():
+        for g in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
+            if not g.get("capture"):
+                continue
+            for goal in group_objectives(g):
+                if goal in active:
+                    names.add(goal)
+    # Goal global de capturar X cosas distintas (no está en CAPTURE_OBJECTIVE).
+    if GOAL_UNIQUE_CAPTURES in active:
+        names.add(GOAL_UNIQUE_CAPTURES)
+    return sorted(names, key=objective_goal_sort_key)
+
+
+def _capture_group_goal_names(
+    group: dict,
+    active: dict[str, dict],
+    capture_goals: dict[str, str],
+) -> list[str]:
+    existing = group_objectives(group)
+    listed = [g for g in existing if g in active]
+    # Spec/listado del grupo gana (p. ej. Seaside vs Lake Cheep Cheep).
+    if listed:
+        return listed
+    key = str(group.get("capture") or "")
+    mapped = capture_goals.get(key) or capture_goals.get(key.casefold())
+    if mapped and mapped in active:
+        return [mapped]
+    return []
+
+
 def resolve_group_goal_names(
     group: dict,
     combined_by_goal: dict[str, dict] | None = None,
@@ -1856,34 +2043,10 @@ def resolve_group_goal_names(
         capture_goals = _capture_name_to_goal()
 
     if gid == "captures":
-        names = {g for g in capture_goals.values() if g in active}
-        # Subgoals de grupos con capture (p. ej. pokio_hole) no listados en CAPTURE_OBJECTIVE.
-        if BINGO_GROUPS_PATH.exists():
-            for g in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
-                if not g.get("capture"):
-                    continue
-                for goal in group_objectives(g):
-                    if goal in active:
-                        names.add(goal)
-        # Goal global de capturar X cosas distintas (no está en CAPTURE_OBJECTIVE).
-        if "{{X}} Unique Captures" in active:
-            names.add("{{X}} Unique Captures")
-        return sorted(names, key=objective_goal_sort_key)
-
-    capture = group.get("capture")
-    existing = group_objectives(group)
-    listed = [g for g in existing if g in active]
-    if capture:
-        key = str(capture)
-        mapped = capture_goals.get(key) or capture_goals.get(key.casefold())
-        # Spec/listado del grupo gana (p. ej. Seaside vs Lake Cheep Cheep).
-        if listed:
-            return listed
-        if mapped and mapped in active:
-            return [mapped]
-        return []
-
-    return listed
+        return _captures_umbrella_goal_names(active, capture_goals)
+    if group.get("capture"):
+        return _capture_group_goal_names(group, active, capture_goals)
+    return [g for g in group_objectives(group) if g in active]
 
 
 def group_objective_refs(group: dict, combined_by_goal: dict[str, dict] | None = None) -> list[dict]:
@@ -1927,6 +2090,61 @@ def group_kind(group: dict) -> str:
     return "empty"
 
 
+_BINGO_GROUP_META_KEYS = (
+    "kingdom",
+    "moon_tag",
+    "tag",
+    "large",
+    "umbrella",
+    "internal",
+    "extra_tags",
+    "capture",
+    "apply_moon_tag",
+    "tag_only_moons",
+    "_definition",
+    "_note",
+    "_source",
+)
+
+_BINGO_GROUP_SKIP_UNKNOWN = frozenset(
+    {
+        "goal",
+        "objectives",
+        "moons",
+        "tag_only_moons",
+        "kind",
+        "id",
+        "orden",
+        "n_objectives",
+        "n_moons",
+        "n_objetivos",
+        "n_lunas",
+    }
+)
+
+
+def _copy_bingo_group_meta(group: dict, out: dict) -> None:
+    for key in _BINGO_GROUP_META_KEYS:
+        if key in group and group[key] not in (None, "", [], False):
+            value = group[key]
+            if key == "extra_tags" and isinstance(value, list):
+                value = sort_category_list(value)
+            out[key] = value
+        # apply_moon_tag=False sí se persiste (omite etiquetar lunas).
+        elif key == "apply_moon_tag" and group.get(key) is False:
+            out[key] = False
+
+
+def _copy_bingo_group_unknown_keys(group: dict, out: dict) -> None:
+    # internal=False no se escribe; True si.
+    # Resto de claves desconocidas (sin goal legado ni vacios ni contadores viejos).
+    skip = set(out) | _BINGO_GROUP_SKIP_UNKNOWN
+    for key, value in group.items():
+        if key in skip or value in (None, "", []):
+            continue
+        out[key] = value
+
+
 def normalize_bingo_group(
     group: dict,
     combined_by_goal: dict[str, dict] | None = None,
@@ -1963,48 +2181,8 @@ def normalize_bingo_group(
     )
     if odyssey_units != len(moons):
         out["n_odyssey_units"] = odyssey_units
-    for key in (
-        "kingdom",
-        "moon_tag",
-        "tag",
-        "large",
-        "umbrella",
-        "internal",
-        "extra_tags",
-        "capture",
-        "apply_moon_tag",
-        "tag_only_moons",
-        "_definition",
-        "_note",
-        "_source",
-    ):
-        if key in group and group[key] not in (None, "", [], False):
-            value = group[key]
-            if key == "extra_tags" and isinstance(value, list):
-                value = sort_category_list(value)
-            out[key] = value
-        # apply_moon_tag=False sí se persiste (omite etiquetar lunas).
-        elif key == "apply_moon_tag" and group.get(key) is False:
-            out[key] = False
-    # internal=False no se escribe; True si.
-    # Resto de claves desconocidas (sin goal legado ni vacios ni contadores viejos).
-    skip = set(out) | {
-        "goal",
-        "objectives",
-        "moons",
-        "tag_only_moons",
-        "kind",
-        "id",
-        "orden",
-        "n_objectives",
-        "n_moons",
-        "n_objetivos",
-        "n_lunas",
-    }
-    for key, value in group.items():
-        if key in skip or value in (None, "", []):
-            continue
-        out[key] = value
+    _copy_bingo_group_meta(group, out)
+    _copy_bingo_group_unknown_keys(group, out)
     return out
 
 
@@ -2072,6 +2250,29 @@ def normalize_bingo_groups_file() -> dict[str, int]:
     return counts
 
 
+def _dedupe_sorted_moon_refs(moons: list) -> list[dict]:
+    moon_refs: list[dict] = []
+    seen: set[tuple[str, int]] = set()
+    for raw in moons:
+        if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
+            continue
+        kingdom = str(raw["kingdom"])
+        moon = int(raw["moon"])
+        key = (kingdom, moon)
+        if key in seen:
+            continue
+        seen.add(key)
+        moon_refs.append(
+            {
+                "kingdom": kingdom,
+                "moon": moon,
+                "name": raw.get("name") or f"Moon {moon}",
+            }
+        )
+    moon_refs.sort(key=entity_sort_key)
+    return moon_refs
+
+
 def upsert_moon_tag_group(
     group_id: str,
     moons: list[dict],
@@ -2091,23 +2292,7 @@ def upsert_moon_tag_group(
     by_id = {g["id"]: g for g in bingo.get("groups", [])}
     existing = by_id.get(group_id) or {}
     tag = moon_tag or group_id
-    moon_refs: list[dict] = []
-    seen: set[tuple[str, int]] = set()
-    for raw in moons:
-        kingdom = str(raw["kingdom"])
-        moon = int(raw["moon"])
-        key = (kingdom, moon)
-        if key in seen:
-            continue
-        seen.add(key)
-        moon_refs.append(
-            {
-                "kingdom": kingdom,
-                "moon": moon,
-                "name": raw.get("name") or f"Moon {moon}",
-            }
-        )
-    moon_refs.sort(key=entity_sort_key)
+    moon_refs = _dedupe_sorted_moon_refs(moons)
     if objectives is not None:
         obj_refs = list(objectives)
     else:
@@ -2122,25 +2307,7 @@ def upsert_moon_tag_group(
         tag_only_raw = list(existing.get("tag_only_moons") or [])
     else:
         tag_only_raw = list(tag_only_moons)
-    tag_only_refs: list[dict] = []
-    seen_tag_only: set[tuple[str, int]] = set()
-    for raw in tag_only_raw:
-        if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
-            continue
-        kingdom = str(raw["kingdom"])
-        moon = int(raw["moon"])
-        key = (kingdom, moon)
-        if key in seen_tag_only:
-            continue
-        seen_tag_only.add(key)
-        tag_only_refs.append(
-            {
-                "kingdom": kingdom,
-                "moon": moon,
-                "name": raw.get("name") or f"Moon {moon}",
-            }
-        )
-    tag_only_refs.sort(key=entity_sort_key)
+    tag_only_refs = _dedupe_sorted_moon_refs(tag_only_raw)
     if tag_only_refs:
         group["tag_only_moons"] = tag_only_refs
     if large:
@@ -2202,6 +2369,43 @@ def group_moon_tag(group: dict) -> str:
     return next(iter(sorted(tags)))
 
 
+def _group_tag_targets(group: dict) -> list[dict]:
+    tag_targets = list(group_moons(group))
+    for raw in group.get("tag_only_moons") or []:
+        if isinstance(raw, dict) and "kingdom" in raw and "moon" in raw:
+            tag_targets.append(raw)
+    return tag_targets
+
+
+def _apply_tags_to_merged_moon(
+    merged: dict[tuple[str, int], dict],
+    raw: dict,
+    tags_to_add: set[str],
+    wiki: dict,
+    rules: dict,
+) -> None:
+    key = (raw["kingdom"], int(raw["moon"]))
+    kingdom, moon = key
+    entry = merged.get(key)
+    if entry is None:
+        wiki_entry = wiki.get(kingdom, {}).get(moon)
+        name = raw.get("name") or (wiki_entry or {}).get("name") or f"Moon {moon}"
+        availability = infer_availability(
+            kingdom, moon, name, wiki_entry, rules, tags_to_add
+        )
+        merged[key] = {
+            "kingdom": kingdom,
+            "moon": moon,
+            "name": name,
+            "availability": availability,
+            "tags": set(tags_to_add),
+            "catalogs": {"bingo_groups"},
+        }
+        return
+    entry["tags"] |= tags_to_add
+    entry.setdefault("catalogs", set()).add("bingo_groups")
+
+
 def apply_bingo_group_tags(merged: dict[tuple[str, int], dict]) -> None:
     """Aplica tags de cada bingo group (concreto y/o paraguas)."""
     clear_group_context_tags_cache()
@@ -2219,31 +2423,8 @@ def apply_bingo_group_tags(merged: dict[tuple[str, int], dict]) -> None:
             if t
         }
         # No re-aplicar rare fallback sobre tags ya decididas por el grupo
-        tag_targets = list(group_moons(group))
-        for raw in group.get("tag_only_moons") or []:
-            if isinstance(raw, dict) and "kingdom" in raw and "moon" in raw:
-                tag_targets.append(raw)
-        for raw in tag_targets:
-            key = (raw["kingdom"], int(raw["moon"]))
-            kingdom, moon = key
-            entry = merged.get(key)
-            if entry is None:
-                wiki_entry = wiki.get(kingdom, {}).get(moon)
-                name = raw.get("name") or (wiki_entry or {}).get("name") or f"Moon {moon}"
-                availability = infer_availability(
-                    kingdom, moon, name, wiki_entry, rules, tags_to_add
-                )
-                merged[key] = {
-                    "kingdom": kingdom,
-                    "moon": moon,
-                    "name": name,
-                    "availability": availability,
-                    "tags": set(tags_to_add),
-                    "catalogs": {"bingo_groups"},
-                }
-            else:
-                entry["tags"] |= tags_to_add
-                entry.setdefault("catalogs", set()).add("bingo_groups")
+        for raw in _group_tag_targets(group):
+            _apply_tags_to_merged_moon(merged, raw, tags_to_add, wiki, rules)
 
 
 def load_typed_moon_keys() -> set[tuple[str, int]]:
@@ -2259,6 +2440,8 @@ KINGDOM_OBJECTIVE_EXCLUDE = frozenset(
     }
 )
 
+_TIPO_RANK = {"reino_total": 0, "reino_regional": 1, "reino_exclusivo": 2}
+
 
 def load_active_combined_objectives() -> list[dict]:
     """Objetivos Combined activos (no disabled) del JSON de pagina."""
@@ -2268,68 +2451,78 @@ def load_active_combined_objectives() -> list[dict]:
     return [o for o in data.get("objectives", []) if not o.get("disabled") and o.get("goal")]
 
 
+def _reino_exclusivo_priority(goal: str) -> int:
+    """Orden curado dentro de reino_exclusivo.
+
+    Checkpoints → Story → Multi con {{X}} → resto {{X}} → Multi fijo → resto fijo.
+    Asi Multi fijo (Seaside/Snow) no parte el bloque {{X}}.
+    """
+    low = goal.lower()
+    has_x = goal.startswith(GOAL_X)
+    if "checkpoint" in low:
+        return 0
+    if "story" in low:
+        return 1
+    is_multi = "multi-moon" in low or "multi moon" in low
+    if is_multi and has_x:
+        return 2
+    if has_x:
+        return 3
+    if is_multi:
+        return 4
+    return 5
+
+
+def _append_kingdom_objective(
+    by_kingdom: dict[str, list[tuple]],
+    obj: dict,
+) -> None:
+    goal = str(obj["goal"])
+    if goal in KINGDOM_OBJECTIVE_EXCLUDE:
+        return
+    tipo, reino = classify_objective(
+        goal,
+        obj.get("board_categories") or [],
+        obj.get("line_categories") or [],
+    )
+    if not reino or reino not in by_kingdom or tipo not in _TIPO_RANK:
+        return
+    sub = _reino_exclusivo_priority(goal) if tipo == "reino_exclusivo" else 0
+    # Dentro del mismo bucket: alfabetico ({{X}} ya va en sub 2/3).
+    by_kingdom[reino].append(
+        (
+            _TIPO_RANK[tipo],
+            sub,
+            goal.lower(),
+            objective_ref_from_combined(goal, obj),
+        )
+    )
+
+
+def _dedupe_kingdom_objective_refs(
+    items: list[tuple],
+) -> list[dict]:
+    items.sort(key=lambda pair: (pair[0], pair[1], pair[2]))
+    seen: set[str] = set()
+    refs: list[dict] = []
+    for *_, ref in items:
+        goal = ref["goal"]
+        if goal in seen:
+            continue
+        seen.add(goal)
+        refs.append(ref)
+    return refs
+
+
 def kingdom_objectives_from_combined() -> dict[str, list[dict]]:
     """Objetivos Combined por reino (objetos {goal, ...info})."""
-    by_kingdom: dict[str, list[tuple[int, int, dict]]] = {k: [] for k in KINGDOM_COLUMNS}
-    tipo_rank = {"reino_total": 0, "reino_regional": 1, "reino_exclusivo": 2}
-
-    def exclusivo_priority(goal: str) -> int:
-        """Orden curado dentro de reino_exclusivo.
-
-        Checkpoints → Story → Multi con {{X}} → resto {{X}} → Multi fijo → resto fijo.
-        Asi Multi fijo (Seaside/Snow) no parte el bloque {{X}}.
-        """
-        low = goal.lower()
-        has_x = goal.startswith("{{X}}")
-        if "checkpoint" in low:
-            return 0
-        if "story" in low:
-            return 1
-        is_multi = "multi-moon" in low or "multi moon" in low
-        if is_multi and has_x:
-            return 2
-        if has_x:
-            return 3
-        if is_multi:
-            return 4
-        return 5
-
+    by_kingdom: dict[str, list[tuple]] = {k: [] for k in KINGDOM_COLUMNS}
     for obj in load_active_combined_objectives():
-        goal = str(obj["goal"])
-        if goal in KINGDOM_OBJECTIVE_EXCLUDE:
-            continue
-        tipo, reino = classify_objective(
-            goal,
-            obj.get("board_categories") or [],
-            obj.get("line_categories") or [],
-        )
-        if not reino or reino not in by_kingdom:
-            continue
-        if tipo not in tipo_rank:
-            continue
-        sub = exclusivo_priority(goal) if tipo == "reino_exclusivo" else 0
-        # Dentro del mismo bucket: alfabetico ({{X}} ya va en sub 2/3).
-        by_kingdom[reino].append(
-            (
-                tipo_rank[tipo],
-                sub,
-                goal.lower(),
-                objective_ref_from_combined(goal, obj),
-            )
-        )
-
-    out: dict[str, list[dict]] = {}
-    for slug, items in by_kingdom.items():
-        items.sort(key=lambda pair: (pair[0], pair[1], pair[2]))
-        seen: set[str] = set()
-        refs: list[dict] = []
-        for *_, ref in items:
-            goal = ref["goal"]
-            if goal not in seen:
-                seen.add(goal)
-                refs.append(ref)
-        out[slug] = refs
-    return out
+        _append_kingdom_objective(by_kingdom, obj)
+    return {
+        slug: _dedupe_kingdom_objective_refs(items)
+        for slug, items in by_kingdom.items()
+    }
 
 
 def sync_kingdom_groups() -> dict[str, int]:
@@ -2468,6 +2661,42 @@ def rebuild_untyped_moons() -> int:
     return n
 
 
+_AVAILABILITY_PRIORITY = {"base": 0, "mid_story": 1, "world_peace": 2, "revisit": 3}
+
+
+def _merge_catalog_item_into(
+    merged: dict[tuple[str, int], dict],
+    item: dict,
+    stem: str,
+    primary_tag: str | None,
+) -> None:
+    key = (item["kingdom"], item["moon"])
+    tags = set(item.get("tags", []))
+    if primary_tag:
+        tags.add(primary_tag)
+
+    if key not in merged:
+        merged[key] = {
+            "kingdom": item["kingdom"],
+            "moon": item["moon"],
+            "name": item["name"],
+            "availability": item.get("availability", "base"),
+            "tags": tags,
+            "catalogs": {stem},
+        }
+        return
+
+    entry = merged[key]
+    if len(item["name"]) > len(entry["name"]):
+        entry["name"] = item["name"]
+    entry["tags"].update(tags)
+    entry["catalogs"].add(stem)
+    cur = _AVAILABILITY_PRIORITY.get(entry["availability"], 0)
+    new = _AVAILABILITY_PRIORITY.get(item.get("availability", "base"), 0)
+    if new > cur:
+        entry["availability"] = item.get("availability", "base")
+
+
 def merge_catalog_moons() -> dict[tuple[str, int], dict]:
     """Return {(kingdom, moon): merged item} with union of tags."""
     merged: dict[tuple[str, int], dict] = {}
@@ -2479,32 +2708,7 @@ def merge_catalog_moons() -> dict[tuple[str, int], dict]:
         stem = path.stem
         primary_tag = PRIMARY_TAGS.get(stem)
         for item in catalog.get("items", []):
-            key = (item["kingdom"], item["moon"])
-            tags = set(item.get("tags", []))
-            if primary_tag:
-                tags.add(primary_tag)
-
-            if key not in merged:
-                merged[key] = {
-                    "kingdom": item["kingdom"],
-                    "moon": item["moon"],
-                    "name": item["name"],
-                    "availability": item.get("availability", "base"),
-                    "tags": tags,
-                    "catalogs": {stem},
-                }
-                continue
-
-            entry = merged[key]
-            if len(item["name"]) > len(entry["name"]):
-                entry["name"] = item["name"]
-            entry["tags"].update(tags)
-            entry["catalogs"].add(stem)
-            priority = {"base": 0, "mid_story": 1, "world_peace": 2, "revisit": 3}
-            cur = priority.get(entry["availability"], 0)
-            new = priority.get(item.get("availability", "base"), 0)
-            if new > cur:
-                entry["availability"] = item.get("availability", "base")
+            _merge_catalog_item_into(merged, item, stem, primary_tag)
 
     apply_bingo_group_tags(merged)
     return merged
@@ -2565,7 +2769,7 @@ def scoped_items_up_to_kingdom(
 
 
 def count_by_kingdom(items: list[dict], tag: str, allowed: set[str]) -> dict[str, int]:
-    counts = {k: 0 for k in KINGDOM_COLUMNS}
+    counts = dict.fromkeys(KINGDOM_COLUMNS, 0)
     for item in items:
         if not in_scope(item, allowed):
             continue
@@ -2617,14 +2821,14 @@ def slugify_matrix_token(text: str) -> str:
     return text.strip("_").removesuffix("_moons").removesuffix("_moon")
 
 
-def goal_to_matrix_column(goal: str, tipo: str, reino: str | None) -> str:
+def goal_to_matrix_column(goal: str, tipo: str, _reino: str | None) -> str:
     if goal in GOAL_TO_TAG:
         return GOAL_TO_TAG[goal]
     slug, suffix = parse_kingdom_prefixed_goal(goal)
     if slug and suffix and tipo == "reino_exclusivo":
         mechanic = slugify_matrix_token(suffix)
         return f"{slug}_{mechanic}" if mechanic else slug
-    rest = goal.removeprefix("{{X}} ").strip()
+    rest = goal.removeprefix(GOAL_X_PREFIX).strip()
     return slugify_matrix_token(rest)
 
 
@@ -2651,7 +2855,7 @@ def load_matrix_objectives() -> list[MatrixObjective]:
         if obj.get("disabled"):
             continue
         goal = obj.get("goal", "")
-        if not goal.startswith("{{X}}"):
+        if not goal.startswith(GOAL_X):
             continue
 
         board = obj.get("board_categories", [])
@@ -2692,9 +2896,9 @@ def moon_matches_objective(entry: dict, objective: MatrixObjective, scoped: bool
 
 
 def parse_kingdom_prefixed_goal(goal: str) -> tuple[str | None, str | None]:
-    if not goal.startswith("{{X}} "):
+    if not goal.startswith(GOAL_X_PREFIX):
         return None, None
-    rest = goal[len("{{X}} ") :]
+    rest = goal[len(GOAL_X_PREFIX) :]
     for display, slug in KINGDOM_GOAL_PREFIXES:
         prefix = f"{display} "
         if rest.startswith(prefix):

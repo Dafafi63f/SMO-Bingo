@@ -49,6 +49,8 @@ SUBPROCESS_ENV["PYTHONPATH"] = (
     str(FILES_DIR) if not _path else str(FILES_DIR) + os.pathsep + _path
 )
 
+EXPORT_LUNAS_TAGS_PY = "export_lunas_tags.py"
+
 # Orden importa: sync grupos → progression/normalize (+ sort Combined) → exports.
 # capturas_lunas antes que lunas-objetivos (tags de captura leen el JSON).
 # goals_referencia antes que tags_inventario (goals[] por tag desde pools).
@@ -69,11 +71,11 @@ STEPS: list[tuple[str, list[str]]] = [
     ),
     ("combined meta (lineas/icons/tooltips)", [sys.executable, "export_combined_meta.py", "all"]),
     ("capturas_lunas", [sys.executable, "export_capturas_lunas.py"]),
-    ("lunas-objetivos", [sys.executable, "export_lunas_tags.py", "--lunas-only"]),
+    ("lunas-objetivos", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--lunas-only"]),
     ("goals_referencia", [sys.executable, "export_goals_referencia.py"]),
-    ("tags_inventario", [sys.executable, "export_lunas_tags.py", "--tags-only"]),
+    ("tags_inventario", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--tags-only"]),
     # Segunda pasada: tags nuevas (p. ej. fire_bro) ya estan en inventario.
-    ("lunas-objetivos (retag)", [sys.executable, "export_lunas_tags.py", "--lunas-only"]),
+    ("lunas-objetivos (retag)", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--lunas-only"]),
     ("goals_referencia (retag)", [sys.executable, "export_goals_referencia.py"]),
     (
         "clear caches",

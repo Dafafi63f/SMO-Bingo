@@ -130,6 +130,41 @@ def _group_related_tags(group: dict) -> set[str]:
     return {t for t in tags if t}
 
 
+def _add_moons_to_goal_pool(
+    out: dict[tuple[str, int], set[str]],
+    goal: str,
+    moons: list,
+) -> None:
+    for moon in moons:
+        if not isinstance(moon, dict):
+            continue
+        if "kingdom" not in moon or "moon" not in moon:
+            continue
+        key = (str(moon["kingdom"]), int(moon["moon"]))
+        out[key].add(goal)
+
+
+def _rebuild_by_kingdom_pools(
+    out: dict[tuple[str, int], set[str]], need_rebuild: list[str]
+) -> None:
+    from export_goals_referencia import (
+        collect_membership,
+        pick_moons_for_goal,
+    )
+
+    membership = collect_membership()
+    registry = build_matrix_moon_registry()
+    combined = load_combined_objectives_by_goal(include_disabled=True)
+    for goal in need_rebuild:
+        entries = membership.get(goal) or []
+        if not entries:
+            continue
+        obj = combined.get(goal) or {}
+        board = list(obj.get("board_categories") or [])
+        _, moons, _ = pick_moons_for_goal(goal, entries, board, registry)
+        _add_moons_to_goal_pool(out, goal, moons)
+
+
 def load_moon_goal_pools() -> dict[tuple[str, int], set[str]]:
     """(kingdom, moon) → goals Combined cuyo pool moons[] incluye la luna.
 
@@ -147,39 +182,12 @@ def load_moon_goal_pools() -> dict[tuple[str, int], set[str]]:
             continue
         moons = entry.get("moons") or []
         if moons:
-            for moon in moons:
-                if not isinstance(moon, dict):
-                    continue
-                if "kingdom" not in moon or "moon" not in moon:
-                    continue
-                key = (str(moon["kingdom"]), int(moon["moon"]))
-                out[key].add(goal)
+            _add_moons_to_goal_pool(out, goal, moons)
         elif entry.get("pool") == "by_kingdom" and entry.get("n_moons"):
             need_rebuild.append(goal)
 
     if need_rebuild:
-        from export_goals_referencia import (
-            collect_membership,
-            pick_moons_for_goal,
-        )
-
-        membership = collect_membership()
-        registry = build_matrix_moon_registry()
-        combined = load_combined_objectives_by_goal(include_disabled=True)
-        for goal in need_rebuild:
-            entries = membership.get(goal) or []
-            if not entries:
-                continue
-            obj = combined.get(goal) or {}
-            board = list(obj.get("board_categories") or [])
-            _, moons, _ = pick_moons_for_goal(goal, entries, board, registry)
-            for moon in moons:
-                if not isinstance(moon, dict):
-                    continue
-                if "kingdom" not in moon or "moon" not in moon:
-                    continue
-                key = (str(moon["kingdom"]), int(moon["moon"]))
-                out[key].add(goal)
+        _rebuild_by_kingdom_pools(out, need_rebuild)
     return out
 
 
@@ -201,17 +209,10 @@ def load_tag_related_goals() -> dict[str, set[str]]:
     return out
 
 
-def build_rows() -> tuple[list[dict], dict, frozenset[str]]:
-    registry = build_matrix_moon_registry()
-    # Catalogo visible: sin LUNAS_CATALOG_EXCLUDE (siguen en goals/bingo_groups).
-    catalog_reg = {
-        k: v for k, v in registry.items() if k not in LUNAS_CATALOG_EXCLUDE
-    }
-    total_moons = len(catalog_reg)
-    allowed = collect_allowed_moon_tags(catalog_reg)
-    tag_goals = load_tag_related_goals()
-    moon_pools = load_moon_goal_pools()
-
+def _index_moons_by_tag(
+    catalog_reg: dict,
+    allowed: frozenset[str],
+) -> tuple[dict[str, list[dict]], Counter[tuple[str, str]]]:
     moons_by_tag: dict[str, list[dict]] = {tag: [] for tag in allowed}
     pair_counts: Counter[tuple[str, str]] = Counter()
     for (kingdom, moon), entry in catalog_reg.items():
@@ -230,46 +231,76 @@ def build_rows() -> tuple[list[dict], dict, frozenset[str]]:
         for i, a in enumerate(ordered):
             for b in ordered[i + 1 :]:
                 pair_counts[(a, b)] += 1
-
     for tag in moons_by_tag:
         moons_by_tag[tag].sort(key=_moon_sort_key)
+    return moons_by_tag, pair_counts
+
+
+def _build_tag_row(
+    *,
+    orden: int,
+    tag: str,
+    moons_by_tag: dict[str, list[dict]],
+    tag_goals: dict[str, set[str]],
+    moon_pools: dict[tuple[str, int], set[str]],
+    total_moons: int,
+) -> tuple[dict, list[str] | None]:
+    related_set = set(tag_goals.get(tag) or [])
+    moons_out: list[dict] = []
+    used_goals: set[str] = set()
+    for ref in moons_by_tag.get(tag) or []:
+        key = (str(ref["kingdom"]), int(ref["moon"]))
+        moon_goals = (moon_pools.get(key) or set()) & related_set
+        used_goals.update(moon_goals)
+        entry = dict(ref)
+        entry["goal"] = bool(moon_goals)
+        moons_out.append(entry)
+
+    related = sorted(used_goals, key=objective_goal_sort_key)
+    lunas = len(moons_out)
+    pct = (100.0 * lunas / total_moons) if total_moons else 0.0
+    role = moon_tag_role(tag)
+    n_goals = len(related)
+    avisos = balance_avisos(lunas=lunas, pct=pct, role=role, n_goals=n_goals)
+    row: dict = {
+        "id": orden,
+        "tag": tag,
+        "rol": role,
+        "lunas": lunas,
+        "pct_lunas": round(pct, 1),
+        "n_goals": n_goals,
+        "goals": related,
+        "moons": moons_out,
+    }
+    if avisos:
+        row["avisos"] = avisos
+    return row, avisos or None
+
+
+def build_rows() -> tuple[list[dict], dict, frozenset[str]]:
+    registry = build_matrix_moon_registry()
+    catalog_reg = {
+        k: v for k, v in registry.items() if k not in LUNAS_CATALOG_EXCLUDE
+    }
+    total_moons = len(catalog_reg)
+    allowed = collect_allowed_moon_tags(catalog_reg)
+    tag_goals = load_tag_related_goals()
+    moon_pools = load_moon_goal_pools()
+    moons_by_tag, pair_counts = _index_moons_by_tag(catalog_reg, allowed)
 
     rows: list[dict] = []
     avisos_by_tag: dict[str, list[str]] = {}
     for orden, tag in enumerate(sorted(allowed), start=1):
-        related_set = set(tag_goals.get(tag) or [])
-        moons_out: list[dict] = []
-        used_goals: set[str] = set()
-        for ref in moons_by_tag.get(tag) or []:
-            key = (str(ref["kingdom"]), int(ref["moon"]))
-            moon_goals = (moon_pools.get(key) or set()) & related_set
-            used_goals.update(moon_goals)
-            entry = dict(ref)
-            entry["goal"] = bool(moon_goals)
-            moons_out.append(entry)
-
-        # Solo goals que usan >=1 luna de esta tag (no checkpoints/lista/etc.).
-        related = sorted(used_goals, key=objective_goal_sort_key)
-        lunas = len(moons_out)
-        pct = (100.0 * lunas / total_moons) if total_moons else 0.0
-        role = moon_tag_role(tag)
-        n_goals = len(related)
-        avisos = balance_avisos(lunas=lunas, pct=pct, role=role, n_goals=n_goals)
+        row, avisos = _build_tag_row(
+            orden=orden,
+            tag=tag,
+            moons_by_tag=moons_by_tag,
+            tag_goals=tag_goals,
+            moon_pools=moon_pools,
+            total_moons=total_moons,
+        )
         if avisos:
             avisos_by_tag[tag] = avisos
-
-        row: dict = {
-            "id": orden,
-            "tag": tag,
-            "rol": role,
-            "lunas": lunas,
-            "pct_lunas": round(pct, 1),
-            "n_goals": n_goals,
-            "goals": related,
-            "moons": moons_out,
-        }
-        if avisos:
-            row["avisos"] = avisos
         rows.append(row)
 
     meta = {
@@ -481,32 +512,31 @@ def resolve_allowed_tags(registry: dict) -> frozenset[str]:
     return collect_allowed_moon_tags(registry)
 
 
-def export_lunas() -> None:
-    n_untyped = rebuild_untyped_moons()
-    print(f"Lunas sin tags extra (solo reino): {n_untyped}")
-    violations = collect_availability_violations()
-    if violations:
-        print("AVISO: disponibilidad incoherente con project.json (availability):")
-        for catalog, key, issues in violations:
-            for issue in issues:
-                print(f"  {catalog} {key}: {issue}")
-        print()
+def _print_availability_violations(violations: list) -> None:
+    if not violations:
+        return
+    print("AVISO: disponibilidad incoherente con project.json (availability):")
+    for catalog, key, issues in violations:
+        for issue in issues:
+            print(f"  {catalog} {key}: {issue}")
+    print()
 
-    tag_violations = collect_tag_combination_violations()
-    if tag_violations:
-        print("AVISO: combinaciones de tags invalidas:")
-        for kingdom, moon, name, issues in tag_violations:
-            for issue in issues:
-                print(f"  {kingdom}#{moon} ({name}): {issue}")
-        print()
 
-    registry = build_matrix_moon_registry()
-    allowed = resolve_allowed_tags(registry)
-    print(f"Tags permitidas: {len(allowed)} (desde tags_inventario.json o registro)")
+def _print_tag_violations(tag_violations: list) -> None:
+    if not tag_violations:
+        return
+    print("AVISO: combinaciones de tags invalidas:")
+    for kingdom, moon, name, issues in tag_violations:
+        for issue in issues:
+            print(f"  {kingdom}#{moon} ({name}): {issue}")
+    print()
 
+
+def _build_lunas_moon_rows(
+    registry: dict, allowed: frozenset[str]
+) -> tuple[list[dict], Counter[str]]:
     dropped: Counter[str] = Counter()
     moons: list[dict] = []
-    rules = load_kingdom_availability()
     for (kingdom, moon), entry in sorted(
         registry.items(),
         key=lambda kv: (
@@ -523,7 +553,6 @@ def export_lunas() -> None:
         )
         for t in normalized - filtered:
             dropped[t] += 1
-
         moons.append(
             {
                 "kingdom": kingdom,
@@ -533,6 +562,71 @@ def export_lunas() -> None:
                 "tags": ordered_tags(kingdom, filtered),
             }
         )
+    return moons, dropped
+
+
+def _format_kingdom_availability_line(
+    kingdom: str, summary: dict, rules: dict
+) -> str | None:
+    if kingdom not in summary:
+        return None
+    order = rules.get("kingdoms", {}).get(kingdom, {}).get("tier_order", [])
+    parts = [f"{tier}={summary[kingdom].get(tier, 0)}" for tier in order]
+    extra = [t for t in summary[kingdom] if t not in order]
+    parts.extend(f"{tier}={summary[kingdom][tier]}" for tier in sorted(extra))
+    pattern = rules.get("kingdoms", {}).get(kingdom, {}).get("pattern", "?")
+    return f"  {kingdom} [{pattern}]: {', '.join(parts)}"
+
+
+def _print_lunas_stats(
+    moons: list[dict],
+    allowed: frozenset[str],
+    dropped: Counter[str],
+    registry: dict,
+    rules: dict,
+) -> None:
+    if dropped:
+        print("AVISO: tags omitidas (no estan en inventario permitido):")
+        for tag, n in sorted(dropped.items(), key=lambda x: (-x[1], x[0])):
+            print(f"  {tag}: {n} lunas")
+
+    tag_counts: Counter[str] = Counter()
+    multi = sum(1 for row in moons if len(row["tags"]) > 1)
+    for row in moons:
+        tag_counts.update(row["tags"])
+
+    lunas_only = set(tag_counts) - set(allowed)
+    inv_unused = set(allowed) - set(tag_counts)
+    if lunas_only:
+        print(f"AVISO: tags en lunas no listadas en inventario: {sorted(lunas_only)}")
+    if inv_unused:
+        print(f"AVISO: tags en inventario sin lunas: {sorted(inv_unused)}")
+
+    print(f"Exportado: catalog/{OUTPUT_LUNAS_JSON.name} ({len(moons)} lunas)")
+    print("Alcance: base/mid_story/revisit/world_peace")
+    print(f"Con 2+ tags: {multi}")
+    summary = kingdom_availability_summary(registry)
+    print("\nDisponibilidad por reino (orden = tier_order del reino):")
+    for kingdom in KINGDOM_COLUMNS:
+        line = _format_kingdom_availability_line(kingdom, summary, rules)
+        if line:
+            print(line)
+    print("\nTags:")
+    for tag, count in sorted(tag_counts.items()):
+        print(f"  {tag}: {count}")
+
+def export_lunas() -> None:
+    n_untyped = rebuild_untyped_moons()
+    print(f"Lunas sin tags extra (solo reino): {n_untyped}")
+    _print_availability_violations(collect_availability_violations())
+    _print_tag_violations(collect_tag_combination_violations())
+
+    registry = build_matrix_moon_registry()
+    allowed = resolve_allowed_tags(registry)
+    print(f"Tags permitidas: {len(allowed)} (desde tags_inventario.json o registro)")
+
+    rules = load_kingdom_availability()
+    moons, dropped = _build_lunas_moon_rows(registry, allowed)
 
     write_catalog_json(
         OUTPUT_LUNAS_JSON,
@@ -554,47 +648,7 @@ def export_lunas() -> None:
     )
 
     export_lunas_csv_from_json(OUTPUT_LUNAS_JSON)
-
-    if dropped:
-        print("AVISO: tags omitidas (no estan en inventario permitido):")
-        for tag, n in sorted(dropped.items(), key=lambda x: (-x[1], x[0])):
-            print(f"  {tag}: {n} lunas")
-
-    tag_counts: Counter[str] = Counter()
-    multi = 0
-    for row in moons:
-        tags = list(row["tags"])
-        tag_counts.update(tags)
-        if len(tags) > 1:
-            multi += 1
-
-    # Toda tag del JSON debe estar en el inventario.
-    lunas_only = set(tag_counts) - set(allowed)
-    inv_unused = set(allowed) - set(tag_counts)
-    if lunas_only:
-        print(f"AVISO: tags en lunas no listadas en inventario: {sorted(lunas_only)}")
-    if inv_unused:
-        print(f"AVISO: tags en inventario sin lunas: {sorted(inv_unused)}")
-
-    print(f"Exportado: catalog/{OUTPUT_LUNAS_JSON.name} ({len(moons)} lunas)")
-    print("Alcance: base/mid_story/revisit/world_peace")
-    print(f"Con 2+ tags: {multi}")
-    summary = kingdom_availability_summary(registry)
-    print("\nDisponibilidad por reino (orden = tier_order del reino):")
-    for kingdom in KINGDOM_COLUMNS:
-        if kingdom not in summary:
-            continue
-        order = rules.get("kingdoms", {}).get(kingdom, {}).get("tier_order", [])
-        parts = [f"{tier}={summary[kingdom].get(tier, 0)}" for tier in order]
-        extra = [t for t in summary[kingdom] if t not in order]
-        if extra:
-            parts.extend(f"{tier}={summary[kingdom][tier]}" for tier in sorted(extra))
-        pattern = rules.get("kingdoms", {}).get(kingdom, {}).get("pattern", "?")
-        print(f"  {kingdom} [{pattern}]: {', '.join(parts)}")
-    print("\nTags:")
-    for tag, count in sorted(tag_counts.items()):
-        print(f"  {tag}: {count}")
-
+    _print_lunas_stats(moons, allowed, dropped, registry, rules)
 
 # ---------------------------------------------------------------------------
 # CLI

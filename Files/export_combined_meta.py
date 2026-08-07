@@ -66,19 +66,19 @@ def _pair_lookup() -> tuple[dict[str, str], dict[str, str], dict[str, dict[str, 
     return board_to, line_to, pairs
 
 
-def export_lineas() -> None:
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    limits = data.get("limits") or {}
-    board_limits: dict[str, int] = dict(limits.get("board") or {})
-    line_limits: dict[str, int] = dict(limits.get("line") or {})
-    combined = load_combined_objectives_by_goal(include_disabled=True)
-
+def _collect_lineas_goals(
+    objectives: list,
+) -> tuple[
+    dict[str, list[str]],
+    dict[str, list[str]],
+    dict[str, list[str]],
+    dict[str, list[str]],
+]:
     board_goals: dict[str, list[str]] = defaultdict(list)
     line_goals: dict[str, list[str]] = defaultdict(list)
     board_disabled: dict[str, list[str]] = defaultdict(list)
     line_disabled: dict[str, list[str]] = defaultdict(list)
-
-    for obj in data.get("objectives") or []:
+    for obj in objectives:
         goal = str(obj.get("goal") or "")
         disabled = bool(obj.get("disabled"))
         for cat in obj.get("board_categories") or []:
@@ -87,11 +87,15 @@ def export_lineas() -> None:
         for cat in obj.get("line_categories") or []:
             key = str(cat)
             (line_disabled if disabled else line_goals)[key].append(goal)
+    return board_goals, line_goals, board_disabled, line_disabled
 
-    board_to, line_to, pairs = _pair_lookup()
-    all_board = set(board_limits) | set(board_goals) | set(board_disabled)
-    all_line = set(line_limits) | set(line_goals) | set(line_disabled)
 
+def _build_group_sides(
+    all_board: set[str],
+    all_line: set[str],
+    board_to: dict[str, str],
+    line_to: dict[str, str],
+) -> dict[str, dict[str, str | None]]:
     group_sides: dict[str, dict[str, str | None]] = {}
     for key in all_board:
         gid = board_to.get(key, key)
@@ -101,52 +105,106 @@ def export_lineas() -> None:
         gid = line_to.get(key, key)
         side = group_sides.setdefault(gid, {"board": None, "line": None})
         side["line"] = key
+    return group_sides
+
+
+def _lineas_group_objectives(
+    active: list[str],
+    disabled: list[str],
+    combined: dict,
+) -> list[dict]:
+    objectives = [
+        objective_ref_from_combined(goal, combined.get(goal)) for goal in active
+    ]
+    for goal in disabled:
+        ref = objective_ref_from_combined(goal, combined.get(goal))
+        ref["disabled"] = True
+        objectives.append(ref)
+    return objectives
+
+
+def _build_lineas_group(
+    *,
+    orden: int,
+    gid: str,
+    board_key: str | None,
+    line_key: str | None,
+    board_goals: dict[str, list[str]],
+    line_goals: dict[str, list[str]],
+    board_disabled: dict[str, list[str]],
+    line_disabled: dict[str, list[str]],
+    board_limits: dict[str, int],
+    line_limits: dict[str, int],
+    pairs: dict[str, dict[str, str]],
+    combined: dict,
+) -> dict:
+    active: list[str] = []
+    disabled: list[str] = []
+    if board_key:
+        active.extend(board_goals.get(str(board_key), []))
+        disabled.extend(board_disabled.get(str(board_key), []))
+    if line_key:
+        active.extend(line_goals.get(str(line_key), []))
+        disabled.extend(line_disabled.get(str(line_key), []))
+    active = _uniq(active)
+    disabled = _uniq([g for g in disabled if g not in set(active)])
+
+    group: dict = {
+        "id": gid,
+        "orden": orden,
+        "n_goals": len(active),
+        "objectives": _lineas_group_objectives(active, disabled, combined),
+    }
+    if board_key:
+        group["board"] = board_key
+        if board_key in board_limits:
+            group["limit_board"] = board_limits[str(board_key)]
+    if line_key:
+        group["line"] = line_key
+        if line_key in line_limits:
+            group["limit_line"] = line_limits[str(line_key)]
+    if disabled:
+        group["n_disabled"] = len(disabled)
+        group["goals_disabled"] = disabled
+    if gid in pairs:
+        group["pair"] = pairs[gid]
+    return group
+
+
+def export_lineas() -> None:
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    limits = data.get("limits") or {}
+    board_limits: dict[str, int] = dict(limits.get("board") or {})
+    line_limits: dict[str, int] = dict(limits.get("line") or {})
+    combined = load_combined_objectives_by_goal(include_disabled=True)
+
+    board_goals, line_goals, board_disabled, line_disabled = _collect_lineas_goals(
+        data.get("objectives") or []
+    )
+    board_to, line_to, pairs = _pair_lookup()
+    all_board = set(board_limits) | set(board_goals) | set(board_disabled)
+    all_line = set(line_limits) | set(line_goals) | set(line_disabled)
+    group_sides = _build_group_sides(all_board, all_line, board_to, line_to)
 
     groups: list[dict] = []
     for orden, gid in enumerate(sorted(group_sides), start=1):
         side = group_sides[gid]
-        board_key = side.get("board")
-        line_key = side.get("line")
-
-        active: list[str] = []
-        disabled: list[str] = []
-        if board_key:
-            active.extend(board_goals.get(str(board_key), []))
-            disabled.extend(board_disabled.get(str(board_key), []))
-        if line_key:
-            active.extend(line_goals.get(str(line_key), []))
-            disabled.extend(line_disabled.get(str(line_key), []))
-        active = _uniq(active)
-        disabled = _uniq([g for g in disabled if g not in set(active)])
-
-        objectives = [
-            objective_ref_from_combined(goal, combined.get(goal)) for goal in active
-        ]
-        for goal in disabled:
-            ref = objective_ref_from_combined(goal, combined.get(goal))
-            ref["disabled"] = True
-            objectives.append(ref)
-
-        group: dict = {
-            "id": gid,
-            "orden": orden,
-            "n_goals": len(active),
-            "objectives": objectives,
-        }
-        if board_key:
-            group["board"] = board_key
-            if board_key in board_limits:
-                group["limit_board"] = board_limits[str(board_key)]
-        if line_key:
-            group["line"] = line_key
-            if line_key in line_limits:
-                group["limit_line"] = line_limits[str(line_key)]
-        if disabled:
-            group["n_disabled"] = len(disabled)
-            group["goals_disabled"] = disabled
-        if gid in pairs:
-            group["pair"] = pairs[gid]
-        groups.append(group)
+        groups.append(
+            _build_lineas_group(
+                orden=orden,
+                gid=gid,
+                board_key=side.get("board"),
+                line_key=side.get("line"),
+                board_goals=board_goals,
+                line_goals=line_goals,
+                board_disabled=board_disabled,
+                line_disabled=line_disabled,
+                board_limits=board_limits,
+                line_limits=line_limits,
+                pairs=pairs,
+                combined=combined,
+            )
+        )
 
     catalog = {
         "_definition": (
@@ -200,7 +258,6 @@ def fetch_official_smo_icons() -> list[str] | None:
             data = json.loads(resp.read().decode("utf-8"))
     except (
         urllib.error.URLError,
-        urllib.error.HTTPError,
         TimeoutError,
         json.JSONDecodeError,
     ) as exc:
@@ -213,15 +270,19 @@ def fetch_official_smo_icons() -> list[str] | None:
     return sorted(f"smo/{name}" for name in images if isinstance(name, str) and name)
 
 
-def export_icons() -> None:
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-
+def _collect_icon_usage(
+    objectives: list,
+) -> tuple[
+    dict[str, list[str]],
+    dict[str, list[str]],
+    list[str],
+    list[str],
+]:
     by_icon: dict[str, list[str]] = defaultdict(list)
     by_icon_disabled: dict[str, list[str]] = defaultdict(list)
     no_icon: list[str] = []
     no_icon_disabled: list[str] = []
-
-    for obj in data.get("objectives") or []:
+    for obj in objectives:
         goal = str(obj.get("goal") or "")
         if not goal:
             continue
@@ -232,18 +293,27 @@ def export_icons() -> None:
             continue
         for icon in icons:
             (by_icon_disabled if disabled else by_icon)[icon].append(goal)
+    return by_icon, by_icon_disabled, no_icon, no_icon_disabled
 
-    used_icons = set(by_icon) | set(by_icon_disabled)
-    official = fetch_official_smo_icons()
-    if official is not None:
-        all_icons = list(official)
-        extra = sorted(used_icons - set(official))
-        if extra:
-            print(f"AVISO: {len(extra)} icons en Combined fuera del manifest")
-            all_icons.extend(extra)
-    else:
-        all_icons = sorted(used_icons)
 
+def _resolve_all_icons(
+    used_icons: set[str], official: list[str] | None
+) -> list[str]:
+    if official is None:
+        return sorted(used_icons)
+    all_icons = list(official)
+    extra = sorted(used_icons - set(official))
+    if extra:
+        print(f"AVISO: {len(extra)} icons en Combined fuera del manifest")
+        all_icons.extend(extra)
+    return all_icons
+
+
+def _build_icon_entries(
+    all_icons: list[str],
+    by_icon: dict[str, list[str]],
+    by_icon_disabled: dict[str, list[str]],
+) -> tuple[list[dict], set[str], int]:
     icons_out: list[dict] = []
     goals_with_icon: set[str] = set()
     n_unused = 0
@@ -265,6 +335,20 @@ def export_icons() -> None:
         if not active and not disabled:
             n_unused += 1
         icons_out.append(entry)
+    return icons_out, goals_with_icon, n_unused
+
+
+def export_icons() -> None:
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    by_icon, by_icon_disabled, no_icon, no_icon_disabled = _collect_icon_usage(
+        data.get("objectives") or []
+    )
+    used_icons = set(by_icon) | set(by_icon_disabled)
+    official = fetch_official_smo_icons()
+    all_icons = _resolve_all_icons(used_icons, official)
+    icons_out, goals_with_icon, n_unused = _build_icon_entries(
+        all_icons, by_icon, by_icon_disabled
+    )
 
     catalog: dict = {
         "_definition": (
@@ -375,6 +459,7 @@ def export_tooltips() -> None:
 # Remap solo sugiere defaults; --remap NO pisa icons ya puestos en Combined.
 # Regionals: purple*/regional* (no icono de la goal de lunas hermana).
 # Multi-icon (8-Bit Regional, Switch Moons, Hybrid 2D, …) no van aqui.
+ICON_PURPLE_SAND = "smo/purplesand.webp"
 GOAL_ICON_REMAP: dict[str, str] = {
     # Capturas / enemigos
     "{{X}} Goomba Moon[[s]]": "smo/moongoomba.webp",
@@ -497,14 +582,14 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Snow Overworld Regional Coins": "smo/purplesnow.webp",
     "{{X}} Cascade Chasm Lifts Moons": "totk/chasm.webp",
     "{{X}} Sand Ice Moon[[s]]": "smo/kingdomsnow.webp",
-    "{{X}} Sand Ice Regional Coins": "smo/purplesand.webp",
+    "{{X}} Sand Ice Regional Coins": ICON_PURPLE_SAND,
     "{{X}} Sand Tostarena Moons": "smo/sticker3.webp",
-    "{{X}} Sand Tostarena Regional Coins": "smo/purplesand.webp",
+    "{{X}} Sand Tostarena Regional Coins": ICON_PURPLE_SAND,
     "{{X}} Sand Ruins Moons": "smo/refightknucklotec.webp",
-    "{{X}} Sand Ruins Regional Coins": "smo/purplesand.webp",
+    "{{X}} Sand Ruins Regional Coins": ICON_PURPLE_SAND,
     "{{X}} Sand Oasis Moons": "smo/souvenir11.webp",
     "{{X}} Sand Pyramid Moons": "smo/kingdomsand.webp",
-    "{{X}} Sand Jaxi Regional Coins": "smo/purplesand.webp",
+    "{{X}} Sand Jaxi Regional Coins": ICON_PURPLE_SAND,
     "{{X}} Sub-Area Regional Coins": "smo/purplemushroom.webp",
     "{{X}} Sand Bird Moons": "smo/moonbird.webp",
     "{{X}} Fauna Moons": "app-game-icons/paw-print.webp",
@@ -563,33 +648,33 @@ def simulate_icons(obj: dict) -> list[str]:
     return list(obj.get("icons") or [])
 
 
-def remap_icons(*, apply: bool) -> int:
-    official = fetch_official_icons()
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    goals_in_combined = {
-        str(o.get("goal") or "") for o in data.get("objectives") or []
-    }
-
+def _validate_remap(
+    official: set[str], goals_in_combined: set[str]
+) -> int | None:
+    """None = OK; 1 = icons no oficiales."""
     bad = sorted({ic for ic in GOAL_ICON_REMAP.values() if ic not in official})
     if bad:
         print("ERROR: icons no oficiales:")
         for i in bad:
             print(" ", i)
         return 1
-
     unknown = sorted(g for g in GOAL_ICON_REMAP if g not in goals_in_combined)
     if unknown:
         print("WARN: goals del remap ausentes en Combined:")
         for g in unknown:
             print(" ", g)
+    return None
 
+
+def _collect_remap_changes(
+    objectives: list, *, apply: bool
+) -> list[tuple[str, list[str], list[str]]]:
     changes: list[tuple[str, list[str], list[str]]] = []
-    for obj in data.get("objectives") or []:
+    for obj in objectives:
         goal = str(obj.get("goal") or "")
         if goal not in GOAL_ICON_REMAP:
             continue
         old = list(obj.get("icons") or [])
-        # Combined manual: no pisar si ya hay iconos.
         if old:
             continue
         new = [GOAL_ICON_REMAP[goal]]
@@ -598,19 +683,24 @@ def remap_icons(*, apply: bool) -> int:
         changes.append((goal, old, new))
         if apply:
             obj["icons"] = new
+    return changes
 
-    print(f"Cambios: {len(changes)}")
-    for goal, old, new in changes:
-        print(f"  {goal}\n    {old} → {new}")
 
+def _icons_by_goal_after_remap(
+    objectives: list, *, apply: bool
+) -> dict[str, list[str]]:
     by_icon: dict[str, list[str]] = defaultdict(list)
-    for obj in data.get("objectives") or []:
+    for obj in objectives:
         if obj.get("disabled"):
             continue
         goal = str(obj.get("goal") or "")
-        for i in simulate_icons(obj) if not apply else (obj.get("icons") or []):
+        icons = simulate_icons(obj) if not apply else (obj.get("icons") or [])
+        for i in icons:
             by_icon[str(i)].append(goal)
+    return by_icon
 
+
+def _print_shared_icons(by_icon: dict[str, list[str]]) -> None:
     shared = {i: g for i, g in by_icon.items() if len(g) > 1}
     print(f"\nResultado: {len(by_icon)} icons unicos, {len(shared)} compartidos")
     print(f"Goals en iconos compartidos: {sum(len(g) for g in shared.values())}")
@@ -619,6 +709,27 @@ def remap_icons(*, apply: bool) -> int:
         print(f"  {i} ({len(g)})")
         for goal in g:
             print(f"    - {goal}")
+
+
+def remap_icons(*, apply: bool) -> int:
+    official = fetch_official_icons()
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    goals_in_combined = {
+        str(o.get("goal") or "") for o in data.get("objectives") or []
+    }
+    err = _validate_remap(official, goals_in_combined)
+    if err is not None:
+        return err
+
+    changes = _collect_remap_changes(data.get("objectives") or [], apply=apply)
+    print(f"Cambios: {len(changes)}")
+    for goal, old, new in changes:
+        print(f"  {goal}\n    {old} → {new}")
+
+    by_icon = _icons_by_goal_after_remap(
+        data.get("objectives") or [], apply=apply
+    )
+    _print_shared_icons(by_icon)
 
     if apply:
         JSON_PATH.write_text(

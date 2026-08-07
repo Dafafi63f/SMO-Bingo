@@ -386,6 +386,46 @@ def resolve_group_capture(
     return next(iter(assigned))
 
 
+def _clear_non_curated(
+    group: frozenset[tuple[str, int]],
+    moon_to_capture: dict[tuple[str, int], int],
+) -> None:
+    for m in group:
+        if m not in CURATED_PRIMARY:
+            moon_to_capture.pop(m, None)
+
+
+def _should_skip_subarea_assign(
+    m: tuple[str, int],
+    registry: dict[tuple[str, int], dict],
+    moon_to_capture: dict[tuple[str, int], int],
+) -> bool:
+    """True si no hay que imponer captura al sibling (story/multi sin curated)."""
+    if m not in registry:
+        return True
+    tags = set(registry[m].get("tags", []))
+    return bool(
+        tags & {"story_moon", "multi_moon"}
+        and m not in CURATED_PRIMARY
+        and m not in moon_to_capture
+    )
+
+
+def _assign_subarea_capture(
+    group: frozenset[tuple[str, int]],
+    cap: int,
+    registry: dict[tuple[str, int], dict],
+    moon_to_capture: dict[tuple[str, int], int],
+) -> None:
+    for m in group:
+        if m in NO_SUBAREA_CAPTURE:
+            moon_to_capture.pop(m, None)
+            continue
+        if _should_skip_subarea_assign(m, registry, moon_to_capture):
+            continue
+        moon_to_capture[m] = cap
+
+
 def apply_subarea_capture_groups(
     registry: dict[tuple[str, int], dict],
     moon_to_capture: dict[tuple[str, int], int],
@@ -399,27 +439,12 @@ def apply_subarea_capture_groups(
     """
     for group in groups:
         if group & excludes:
-            for m in group:
-                if m not in CURATED_PRIMARY:
-                    moon_to_capture.pop(m, None)
+            _clear_non_curated(group, moon_to_capture)
             continue
         cap = resolve_group_capture(group, moon_to_capture)
         if cap is None or cap in SPECIAL_CAPTURE_IDS:
             continue
-        for m in group:
-            if m in NO_SUBAREA_CAPTURE:
-                moon_to_capture.pop(m, None)
-                continue
-            if m not in registry:
-                continue
-            tags = set(registry[m].get("tags", []))
-            if (
-                tags & {"story_moon", "multi_moon"}
-                and m not in CURATED_PRIMARY
-                and m not in moon_to_capture
-            ):
-                continue
-            moon_to_capture[m] = cap
+        _assign_subarea_capture(group, cap, registry, moon_to_capture)
 
     return rebuild_by_capture(registry, moon_to_capture)
 
@@ -440,6 +465,54 @@ def rebuild_by_capture(
     return by_capture
 
 
+def _parse_moon_key_from_label(label: str) -> tuple[str, int] | None:
+    m = re.match(r"^(\w+)#(\d+)", label)
+    if not m:
+        return None
+    return m.group(1), int(m.group(2))
+
+
+def _existing_keys_from_labels(labels: list[str]) -> set[tuple[str, int]]:
+    keys: set[tuple[str, int]] = set()
+    for label in labels:
+        key = _parse_moon_key_from_label(label)
+        if key:
+            keys.add(key)
+    return keys
+
+
+def _moon_label_sort_key(lab: str) -> tuple[int, int]:
+    kd = lab.split("#", 1)[0]
+    kd_i = KINGDOM_COLUMNS.index(kd) if kd in KINGDOM_COLUMNS else 99
+    m = re.match(r"^\w+#(\d+)", lab)
+    return kd_i, int(m.group(1)) if m else 0
+
+
+def _append_group_raw_moons(
+    cap_id: int,
+    raws: list,
+    by_capture: dict[int, list[str]],
+    registry: dict[tuple[str, int], dict],
+    existing: set[tuple[str, int]],
+) -> None:
+    for raw in raws:
+        if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
+            continue
+        key = (str(raw["kingdom"]), int(raw["moon"]))
+        if key in existing:
+            continue
+        entry = registry.get(key)
+        name = (
+            (entry or {}).get("name")
+            or raw.get("name")
+            or f"Moon {key[1]}"
+        )
+        by_capture.setdefault(cap_id, []).append(
+            moon_label(key[0], key[1], str(name))
+        )
+        existing.add(key)
+
+
 def attach_group_capture_moons(
     by_capture: dict[int, list[str]],
     registry: dict[tuple[str, int], dict],
@@ -458,43 +531,15 @@ def attach_group_capture_moons(
         cap_id = name_to_id.get(cap_name)
         if cap_id is None:
             continue
-        existing: set[tuple[str, int]] = set()
-        for label in by_capture.get(cap_id, []):
-            m = re.match(r"^(\w+)#(\d+)", label)
-            if m:
-                existing.add((m.group(1), int(m.group(2))))
+        existing = _existing_keys_from_labels(by_capture.get(cap_id, []))
         raws = list(group.get("moons") or []) + list(group.get("tag_only_moons") or [])
-        for raw in raws:
-            if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
-                continue
-            key = (str(raw["kingdom"]), int(raw["moon"]))
-            if key in existing:
-                continue
-            entry = registry.get(key)
-            name = (
-                (entry or {}).get("name")
-                or raw.get("name")
-                or f"Moon {key[1]}"
-            )
-            by_capture.setdefault(cap_id, []).append(
-                moon_label(key[0], key[1], str(name))
-            )
-            existing.add(key)
+        _append_group_raw_moons(cap_id, raws, by_capture, registry, existing)
         if cap_id in by_capture:
-            by_capture[cap_id].sort(
-                key=lambda lab: (
-                    KINGDOM_COLUMNS.index(lab.split("#", 1)[0])
-                    if lab.split("#", 1)[0] in KINGDOM_COLUMNS
-                    else 99,
-                    int(re.match(r"^\w+#(\d+)", lab).group(1))  # type: ignore[union-attr]
-                    if re.match(r"^\w+#(\d+)", lab)
-                    else 0,
-                )
-            )
+            by_capture[cap_id].sort(key=_moon_label_sort_key)
 
 
 def enforce_special_single_moon(
-    registry: dict[tuple[str, int], dict],
+    _registry: dict[tuple[str, int], dict],
     moon_to_capture: dict[tuple[str, int], int],
 ) -> None:
     """Capturas especiales: como mucho 1 luna (preferir curated)."""
@@ -506,7 +551,7 @@ def enforce_special_single_moon(
         if len(keys) <= 1:
             continue
         curated = [k for k in keys if CURATED_PRIMARY.get(k) == cap_id]
-        keep = curated[0] if curated else sorted(keys, key=lambda k: (k[0], k[1]))[0]
+        keep = curated[0] if curated else min(keys, key=lambda k: (k[0], k[1]))
         for k in keys:
             if k != keep:
                 del moon_to_capture[k]
@@ -609,6 +654,35 @@ TRANSPORT_CAPTURE_IDS = {
 }
 
 
+def _group_goal_names(group: dict) -> list[str]:
+    return [
+        str(o.get("goal") or "")
+        for o in group.get("objectives") or []
+        if o.get("goal")
+    ]
+
+
+def _group_moon_keys(group: dict) -> set[tuple[str, int]]:
+    return {
+        (str(m["kingdom"]), int(m["moon"]))
+        for m in group_moons(group)
+        if "kingdom" in m and "moon" in m
+    }
+
+
+def _merge_group_into_pools(
+    goals: list[str],
+    moons: set[tuple[str, int]],
+    is_pool: bool,
+    pools: dict[str, set[tuple[str, int]]],
+    pool_only: dict[str, set[tuple[str, int]]],
+) -> None:
+    for goal in goals:
+        if is_pool:
+            pool_only.setdefault(goal, set()).update(moons)
+        pools.setdefault(goal, set()).update(moons)
+
+
 def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
     """goal Combined → lunas del pool tematico (bingo_groups).
 
@@ -623,22 +697,11 @@ def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
     pools: dict[str, set[tuple[str, int]]] = {}
     pool_only: dict[str, set[tuple[str, int]]] = {}
     for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
-        goals = [
-            str(o.get("goal") or "")
-            for o in group.get("objectives") or []
-            if o.get("goal")
-        ]
+        goals = _group_goal_names(group)
         if not goals:
             continue
-        moons = {
-            (str(m["kingdom"]), int(m["moon"]))
-            for m in group_moons(group)
-            if "kingdom" in m and "moon" in m
-        }
-        is_pool = (
-            group.get("apply_moon_tag") is False
-            and len(goals) == 1
-        )
+        moons = _group_moon_keys(group)
+        is_pool = group.get("apply_moon_tag") is False and len(goals) == 1
         if len(goals) == 1:
             g0 = goals[0]
             if is_pool and moons:
@@ -646,10 +709,7 @@ def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
             pools.setdefault(g0, set()).update(moons)
             continue
         if group.get("capture") and moons:
-            for goal in goals:
-                if is_pool:
-                    pool_only.setdefault(goal, set()).update(moons)
-                pools.setdefault(goal, set()).update(moons)
+            _merge_group_into_pools(goals, moons, is_pool, pools, pool_only)
     for goal, moons in pool_only.items():
         pools[goal] = moons
     return pools
@@ -684,6 +744,32 @@ def moon_label(kingdom: str, moon: int, name: str) -> str:
     return f"{kingdom}#{moon} {name}"
 
 
+_SCORE_SPECIFIC_IDS = frozenset({6, 13, 34, 32, 40})
+
+
+def _score_theme_bonus(cap_id: int, name: str) -> int:
+    bonus = 0
+    if re.search(r"\bfishing\b", name, re.I):
+        if cap_id == 16:
+            bonus += 40
+        elif cap_id == 18:
+            bonus -= 40
+    if re.search(r"\blove\b", name, re.I) and cap_id == 12:
+        bonus += 40
+    return bonus
+
+
+def _score_penalties(cap_id: int, name: str, description: str) -> int:
+    penalty = 0
+    if cap_id in TRANSPORT_CAPTURE_IDS:
+        penalty -= 200
+    if cap_id == 14 and re.search(r"rocket\s+flower", f"{name} {description}", re.I):
+        penalty -= 100
+    if cap_id == 25 and re.search(r"\bon a tree\b", name, re.I):
+        penalty -= 30
+    return penalty
+
+
 def score_candidate(
     cap_id: int,
     kingdom: str,
@@ -702,27 +788,10 @@ def score_candidate(
         score += 20
     if kingdom in meta["reinos"]:
         score += 15
-    # Preferir capturas mas especificas frente a genericas en empates.
-    if cap_id in {6, 13, 34, 32, 40}:
+    if cap_id in _SCORE_SPECIFIC_IDS:
         score += 5
-    # Fishing → Lakitu gana sobre Cheep Cheep.
-    if re.search(r"\bfishing\b", name, re.I):
-        if cap_id == 16:
-            score += 40
-        if cap_id == 18:
-            score -= 40
-    # Love → Goomba.
-    if re.search(r"\blove\b", name, re.I) and cap_id == 12:
-        score += 40
-    # Mini Rocket / transport: nunca captura principal.
-    if cap_id in TRANSPORT_CAPTURE_IDS:
-        score -= 200
-    # Mini Rocket: no confundir con Rocket Flower.
-    if cap_id == 14 and re.search(r"rocket\s+flower", f"{name} {description}", re.I):
-        score -= 100
-    # Tree generico: solo si captura el arbol, no "on a tree".
-    if cap_id == 25 and re.search(r"\bon a tree\b", name, re.I):
-        score -= 30
+    score += _score_theme_bonus(cap_id, name)
+    score += _score_penalties(cap_id, name, description)
     return score
 
 
@@ -805,34 +874,27 @@ def load_guides() -> dict[str, dict[int, dict[str, str]]]:
     return guides
 
 
-def main() -> None:
-    print("Cargando lunas y guias...")
-    registry = build_matrix_moon_registry()
-    guides = load_guides()
-    subarea_groups = load_subarea_groups()
-    excludes = expand_excludes(EXCLUDE_PRIMARY, subarea_groups)
-    # No arrastrar exclusiones de transporte a lunas curadas del mismo par Lockout
-    # (p. ej. luncheon#4 linterna vs #29 alcove).
-    excludes -= set(CURATED_PRIMARY)
+def _kingdom_sort_key(kv: tuple[tuple[str, int], dict]) -> tuple[int, int]:
+    kingdom, moon = kv[0]
+    try:
+        return (KINGDOM_COLUMNS.index(kingdom), moon)
+    except ValueError:
+        return (len(KINGDOM_COLUMNS), moon)
 
+
+def _assign_primary_captures(
+    registry: dict[tuple[str, int], dict],
+    guides: dict[str, dict[int, dict[str, str]]],
+    excludes: set[tuple[str, int]],
+) -> tuple[dict[tuple[str, int], int], int]:
     moon_to_capture: dict[tuple[str, int], int] = {}
     skipped = 0
-
-    def _kingdom_sort_key(kv: tuple[tuple[str, int], dict]) -> tuple[int, int]:
-        kingdom, moon = kv[0]
-        try:
-            return (KINGDOM_COLUMNS.index(kingdom), moon)
-        except ValueError:
-            return (len(KINGDOM_COLUMNS), moon)
-
     for (kingdom, moon), entry in sorted(registry.items(), key=_kingdom_sort_key):
         name = entry["name"]
         guide = guides.get(kingdom, {}).get(moon) or {}
         desc = guide.get("description", "")
         if (kingdom, moon) in excludes:
             continue
-        # Cohete/jaxi/etc. en el texto: no bloquear si hay captura principal curada
-        # (p. ej. Fog: cohete = transporte, Paragoomba = contenido).
         if (kingdom, moon) not in CURATED_PRIMARY:
             if NON_LIST_RIDES.search(name) or NON_LIST_RIDES.search(desc):
                 continue
@@ -842,8 +904,183 @@ def main() -> None:
                 skipped += 1
             continue
         moon_to_capture[(kingdom, moon)] = primary
+    return moon_to_capture, skipped
 
-    # Regla general: captura/tematica de subarea → ambas lunas del par.
+
+def parse_moon_label(
+    label: str,
+    registry: dict[tuple[str, int], dict],
+    *,
+    counts_for_goal: bool,
+) -> dict[str, object]:
+    m = re.match(r"^([a-z]+)#(\d+) (.+)$", label.strip())
+    if m:
+        ref: dict[str, object] = {
+            "kingdom": m.group(1),
+            "moon": int(m.group(2)),
+            "name": m.group(3),
+            "goal": counts_for_goal,
+        }
+        return enrich_moon_ref_odyssey(ref, registry)
+    return {"label": label, "goal": counts_for_goal}
+
+
+def capture_kind(n_objectives: int, n_moons: int) -> str:
+    if n_objectives and n_moons:
+        return "both"
+    if n_objectives:
+        return "objectives"
+    if n_moons:
+        return "moons"
+    return "empty"
+
+
+def moon_tag_for(name: str) -> str:
+    if name in CAPTURE_NAME_TO_TAG:
+        return CAPTURE_NAME_TO_TAG[name]
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
+def _kingdoms_from_labels(moon_labels: list[str], meta: dict) -> list[str]:
+    kingdoms_found: list[str] = []
+    for label in moon_labels:
+        k = label.split("#", 1)[0]
+        if k not in kingdoms_found:
+            kingdoms_found.append(k)
+    return kingdoms_found or list(meta.get("reinos") or [])
+
+
+def _n_moons_for_tipo(
+    meta: dict,
+    moon_labels: list[str],
+    primary_goal: str,
+    by_capture: dict[int, list[str]],
+) -> int:
+    n_for_tipo = len(moon_labels)
+    if (
+        primary_goal
+        and not meta.get("special")
+        and not meta.get("transport")
+        and not meta.get("postgame")
+    ):
+        peers = [cid for cid, g in CAPTURE_OBJECTIVE.items() if g == primary_goal]
+        if len(peers) > 1:
+            n_for_tipo = sum(len(by_capture.get(cid, [])) for cid in peers)
+    return n_for_tipo
+
+
+def _capture_tipo(meta: dict, n_for_tipo: int) -> str:
+    if meta.get("transport"):
+        return "transporte"
+    if meta.get("postgame"):
+        return "postgame"
+    if meta.get("special"):
+        return "especial"
+    if n_for_tipo >= CAPTURE_TAG_MIN:
+        return "normal"
+    return "minoritaria"
+
+
+def _build_capture_moons(
+    moon_labels: list[str],
+    goals: list[str],
+    goal_pools: dict[str, set[tuple[str, int]]],
+    registry: dict[tuple[str, int], dict],
+) -> list[dict[str, object]]:
+    pool: set[tuple[str, int]] = set()
+    for goal in goals:
+        pool |= goal_pools.get(goal, set())
+    moons: list[dict[str, object]] = []
+    for label in moon_labels:
+        m = re.match(r"^(\w+)#(\d+)\s+", label.strip())
+        key = (m.group(1), int(m.group(2))) if m else ("", 0)
+        moons.append(
+            parse_moon_label(label, registry, counts_for_goal=key in pool)
+        )
+    return moons
+
+
+def _build_capture_row(
+    meta: dict,
+    by_capture: dict[int, list[str]],
+    goal_pools: dict[str, set[tuple[str, int]]],
+    combined: dict,
+    registry: dict[tuple[str, int], dict],
+) -> dict[str, object]:
+    cap_id = meta["id"]
+    moon_labels = by_capture.get(cap_id, [])
+    kingdoms_found = _kingdoms_from_labels(moon_labels, meta)
+    goals = goals_for_capture_row(int(cap_id), str(meta["name"]))
+    primary_goal = goals[0] if goals else ""
+    n_for_tipo = _n_moons_for_tipo(meta, moon_labels, primary_goal, by_capture)
+    tipo = _capture_tipo(meta, n_for_tipo)
+    moons = _build_capture_moons(moon_labels, goals, goal_pools, registry)
+    n_goal_moons = sum(1 for moon in moons if moon.get("goal") is True)
+    objectives: list[dict] = [
+        objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
+    ]
+    row: dict[str, object] = {
+        "id": int(cap_id),
+        "capture": meta["name"],
+        "tipo": tipo,
+        "kind": capture_kind(len(objectives), len(moons)),
+        "n_objectives": len(objectives),
+        "n_moons": len(moons),
+        "n_goal_moons": n_goal_moons,
+        "objectives": objectives,
+        "moons": moons,
+    }
+    if kingdoms_found:
+        row["kingdom"] = kingdoms_found[0]
+    if tipo == "normal":
+        row["moon_tag"] = moon_tag_for(str(meta["name"]))
+    if int(cap_id) == 8:
+        from goal_list_lib import curated_list
+
+        lista = curated_list("binoculars")
+        row["pool"] = "lista"
+        row["n_lista"] = len(lista)
+        row["lista"] = lista
+    return row
+
+
+def _print_capturas_summary(
+    rows: list[dict[str, object]],
+    moon_to_capture: dict[tuple[str, int], int],
+    skipped: int,
+) -> None:
+    print(f"\nExportado: {OUT_JSON.relative_to(ROOT).as_posix()}")
+    print(
+        f"Capturas listadas: {len(rows)} "
+        f"(wiki={len(CAPTURE_LIST)}; transporte/postgame incluidos)"
+    )
+    print(f"Lunas asignadas: {len(moon_to_capture)}")
+    vacias = sum(1 for r in rows if int(r["n_moons"]) == 0)
+    if vacias:
+        print(f"Capturas sin lunas: {vacias}")
+    transport_n = sum(1 for r in rows if r["tipo"] == "transporte")
+    postgame_n = sum(1 for r in rows if r["tipo"] == "postgame")
+    if transport_n or postgame_n:
+        print(f"Transporte: {transport_n}; postgame/fuera: {postgame_n}")
+    if skipped:
+        print(f"Lunas con tag captures sin asignar: {skipped}")
+    dup_check: dict[tuple[str, int], list[int]] = defaultdict(list)
+    for (k, m), cap_id in moon_to_capture.items():
+        dup_check[(k, m)].append(cap_id)
+    multi = {km: ids for km, ids in dup_check.items() if len(ids) > 1}
+    if multi:
+        print(f"AVISO: lunas con varias capturas: {len(multi)}")
+
+
+def main() -> None:
+    print("Cargando lunas y guias...")
+    registry = build_matrix_moon_registry()
+    guides = load_guides()
+    subarea_groups = load_subarea_groups()
+    excludes = expand_excludes(EXCLUDE_PRIMARY, subarea_groups)
+    excludes -= set(CURATED_PRIMARY)
+
+    moon_to_capture, skipped = _assign_primary_captures(registry, guides, excludes)
     apply_subarea_capture_groups(
         registry, moon_to_capture, excludes, subarea_groups
     )
@@ -853,108 +1090,10 @@ def main() -> None:
     goal_pools = load_capture_goal_moon_pools()
     combined = load_combined_objectives_by_goal(include_disabled=True)
 
-    rows: list[dict[str, object]] = []
-
-    def parse_moon_label(label: str, *, counts_for_goal: bool) -> dict[str, object]:
-        m = re.match(r"^(\w+)#(\d+)\s+(.*)$", label.strip())
-        if m:
-            ref: dict[str, object] = {
-                "kingdom": m.group(1),
-                "moon": int(m.group(2)),
-                "name": m.group(3),
-                "goal": counts_for_goal,
-            }
-            return enrich_moon_ref_odyssey(ref, registry)
-        return {"label": label, "goal": counts_for_goal}
-
-    def capture_kind(n_objectives: int, n_moons: int) -> str:
-        if n_objectives and n_moons:
-            return "both"
-        if n_objectives:
-            return "objectives"
-        if n_moons:
-            return "moons"
-        return "empty"
-
-    def moon_tag_for(name: str) -> str:
-        if name in CAPTURE_NAME_TO_TAG:
-            return CAPTURE_NAME_TO_TAG[name]
-        return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
-
-    for meta in CAPTURE_LIST:
-        cap_id = meta["id"]
-        moon_labels = by_capture.get(cap_id, [])
-        # Reinos: apariciones en lunas, o reinos del juego (incluye fuera de alcance).
-        kingdoms_found: list[str] = []
-        for label in moon_labels:
-            k = label.split("#", 1)[0]
-            if k not in kingdoms_found:
-                kingdoms_found.append(k)
-        if not kingdoms_found:
-            kingdoms_found = list(meta.get("reinos") or [])
-        # Tipo: si varias capturas comparten el mismo objetivo Combined,
-        # el umbral CAPTURE_TAG_MIN usa la suma de lunas (Cactus+Tree).
-        goals = goals_for_capture_row(int(cap_id), str(meta["name"]))
-        primary_goal = goals[0] if goals else ""
-        n_for_tipo = len(moon_labels)
-        if (
-            primary_goal
-            and not meta.get("special")
-            and not meta.get("transport")
-            and not meta.get("postgame")
-        ):
-            peers = [
-                cid for cid, g in CAPTURE_OBJECTIVE.items() if g == primary_goal
-            ]
-            if len(peers) > 1:
-                n_for_tipo = sum(len(by_capture.get(cid, [])) for cid in peers)
-        if meta.get("transport"):
-            tipo = "transporte"
-        elif meta.get("postgame"):
-            tipo = "postgame"
-        elif meta.get("special"):
-            tipo = "especial"
-        elif n_for_tipo >= CAPTURE_TAG_MIN:
-            tipo = "normal"
-        else:
-            tipo = "minoritaria"
-
-        pool: set[tuple[str, int]] = set()
-        for goal in goals:
-            pool |= goal_pools.get(goal, set())
-        moons: list[dict[str, object]] = []
-        for label in moon_labels:
-            m = re.match(r"^(\w+)#(\d+)\s+", label.strip())
-            key = (m.group(1), int(m.group(2))) if m else ("", 0)
-            moons.append(parse_moon_label(label, counts_for_goal=key in pool))
-        n_goal_moons = sum(1 for moon in moons if moon.get("goal") is True)
-        objectives: list[dict] = [
-            objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
-        ]
-        row: dict[str, object] = {
-            "id": int(cap_id),
-            "capture": meta["name"],
-            "tipo": tipo,
-            "kind": capture_kind(len(objectives), len(moons)),
-            "n_objectives": len(objectives),
-            "n_moons": len(moons),
-            "n_goal_moons": n_goal_moons,
-            "objectives": objectives,
-            "moons": moons,
-        }
-        if kingdoms_found:
-            row["kingdom"] = kingdoms_found[0]
-        if tipo == "normal":
-            row["moon_tag"] = moon_tag_for(str(meta["name"]))
-        # Binoculars: goal Capture {{X}} Binoculars → lista (no moons).
-        if int(cap_id) == 8:
-            from goal_list_lib import curated_list
-
-            lista = curated_list("binoculars")
-            row["pool"] = "lista"
-            row["n_lista"] = len(lista)
-            row["lista"] = lista
-        rows.append(row)
+    rows: list[dict[str, object]] = [
+        _build_capture_row(meta, by_capture, goal_pools, combined, registry)
+        for meta in CAPTURE_LIST
+    ]
 
     n_with_moons = sum(1 for r in rows if int(r["n_moons"]) > 0)
     n_with_goal = sum(1 for r in rows if int(r["n_objectives"]) > 0)
@@ -988,29 +1127,7 @@ def main() -> None:
         legacy_csv.unlink()
         print(f"Eliminado: {legacy_csv.name}")
 
-    # Comprobar unicidad luna→captura.
-    dup_check = defaultdict(list)
-    for (k, m), cap_id in moon_to_capture.items():
-        dup_check[(k, m)].append(cap_id)
-    multi = {km: ids for km, ids in dup_check.items() if len(ids) > 1}
-
-    print(f"\nExportado: {OUT_JSON.relative_to(ROOT).as_posix()}")
-    print(
-        f"Capturas listadas: {len(rows)} "
-        f"(wiki={len(CAPTURE_LIST)}; transporte/postgame incluidos)"
-    )
-    print(f"Lunas asignadas: {len(moon_to_capture)}")
-    vacias = sum(1 for r in rows if int(r["n_moons"]) == 0)
-    if vacias:
-        print(f"Capturas sin lunas: {vacias}")
-    transport_n = sum(1 for r in rows if r["tipo"] == "transporte")
-    postgame_n = sum(1 for r in rows if r["tipo"] == "postgame")
-    if transport_n or postgame_n:
-        print(f"Transporte: {transport_n}; postgame/fuera: {postgame_n}")
-    if skipped:
-        print(f"Lunas con tag captures sin asignar: {skipped}")
-    if multi:
-        print(f"AVISO: lunas con varias capturas: {len(multi)}")
+    _print_capturas_summary(rows, moon_to_capture, skipped)
 
 
 if __name__ == "__main__":

@@ -33,6 +33,7 @@ from catalog_lib import (
 
 FULL_PROGRESSION = list(ZONE_ORDER)  # e, m, l, n
 RANGE_LEN = 4
+GOAL_X_PREFIX = "{{X}} "
 
 
 def finalize_range(goal: str, suggested: list[int]) -> list[int]:
@@ -177,14 +178,8 @@ KINGDOM_EXIT_MOONS: dict[str, int] = {
 }
 
 
-def invent_count_range(cap: int, *, min_early: int | None = None) -> list[int]:
-    """Inventa e/m/l/n con paso constante, paridad uniforme y holgura.
-
-    Nunca exige el 100% del pool (salvo pools 1–3 / casos sub_area explícitos):
-    early ~15–20% (o min_early si se pasa), nightmare ~55–65%.
-
-    min_early: suelo del early (p. ej. requisito de salida del reino + extras).
-    """
+def _invent_fixed_small_cap(cap: int, min_early: int | None) -> list[int] | None:
+    """Rangos fijos para pools pequeños / enormes; None si hay que inventar."""
     if cap <= 0:
         return []
     if cap == 1:
@@ -202,79 +197,118 @@ def invent_count_range(cap: int, *, min_early: int | None = None) -> list[int]:
             return [2, 2, 4, 4]
         if cap == 7:
             return [1, 3, 5, 5]
-    # Pools enormes
-    if cap >= 80 and min_early is None:
-        return [20, 40, 60, 70] if cap < 100 else [20, 40, 60, 80]
+        if cap >= 80:
+            return [20, 40, 60, 70] if cap < 100 else [20, 40, 60, 80]
+    return None
 
-    # Techo blando: ~60% del pool y siempre < cap
+
+def _soft_targets(
+    cap: int, min_early: int | None
+) -> tuple[int, int, int]:
+    """Devuelve (soft_hi, lo_target, hi_target) antes de alinear paridad."""
     soft_hi = max(2, min(cap - 1, int(cap * 0.60 + 0.5)))
-    # Early cómodo: ~18%, o el suelo pedido (salida de reino + extras)
     lo_target = max(1, min(soft_hi - 3, int(cap * 0.18 + 0.5)))
-    if min_early is not None:
-        # Debe quedar holgura hasta soft_hi (al menos 1 escalón útil)
-        loft = min(min_early, soft_hi - 2)
-        loft = max(1, loft)
-        lo_target = max(lo_target, loft)
-        # Si el peaje de salida es alto, subir un poco el techo (hasta ~70%)
-        soft_hi = max(soft_hi, min(cap - 1, loft + max(6, int(cap * 0.35))))
-        soft_hi = min(soft_hi, cap - 1)
-        hi_target = soft_hi
-    else:
-        hi_target = soft_hi
+    if min_early is None:
+        return soft_hi, lo_target, soft_hi
+    loft = max(1, min(min_early, soft_hi - 2))
+    lo_target = max(lo_target, loft)
+    soft_hi = max(soft_hi, min(cap - 1, loft + max(6, int(cap * 0.35))))
+    soft_hi = min(soft_hi, cap - 1)
+    return soft_hi, lo_target, soft_hi
 
-    # Alinear paridad preferente (todo-par) en los targets
+
+def _align_parity_targets(lo_target: int, hi_target: int) -> tuple[int, int]:
+    """Preferencia todo-par en los targets early/nightmare."""
     if hi_target % 2:
         hi_target = max(lo_target + 2, hi_target - 1)
     if lo_target % 2 and hi_target % 2 == 0:
-        # subir early a par (más holgado que bajar por debajo del min_early)
-        lo_target = lo_target + 1 if lo_target + 1 <= hi_target - 2 else max(2, lo_target - 1)
-
-    preferred_steps = (2, 4, 6, 8, 10, 12, 14, 16, 20, 1, 3, 5)
-    span = max(3, hi_target - lo_target)
-    ideal_step = max(2, int(span / 3 + 0.5))
-    if ideal_step % 2:
-        down, up = ideal_step - 1, ideal_step + 1
-        ideal_step = (
-            down
-            if down >= 2 and abs(down - span / 3) <= abs(up - span / 3)
-            else up
+        lo_target = (
+            lo_target + 1
+            if lo_target + 1 <= hi_target - 2
+            else max(2, lo_target - 1)
         )
+    return lo_target, hi_target
 
+
+def _ideal_step_for_span(span: int) -> int:
+    ideal_step = max(2, int(span / 3 + 0.5))
+    if ideal_step % 2 == 0:
+        return ideal_step
+    down, up = ideal_step - 1, ideal_step + 1
+    if down >= 2 and abs(down - span / 3) <= abs(up - span / 3):
+        return down
+    return up
+
+
+def _even_start_candidates(
+    start: int,
+    lo_target: int,
+    max_start: int,
+    floor_early: int,
+    step: int,
+) -> set[int]:
+    candidates: set[int] = set()
+    for base in (start, lo_target, max_start, floor_early):
+        even_s = base if base % 2 == 0 else base + 1
+        if floor_early <= even_s <= max_start:
+            candidates.add(even_s)
+    snapped = max(step, (max(start, step) // step) * step)
+    if floor_early <= snapped <= max_start:
+        candidates.add(snapped)
+    return candidates
+
+
+def _start_candidates_for_step(
+    step: int,
+    *,
+    soft_hi: int,
+    hi_target: int,
+    lo_target: int,
+    floor_early: int,
+) -> set[int]:
+    max_start = soft_hi - 3 * step
+    if max_start < floor_early:
+        return set()
+    start = max(floor_early, min(hi_target - 3 * step, max_start))
+    candidates = {start, max(floor_early, min(max_start, lo_target))}
+    if step % 2 == 0:
+        candidates |= _even_start_candidates(
+            start, lo_target, max_start, floor_early, step
+        )
+    return {c for c in candidates if floor_early <= c <= max_start}
+
+
+def _search_best_arith_range(
+    cap: int,
+    *,
+    soft_hi: int,
+    lo_target: int,
+    hi_target: int,
+    floor_early: int,
+    ideal_step: int,
+) -> list[int] | None:
+    preferred_steps = (2, 4, 6, 8, 10, 12, 14, 16, 20, 1, 3, 5)
     best: tuple | None = None
     best_vals: list[int] | None = None
-    floor_early = min_early if min_early is not None else 1
-
     for step in preferred_steps:
-        max_start = soft_hi - 3 * step
-        if max_start < floor_early:
-            continue
-        start = hi_target - 3 * step
-        start = max(floor_early, min(start, max_start))
-        candidates = {start, max(floor_early, min(max_start, lo_target))}
-        if step % 2 == 0:
-            for base in (start, lo_target, max_start, floor_early):
-                even_s = base if base % 2 == 0 else base + 1
-                if floor_early <= even_s <= max_start:
-                    candidates.add(even_s)
-            snapped = max(step, (max(start, step) // step) * step)
-            if floor_early <= snapped <= max_start:
-                candidates.add(snapped)
-        for cand in candidates:
-            if not (floor_early <= cand <= max_start):
-                continue
+        for cand in _start_candidates_for_step(
+            step,
+            soft_hi=soft_hi,
+            hi_target=hi_target,
+            lo_target=lo_target,
+            floor_early=floor_early,
+        ):
             vals = [cand + i * step for i in range(RANGE_LEN)]
-            if vals[-1] > soft_hi or vals[-1] >= cap:
-                continue
-            if vals[0] < floor_early:
+            if vals[-1] > soft_hi or vals[-1] >= cap or vals[0] < floor_early:
                 continue
             key = _arith_score(vals, lo_target, hi_target, ideal_step, step, cap)
             if best is None or key > best:
                 best = key
                 best_vals = vals
+    return best_vals
 
-    if best_vals is not None:
-        return best_vals
-    # Fallback: meseta desde floor_early hasta soft_hi (todo par si cabe)
+
+def _fallback_plateau_range(soft_hi: int, floor_early: int) -> list[int]:
     hi = soft_hi if soft_hi % 2 == 0 else soft_hi - 1
     start = max(floor_early, hi - 6)
     if start % 2:
@@ -284,14 +318,51 @@ def invent_count_range(cap: int, *, min_early: int | None = None) -> list[int]:
     return [start, start + 2, start + 4, min(hi, start + 6)]
 
 
+def invent_count_range(cap: int, *, min_early: int | None = None) -> list[int]:
+    """Inventa e/m/l/n con paso constante, paridad uniforme y holgura.
+
+    Nunca exige el 100% del pool (salvo pools 1–3 / casos sub_area explícitos):
+    early ~15–20% (o min_early si se pasa), nightmare ~55–65%.
+
+    min_early: suelo del early (p. ej. requisito de salida del reino + extras).
+    """
+    fixed = _invent_fixed_small_cap(cap, min_early)
+    if fixed is not None:
+        return fixed
+
+    soft_hi, lo_target, hi_target = _soft_targets(cap, min_early)
+    lo_target, hi_target = _align_parity_targets(lo_target, hi_target)
+    span = max(3, hi_target - lo_target)
+    ideal_step = _ideal_step_for_span(span)
+    floor_early = min_early if min_early is not None else 1
+
+    best_vals = _search_best_arith_range(
+        cap,
+        soft_hi=soft_hi,
+        lo_target=lo_target,
+        hi_target=hi_target,
+        floor_early=floor_early,
+        ideal_step=ideal_step,
+    )
+    if best_vals is not None:
+        return best_vals
+    return _fallback_plateau_range(soft_hi, floor_early)
+
+
 def kingdom_min_early(kingdom: str, cap: int) -> int:
     """Early > peaje de salida: extras, no solo lo mínimo para avanzar."""
     exit_req = KINGDOM_EXIT_MOONS.get(kingdom, 0)
     if exit_req <= 0:
         # Cap / Moon: un puñado por encima de “pasar de largo”
-        return max(4, min(cap - 2, int(cap * 0.35 + 0.5)))
+        soft = int(cap * 0.35 + 0.5)
+        return max(4, min(cap - 2, soft))
     # Al menos +2 sobre el peaje; en reinos grandes un poco más de holgura
-    extras = 2 if exit_req < 12 else (4 if exit_req < 18 else 6)
+    if exit_req < 12:
+        extras = 2
+    elif exit_req < 18:
+        extras = 4
+    else:
+        extras = 6
     return min(cap - 2, exit_req + extras)
 
 
@@ -307,10 +378,16 @@ def _arith_score(
     uniform_parity = all(v % 2 == start % 2 for v in vals)
     all_even = all(v % 2 == 0 for v in vals)
     all_odd = all(v % 2 == 1 for v in vals)
+    if all_even:
+        parity_rank = 2
+    elif all_odd:
+        parity_rank = 1
+    else:
+        parity_rank = 0
     return (
         1 if uniform_parity else 0,
         1 if step % 2 == 0 else 0,
-        2 if all_even else (1 if all_odd else 0),
+        parity_rank,
         1 if hi < cap else 0,  # nunca el máximo del pool
         -abs(step - ideal_step),
         -abs(hi - hi_target),
@@ -402,8 +479,8 @@ def invent_regionals_range(
     step = 10 if hi >= 60 else 5
     start = hi - 3 * step
     if start < 20:
-        start = 20 if step == 10 else 25
-        hi = start + 3 * step
+        # Con step==10, start = hi-30 ≥ 30 si hi≥60; aquí solo puede ser step==5.
+        start = 25
     return [start, start + step, start + 2 * step, start + 3 * step]
 
 
@@ -693,7 +770,6 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Shiny Rock Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Pokio Hole Moon[[s]]": [1, 2, 3],
     "{{X}} Snow Bitefrost Moons": [2],
-    "{{X}} Rocket Flower Moons": [2, 4, 6],
     "{{X}} Talkatoos": [4, 6, 8, 10],
     "{{X}} Timer Challenge Moons": [4, 8, 12, 16],
     "{{X}} Outfit Door Moons": [2, 4, 6, 8],
@@ -825,8 +901,8 @@ def _looks_like_moon_count_goal(goal: str) -> bool:
 def _is_kingdom_moons_goal(goal: str, kingdom: str) -> bool:
     display = KINGDOM_DISPLAY.get(kingdom, kingdom)
     candidates = [
-        "{{X}} " + display + " Moons",
-        "{{X}} " + kingdom.capitalize() + " Moons",
+        GOAL_X_PREFIX + display + " Moons",
+        GOAL_X_PREFIX + kingdom.capitalize() + " Moons",
     ]
     if kingdom == "bowser":
         candidates.append("{{X}} Bowser's Moons")
@@ -836,8 +912,8 @@ def _is_kingdom_moons_goal(goal: str, kingdom: str) -> bool:
 def _is_kingdom_regionals_goal(goal: str, kingdom: str) -> bool:
     display = KINGDOM_DISPLAY.get(kingdom, kingdom)
     candidates = [
-        "{{X}} " + display + " Regional Coins",
-        "{{X}} " + kingdom.capitalize() + " Regional Coins",
+        GOAL_X_PREFIX + display + " Regional Coins",
+        GOAL_X_PREFIX + kingdom.capitalize() + " Regional Coins",
     ]
     if kingdom == "bowser":
         candidates.append("{{X}} Bowser's Regional Coins")
@@ -865,6 +941,194 @@ def _moons_for_goal(
     return list(moons_by_goal.get(goal) or [])
 
 
+def _suggest_checkpoint(
+    goal: str, *, is_kingdom: bool, gid: str, current: list[int]
+) -> tuple[list[int] | None, str] | None:
+    if not _is_checkpoint_goal(goal):
+        return None
+    if is_kingdom:
+        return invent_checkpoint_range(kingdom=gid), "invent_checkpoint"
+    hint = max(current) if current else 4
+    return invent_checkpoint_range(int(hint)), "invent_checkpoint"
+
+
+def _regionals_cap_hint(
+    *,
+    is_kingdom: bool,
+    gid: str,
+    tiers: dict,
+    current: list[int],
+) -> int | None:
+    if is_kingdom:
+        display = KINGDOM_DISPLAY[gid]
+        kr = (tiers.get("kingdom_regionals") or {}).get(display) or {}
+        rr = kr.get("range") or []
+        if rr:
+            return max(int(x) for x in rr)
+        if current:
+            return max(current)
+        return None
+    if current:
+        return max(current)
+    return None
+
+
+def _suggest_regionals(
+    goal: str,
+    *,
+    is_kingdom: bool,
+    gid: str,
+    tiers: dict,
+    current: list[int],
+) -> tuple[list[int] | None, str] | None:
+    if not (
+        _is_regionals_goal(goal)
+        or (is_kingdom and _is_kingdom_regionals_goal(goal, gid))
+    ):
+        return None
+    hint = _regionals_cap_hint(
+        is_kingdom=is_kingdom, gid=gid, tiers=tiers, current=current
+    )
+    if is_kingdom:
+        return invent_regionals_range(kingdom=gid, cap_hint=hint), "invent_regionals"
+    return invent_regionals_range(cap_hint=hint), "invent_regionals"
+
+
+def _suggest_kingdom_moons(
+    goal: str,
+    *,
+    gid: str,
+    moons: list,
+    current: list[int],
+    combined: dict[str, dict],
+    obj: dict,
+    registry: dict[tuple[str, int], dict],
+) -> tuple[list[int] | None, str] | None:
+    if not _is_kingdom_moons_goal(goal, gid):
+        return None
+    if not moons:
+        if current:
+            return invent_from_existing_max(current), "invent_from_max"
+        return None, "skip"
+    cap = sum_moon_odyssey_units(moons, registry)
+    off = combined.get(goal) or {}
+    prog_n = len(
+        off.get("progression") or obj.get("progression") or FULL_PROGRESSION
+    )
+    if prog_n != RANGE_LEN:
+        return invent_count_range_for_len(cap, prog_n), "invent_kingdom_moons_odyssey"
+    return (
+        invent_count_range(cap, min_early=kingdom_min_early(gid, cap)),
+        "invent_kingdom_moons_odyssey",
+    )
+
+
+def _suggest_pool_moons(
+    goal: str,
+    *,
+    group: dict,
+    is_kingdom: bool,
+    moons_by_goal: dict[str, list[dict]],
+    pairs: list[frozenset[tuple[str, int]]],
+) -> tuple[list[int] | None, str] | None:
+    pool_moons = _moons_for_goal(
+        goal, group, is_kingdom=is_kingdom, moons_by_goal=moons_by_goal
+    )
+    if not (pool_moons and _looks_like_moon_count_goal(goal)):
+        return None
+    keys = {(str(m["kingdom"]), int(m["moon"])) for m in pool_moons}
+    n_pairs = effective_sub_area_pair_count(
+        keys, pairs, story_order=load_meta()["story_order"]
+    )
+    src = "invent_pool" if not is_kingdom else "invent_sub_pool"
+    if n_pairs:
+        src = "invent_subarea_pair" if not is_kingdom else "invent_sub_subarea"
+    return invent_pool_range(len(pool_moons), n_pairs), src
+
+
+def _suggest_kingdom_sub(
+    goal: str,
+    *,
+    combined: dict[str, dict],
+    current: list[int],
+) -> tuple[list[int] | None, str] | None:
+    if not _looks_like_moon_count_goal(goal):
+        return None
+    off = combined.get(goal) or {}
+    src = list(off.get("range") or current or [])
+    if src:
+        return invent_from_existing_max(src), "invent_sub"
+    return invent_count_range(3), "invent_sub_default"
+
+
+_LISTA_POOL_GOALS = (
+    "{{X}} Boss Fights",
+    "{{X}} Broodal Fights",
+    "{{X}} Kingdom Boss Fight[[s]]",
+)
+
+
+def _suggest_lista_pool(
+    goal: str,
+    *,
+    obj: dict,
+    gid: str,
+    is_kingdom: bool,
+    combined: dict[str, dict],
+) -> tuple[list[int] | None, str] | None:
+    if goal not in _LISTA_POOL_GOALS:
+        return None
+    from goal_list_lib import build_goal_lista
+
+    lista = build_goal_lista(goal, obj, kingdom=gid if is_kingdom else None)
+    if not lista:
+        return None
+    off = combined.get(goal) or {}
+    prog = list(obj.get("progression") or off.get("progression") or FULL_PROGRESSION)
+    n_prog = len(prog) if prog else RANGE_LEN
+    return invent_count_range_for_len(len(lista), n_prog), "invent_lista_pool"
+
+
+def _named_other_range(goal: str) -> list[int] | None:
+    """Rangos fijos para contadores conocidos; None si no aplica."""
+    gl = goal.lower()
+    if "freerunning" in gl:
+        return [4, 6, 8, 10]
+    if "talkatoo" in gl:
+        return [9, 11, 13, 15]
+    if "unique capture" in gl:
+        return [14, 16, 18, 20]
+    if "binocular" in gl:
+        return [2, 4, 6, 8]
+    if "sphynx" in gl or "question" in gl:
+        return [4, 6, 8, 10]
+    if "jaxi" in gl and "stand" in gl:
+        return [1, 3, 5, 7]
+    if "no time travel" in gl and "seed" in gl:
+        return [1]
+    if "seeds planted" in gl:
+        return [2, 4, 6, 8]
+    return None
+
+
+def _suggest_other_counters(
+    goal: str,
+    *,
+    combined: dict[str, dict],
+    current: list[int],
+) -> tuple[list[int] | None, str] | None:
+    if "{{X}}" not in goal:
+        return None
+    named = _named_other_range(goal)
+    if named is not None:
+        return named, "invent_other"
+    off = combined.get(goal) or {}
+    src = list(off.get("range") or current or [])
+    if src:
+        return invent_from_existing_max(src), "invent_other"
+    return invent_count_range(4), "invent_other_default"
+
+
 def suggest_for_objective(
     *,
     gid: str,
@@ -885,130 +1149,78 @@ def suggest_for_objective(
         return None, "skip"
     current = list(obj.get("range") or [])
     moons = group.get("moons") or []
-    n_moons = len(moons)
     is_kingdom = gid in KINGDOM_COLUMNS
 
-    # Objetivos binarios / sin {{X}} → no inventar rango numérico
     if "{{X}}" not in goal and not current:
         return None, "skip"
-
-    # Overrides de goals triviales (no pedir umbrales gratis)
     if goal in TRIVIAL_GOAL_RANGE_OVERRIDES:
         return list(TRIVIAL_GOAL_RANGE_OVERRIDES[goal]), "trivial_override"
 
-    # --- Checkpoints ---
-    if _is_checkpoint_goal(goal):
-        if is_kingdom:
-            return invent_checkpoint_range(kingdom=gid), "invent_checkpoint"
-        hint = max(current) if current else 4
-        return invent_checkpoint_range(int(hint)), "invent_checkpoint"
-
-    # --- Regionals ---
-    if _is_regionals_goal(goal) or (
-        is_kingdom and _is_kingdom_regionals_goal(goal, gid)
+    for result in (
+        _suggest_checkpoint(goal, is_kingdom=is_kingdom, gid=gid, current=current),
+        _suggest_regionals(
+            goal, is_kingdom=is_kingdom, gid=gid, tiers=tiers, current=current
+        ),
     ):
-        hint = None
-        if is_kingdom:
-            display = KINGDOM_DISPLAY[gid]
-            kr = (tiers.get("kingdom_regionals") or {}).get(display) or {}
-            rr = kr.get("range") or []
-            if rr:
-                hint = max(int(x) for x in rr)
-            elif current:
-                hint = max(current)
-            return invent_regionals_range(kingdom=gid, cap_hint=hint), "invent_regionals"
-        if current:
-            hint = max(current)
-        return invent_regionals_range(cap_hint=hint), "invent_regionals"
+        if result is not None:
+            return result
 
-    # --- Kingdom main moons ({{X}} cuenta unidades Odyssey; multi ×3) ---
-    if is_kingdom and _is_kingdom_moons_goal(goal, gid):
-        if n_moons:
-            cap = sum_moon_odyssey_units(moons, registry)
-            off = combined.get(goal) or {}
-            prog_n = len(
-                off.get("progression") or obj.get("progression") or FULL_PROGRESSION
-            )
-            if prog_n != RANGE_LEN:
-                return (
-                    invent_count_range_for_len(cap, prog_n),
-                    "invent_kingdom_moons_odyssey",
-                )
-            return (
-                invent_count_range(
-                    cap, min_early=kingdom_min_early(gid, cap)
-                ),
-                "invent_kingdom_moons_odyssey",
-            )
-        if current:
-            return invent_from_existing_max(current), "invent_from_max"
-        return None, "skip"
-
-    # --- Contadores de lunas (temático o sub-objetivo de reino con pool conocido) ---
-    pool_moons = _moons_for_goal(
-        goal, group, is_kingdom=is_kingdom, moons_by_goal=moons_by_goal
-    )
-    if pool_moons and _looks_like_moon_count_goal(goal):
-        keys = {(str(m["kingdom"]), int(m["moon"])) for m in pool_moons}
-        n_pairs = effective_sub_area_pair_count(
-            keys, pairs, story_order=load_meta()["story_order"]
+    if is_kingdom:
+        km = _suggest_kingdom_moons(
+            goal,
+            gid=gid,
+            moons=moons,
+            current=current,
+            combined=combined,
+            obj=obj,
+            registry=registry,
         )
-        src = "invent_pool" if not is_kingdom else "invent_sub_pool"
-        if n_pairs:
-            src = "invent_subarea_pair" if not is_kingdom else "invent_sub_subarea"
-        return invent_pool_range(len(pool_moons), n_pairs), src
+        if km is not None:
+            return km
 
-    # --- Sub-objetivos de reino sin pool resuelto ---
-    if is_kingdom and _looks_like_moon_count_goal(goal):
-        off = combined.get(goal) or {}
-        src = list(off.get("range") or current or [])
-        if src:
-            return invent_from_existing_max(src), "invent_sub"
-        return invent_count_range(3), "invent_sub_default"
+    pool = _suggest_pool_moons(
+        goal,
+        group=group,
+        is_kingdom=is_kingdom,
+        moons_by_goal=moons_by_goal,
+        pairs=pairs,
+    )
+    if pool is not None:
+        return pool
 
-    # --- Listas curadas (boss fights, etc.) ---
-    if goal in (
-        "{{X}} Boss Fights",
-        "{{X}} Broodal Fights",
-        "{{X}} Kingdom Boss Fight[[s]]",
-    ):
-        from goal_list_lib import build_goal_lista
+    if is_kingdom:
+        sub = _suggest_kingdom_sub(goal, combined=combined, current=current)
+        if sub is not None:
+            return sub
 
-        lista = build_goal_lista(goal, obj, kingdom=gid if is_kingdom else None)
-        if lista:
-            off = combined.get(goal) or {}
-            prog = list(obj.get("progression") or off.get("progression") or FULL_PROGRESSION)
-            n_prog = len(prog) if prog else RANGE_LEN
-            return invent_count_range_for_len(len(lista), n_prog), "invent_lista_pool"
+    lista = _suggest_lista_pool(
+        goal, obj=obj, gid=gid, is_kingdom=is_kingdom, combined=combined
+    )
+    if lista is not None:
+        return lista
 
-    # --- Otros contadores (freerunning, captures, talkatoo, sphynx, etc.) ---
-    if "{{X}}" in goal:
-        off = combined.get(goal) or {}
-        src = list(off.get("range") or current or [])
-        gl = goal.lower()
-        if "freerunning" in gl:
-            return [4, 6, 8, 10], "invent_other"
-        if "talkatoo" in gl:
-            return [9, 11, 13, 15], "invent_other"
-        if "unique capture" in gl:
-            return [14, 16, 18, 20], "invent_other"
-        if "binocular" in gl:
-            return [2, 4, 6, 8], "invent_other"
-        if "sphynx" in gl or "question" in gl:
-            return [4, 6, 8, 10], "invent_other"
-        if "jaxi" in gl and "stand" in gl:
-            return [1, 3, 5, 7], "invent_other"
-        if "no time travel" in gl and "seed" in gl:
-            return [1], "invent_other"
-        if "seeds planted" in gl:
-            return [2, 4, 6, 8], "invent_other"
-        if src:
-            return invent_from_existing_max(src), "invent_other"
-        return invent_count_range(4), "invent_other_default"
+    other = _suggest_other_counters(goal, combined=combined, current=current)
+    if other is not None:
+        return other
 
     if current:
         return invent_from_existing_max(current), "invent_keep_shape"
     return None, "skip"
+
+
+def _merge_moons_into_index(
+    out: dict[str, list[dict]], goal: str, moons: list[dict]
+) -> None:
+    prev = out.get(goal)
+    if prev is None:
+        out[goal] = list(moons)
+        return
+    seen = {(m.get("kingdom"), m.get("moon")) for m in prev}
+    for m in moons:
+        key = (m.get("kingdom"), m.get("moon"))
+        if key not in seen:
+            prev.append(m)
+            seen.add(key)
 
 
 def _index_moons_by_goal(bingo: dict) -> dict[str, list[dict]]:
@@ -1023,34 +1235,43 @@ def _index_moons_by_goal(bingo: dict) -> dict[str, list[dict]]:
             continue
         for obj in group.get("objectives") or []:
             goal = str((obj or {}).get("goal") or "")
-            if not goal:
-                continue
-            prev = out.get(goal)
-            if prev is None:
-                out[goal] = list(moons)
-                continue
-            seen = {(m.get("kingdom"), m.get("moon")) for m in prev}
-            for m in moons:
-                key = (m.get("kingdom"), m.get("moon"))
-                if key not in seen:
-                    prev.append(m)
-                    seen.add(key)
+            if goal:
+                _merge_moons_into_index(out, goal, moons)
     return out
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--apply", action="store_true")
-    args = parser.parse_args()
+def _apply_suggested_range(
+    obj: dict,
+    *,
+    gid: str,
+    goal: str,
+    suggested: list[int],
+    source: str,
+    expected_prog: list,
+) -> None:
+    obj["range"] = suggested
+    obj["progression"] = expected_prog
+    if len(suggested) >= 2 and len(expected_prog) > 1:
+        obj["progressive_ranges"] = True
+    else:
+        obj.pop("progressive_ranges", None)
+    if source == "invent_checkpoint" and gid in KINGDOM_COLUMNS:
+        tip = checkpoint_tooltip_for(gid)
+        if obj.get("tooltip") != tip:
+            obj["tooltip"] = tip
 
-    allowed = load_scope()
-    combined = load_combined_objectives_by_goal()
-    tiers = load_range_tiers()
-    bingo = load_catalog(BINGO_GROUPS_PATH)
-    pairs = load_sub_area_pairs()
-    moons_by_goal = _index_moons_by_goal(bingo)
-    registry = build_matrix_moon_registry()
 
+def _collect_range_changes(
+    bingo: dict,
+    *,
+    allowed: set[str],
+    combined: dict[str, dict],
+    tiers: dict,
+    pairs: list[frozenset[tuple[str, int]]],
+    moons_by_goal: dict[str, list[dict]],
+    registry: dict[tuple[str, int], dict],
+    apply: bool,
+) -> tuple[list[tuple[str, str, list[int], list[int], str]], dict[str, int], int]:
     changes: list[tuple[str, str, list[int], list[int], str]] = []
     by_source: dict[str, int] = {}
     bad_len = 0
@@ -1061,7 +1282,6 @@ def main() -> None:
             if not isinstance(obj, dict) or not obj.get("goal"):
                 continue
             goal = str(obj["goal"])
-            current = list(obj.get("range") or [])
             suggested, source = suggest_for_objective(
                 gid=gid,
                 group=group,
@@ -1085,24 +1305,28 @@ def main() -> None:
             )
             if goal not in SINGLE_VALUE_OK and len(suggested) != RANGE_LEN:
                 bad_len += 1
-            if suggested != list(obj.get("range") or []) or list(
-                obj.get("progression") or []
-            ) != expected_prog:
-                changes.append(
-                    (gid, goal, list(obj.get("range") or []), suggested, source)
+            cur_range = list(obj.get("range") or [])
+            cur_prog = list(obj.get("progression") or [])
+            if suggested != cur_range or cur_prog != expected_prog:
+                changes.append((gid, goal, cur_range, suggested, source))
+            if apply:
+                _apply_suggested_range(
+                    obj,
+                    gid=gid,
+                    goal=goal,
+                    suggested=suggested,
+                    source=source,
+                    expected_prog=expected_prog,
                 )
-            if args.apply:
-                obj["range"] = suggested
-                obj["progression"] = expected_prog
-                if len(suggested) >= 2 and len(expected_prog) > 1:
-                    obj["progressive_ranges"] = True
-                else:
-                    obj.pop("progressive_ranges", None)
-                if source == "invent_checkpoint" and gid in KINGDOM_COLUMNS:
-                    tip = checkpoint_tooltip_for(gid)
-                    if obj.get("tooltip") != tip:
-                        obj["tooltip"] = tip
+    return changes, by_source, bad_len
 
+
+def _report_range_changes(
+    changes: list[tuple[str, str, list[int], list[int], str]],
+    by_source: dict[str, int],
+    pairs: list,
+    bad_len: int,
+) -> None:
     print(f"Cambios (rango y/o progression→e,m,l,n): {len(changes)}")
     print("Por fuente:", ", ".join(f"{k}={v}" for k, v in sorted(by_source.items())))
     print(f"Pares sub_area cargados: {len(pairs)}")
@@ -1114,6 +1338,32 @@ def main() -> None:
             f"  [{gid}] {goal}\n"
             f"    {cur} -> {sug}  ({src}{', ' + step if step else ''})"
         )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    allowed = load_scope()
+    combined = load_combined_objectives_by_goal()
+    tiers = load_range_tiers()
+    bingo = load_catalog(BINGO_GROUPS_PATH)
+    pairs = load_sub_area_pairs()
+    moons_by_goal = _index_moons_by_goal(bingo)
+    registry = build_matrix_moon_registry()
+
+    changes, by_source, bad_len = _collect_range_changes(
+        bingo,
+        allowed=allowed,
+        combined=combined,
+        tiers=tiers,
+        pairs=pairs,
+        moons_by_goal=moons_by_goal,
+        registry=registry,
+        apply=args.apply,
+    )
+    _report_range_changes(changes, by_source, pairs, bad_len)
 
     if args.apply:
         from catalog_lib import finalize_bingo_groups_doc

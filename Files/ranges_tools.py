@@ -38,40 +38,52 @@ def is_reasonable(values: list[int]) -> bool:
     return len(set(steps)) == 1 and steps[0] > 0
 
 
-def harmony_score(start: int, step: int, values: list[int]) -> int:
-    """Score how well the step fits the starting value and resulting sequence."""
-    score = 0
-
+def _divisible_harmony(start: int, step: int, values: list[int]) -> int:
     if step > 0 and start % step == 0 and all(v % step == 0 for v in values):
-        score += 35
+        return 35
+    return 0
 
+
+def _step_alignment_penalty(start: int, step: int) -> int:
     if step == 4 and start % 4 != 0:
-        score -= 40
-
+        return -40
     if step == 5 and start % 5 != 0:
-        score -= 25
+        return -25
+    return 0
 
+
+def _parity_harmony(start: int, step: int) -> int:
     if start % 2 == 1:
+        score = 0
         if step in (2, 3):
             score += 18
         if step in (4, 6, 8):
             score -= 12
-    else:
-        if step in (2, 4):
-            score += 12
+        return score
+    if step in (2, 4):
+        return 12
+    return 0
 
-    if start == step:
-        score += 15
 
-    if step > 0 and start % step == 0:
-        score += 8
-
+def _sequence_parity_bonus(start: int, values: list[int]) -> int:
+    score = 0
     if all(v % 2 == start % 2 for v in values):
         score += 4
-
     if start % 2 == 0 and all(v % 2 == 0 for v in values):
         score += 4
+    return score
 
+
+def harmony_score(start: int, step: int, values: list[int]) -> int:
+    """Score how well the step fits the starting value and resulting sequence."""
+    score = _divisible_harmony(start, step, values)
+    score += _step_alignment_penalty(start, step)
+    score += _parity_harmony(start, step)
+    if start == step:
+        score += 15
+    if step > 0 and start % step == 0:
+        score += 8
+    score += _sequence_parity_bonus(start, values)
     return score
 
 
@@ -91,6 +103,14 @@ def option_key(start: int, step: int, values: list[int], lo_cap: int) -> tuple:
     )
 
 
+def _values_fit_maxima(values: list[int], maxima: list[int], hi_cap: int) -> bool:
+    if values[-1] > hi_cap:
+        return False
+    if any(values[i] > maxima[i] for i in range(len(values))):
+        return False
+    return len(set(values)) >= len(values)
+
+
 def iter_valid_options(maxima: list[int]) -> list[tuple[list[int], int, int]]:
     n = len(maxima)
     if n < 2:
@@ -104,11 +124,7 @@ def iter_valid_options(maxima: list[int]) -> list[tuple[list[int], int, int]]:
         max_step = max(1, (hi_cap - start) // (n - 1))
         for step in range(1, max_step + 1):
             values = [start + i * step for i in range(n)]
-            if values[-1] > hi_cap:
-                continue
-            if any(values[i] > maxima[i] for i in range(n)):
-                continue
-            if len(set(values)) < n:
+            if not _values_fit_maxima(values, maxima, hi_cap):
                 continue
             key = tuple(values)
             if key in seen:

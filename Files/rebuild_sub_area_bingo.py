@@ -214,78 +214,119 @@ def sync_bingo_group(
     groups.append(payload)
 
 
-def main() -> None:
-    registry = build_matrix_moon_registry()
-    levels: list[dict] = []
-    moon_refs: list[dict] = []
-    deep_refs: list[dict] = []
-    sand_ice_refs: list[dict] = []
-    seen: set[tuple[str, int]] = set()
+def _is_story_or_multi_type(entry: dict) -> bool:
+    type_l = str(entry.get("type") or "").lower()
+    return "story moon" in type_l or "multi moon" in type_l
 
-    for kingdom in KINGDOM_COLUMNS:
-        page = SMO_PAGES.get(kingdom)
-        if not page:
+
+def _collect_sand_ice_refs(
+    registry: dict,
+    kingdom: str,
+    moons: list[int],
+) -> list[dict]:
+    refs: list[dict] = []
+    for moon in moons:
+        entry = registry[(kingdom, moon)]
+        # Sin story/multi (sand#4 The Hole in the Desert).
+        if _is_story_or_multi_type(entry):
             continue
-        url = f"https://smo.wiki/{page}"
-        print(f"  {KINGDOM_DISPLAY.get(kingdom, kingdom)}...")
-        try:
-            html = fetch(url)
-        except Exception as exc:  # noqa: BLE001
-            print(f"    AVISO: {exc}")
+        refs.append(group_moon_ref(entry))
+    return refs
+
+
+def _should_skip_sand_ice_as_sub_area(level_l: str, moons: list[int]) -> bool:
+    return level_l in SAND_ICE_LEVELS_NOT_SUB_AREA or len(moons) != 2
+
+
+def _process_kingdom_levels(
+    kingdom: str,
+    registry: dict,
+    *,
+    levels: list[dict],
+    moon_refs: list[dict],
+    deep_refs: list[dict],
+    sand_ice_refs: list[dict],
+    seen: set[tuple[str, int]],
+) -> None:
+    page = SMO_PAGES.get(kingdom)
+    if not page:
+        return
+    url = f"https://smo.wiki/{page}"
+    print(f"  {KINGDOM_DISPLAY.get(kingdom, kingdom)}...")
+    try:
+        html = fetch(url)
+    except Exception as exc:  # noqa: BLE001
+        print(f"    AVISO: {exc}")
+        return
+    moon_levels = parse_moon_levels(html)
+    by_level: dict[str, list[int]] = defaultdict(list)
+    for moon, level in moon_levels.items():
+        entry = registry.get((kingdom, moon))
+        if not entry or level_excluded(level):
             continue
-        moon_levels = parse_moon_levels(html)
-        by_level: dict[str, list[int]] = defaultdict(list)
-        for moon, level in moon_levels.items():
-            entry = registry.get((kingdom, moon))
-            if not entry:
-                continue
-            if level_excluded(level):
-                continue
-            by_level[level].append(moon)
+        by_level[level].append(moon)
 
-        for level, moons in sorted(by_level.items(), key=lambda kv: min(kv[1])):
-            moons = sorted(set(moons))
-            level_l = level.lower()
+    for level, moons in sorted(by_level.items(), key=lambda kv: min(kv[1])):
+        moons = sorted(set(moons))
+        level_l = level.lower()
 
-            # Deep Woods + subzonas (Treasure Trap / Treasure Vault).
-            if level_l == "deep woods" or level_l.startswith("deep woods "):
-                for moon in moons:
-                    deep_refs.append(group_moon_ref(registry[(kingdom, moon)]))
-                continue
-
-            if kingdom == "sand" and level_l in SAND_ICE_LEVELS:
-                for moon in moons:
-                    entry = registry[(kingdom, moon)]
-                    # Sin story/multi (sand#4 The Hole in the Desert).
-                    type_l = str(entry.get("type") or "").lower()
-                    if "story moon" in type_l or "multi moon" in type_l:
-                        continue
-                    sand_ice_refs.append(group_moon_ref(entry))
-                # Ice Levels: solo sand_ice (no Sub-Area), salvo si no están en NOT_SUB_AREA.
-                if level_l in SAND_ICE_LEVELS_NOT_SUB_AREA or len(moons) != 2:
-                    continue
-
-            if len(moons) != 2:
-                continue
-            levels.append(
-                {
-                    "kingdom": kingdom,
-                    "level": level,
-                    "moons": moons,
-                    "names": [registry[(kingdom, m)]["name"] for m in moons],
-                }
-            )
+        if level_l == "deep woods" or level_l.startswith("deep woods "):
             for moon in moons:
-                key = (kingdom, moon)
-                if key in seen:
-                    continue
-                seen.add(key)
-                moon_refs.append(group_moon_ref(registry[key]))
-        time.sleep(0.25)
+                deep_refs.append(group_moon_ref(registry[(kingdom, moon)]))
+            continue
 
-    moon_refs.sort(key=entity_sort_key)
+        if kingdom == "sand" and level_l in SAND_ICE_LEVELS:
+            sand_ice_refs.extend(_collect_sand_ice_refs(registry, kingdom, moons))
+            if _should_skip_sand_ice_as_sub_area(level_l, moons):
+                continue
 
-    bingo = load_catalog(OUT_GROUPS) if OUT_GROUPS.exists() else {"groups": []}
+        if len(moons) != 2:
+            continue
+        levels.append(
+            {
+                "kingdom": kingdom,
+                "level": level,
+                "moons": moons,
+                "names": [registry[(kingdom, m)]["name"] for m in moons],
+            }
+        )
+        for moon in moons:
+            key = (kingdom, moon)
+            if key in seen:
+                continue
+            seen.add(key)
+            moon_refs.append(group_moon_ref(registry[key]))
+
+
+def _write_sub_area_goal_lists(levels: list[dict]) -> None:
+    lists_data = load_catalog(GOAL_LISTS_PATH) if GOAL_LISTS_PATH.exists() else {}
+    lists = dict(lists_data.get("lists") or {})
+    lists.pop("sub_area_levels", None)
+    lists["sub_area_levels"] = levels  # al final
+    lists_data["lists"] = lists
+    lists_data["n_lists"] = len(lists)
+    lists_data["n_items"] = sum(len(v) for v in lists.values() if isinstance(v, list))
+    lists_data.pop("n_sub_area_levels", None)
+    lists_data.pop("sub_area_levels", None)  # no top-level
+    ordered_lists = {
+        k: lists_data[k]
+        for k in ("_note", "_definition", "n_lists", "n_items", "lists")
+        if k in lists_data
+    }
+    for k, v in lists_data.items():
+        if k not in ordered_lists:
+            ordered_lists[k] = v
+    write_catalog_json(GOAL_LISTS_PATH, ordered_lists)
+
+
+def _sync_sub_area_groups(
+    bingo: dict,
+    *,
+    levels: list[dict],
+    moon_refs: list[dict],
+    deep_refs: list[dict],
+    sand_ice_refs: list[dict],
+) -> None:
     sync_bingo_group(
         bingo,
         "sub_area",
@@ -306,30 +347,11 @@ def main() -> None:
             "Sin #28. Deep Woods y resto hielo Sand → deep_woods / sand_ice."
         ),
     )
-    # Quitar levels del grupo si quedaron de builds viejos.
     for g in bingo.get("groups") or []:
         if g.get("id") == "sub_area":
             g.pop("levels", None)
             break
-    lists_data = load_catalog(GOAL_LISTS_PATH) if GOAL_LISTS_PATH.exists() else {}
-    lists = dict(lists_data.get("lists") or {})
-    lists.pop("sub_area_levels", None)
-    lists["sub_area_levels"] = levels  # al final
-    lists_data["lists"] = lists
-    lists_data["n_lists"] = len(lists)
-    lists_data["n_items"] = sum(len(v) for v in lists.values() if isinstance(v, list))
-    lists_data.pop("n_sub_area_levels", None)
-    lists_data.pop("sub_area_levels", None)  # no top-level
-    # Orden: nota → contadores → lists
-    ordered_lists = {
-        k: lists_data[k]
-        for k in ("_note", "_definition", "n_lists", "n_items", "lists")
-        if k in lists_data
-    }
-    for k, v in lists_data.items():
-        if k not in ordered_lists:
-            ordered_lists[k] = v
-    write_catalog_json(GOAL_LISTS_PATH, ordered_lists)
+    _write_sub_area_goal_lists(levels)
     sync_bingo_group(
         bingo,
         "deep_woods",
@@ -343,6 +365,38 @@ def main() -> None:
         sand_ice_refs,
         goal="{{X}} Sand Ice Moon[[s]]",
         kingdom="sand",
+    )
+
+
+def main() -> None:
+    registry = build_matrix_moon_registry()
+    levels: list[dict] = []
+    moon_refs: list[dict] = []
+    deep_refs: list[dict] = []
+    sand_ice_refs: list[dict] = []
+    seen: set[tuple[str, int]] = set()
+
+    for kingdom in KINGDOM_COLUMNS:
+        _process_kingdom_levels(
+            kingdom,
+            registry,
+            levels=levels,
+            moon_refs=moon_refs,
+            deep_refs=deep_refs,
+            sand_ice_refs=sand_ice_refs,
+            seen=seen,
+        )
+        time.sleep(0.25)
+
+    moon_refs.sort(key=entity_sort_key)
+
+    bingo = load_catalog(OUT_GROUPS) if OUT_GROUPS.exists() else {"groups": []}
+    _sync_sub_area_groups(
+        bingo,
+        levels=levels,
+        moon_refs=moon_refs,
+        deep_refs=deep_refs,
+        sand_ice_refs=sand_ice_refs,
     )
     bingo["groups"] = [
         normalize_bingo_group(g)

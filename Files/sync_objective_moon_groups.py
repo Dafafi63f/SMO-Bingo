@@ -38,6 +38,9 @@ from catalog_lib import (
 
 MIN_MOONS = GROUP_MIN_MOONS
 
+GOAL_MINI_ROCKET_MOONS = "{{X}} Mini Rocket Moons"
+GOAL_BEANSTALK_MOONS = "{{X}} Beanstalk Moons"
+
 # Ids retirados (fusionados / fuera de norma).
 RETIRED_OBJECTIVE_GROUP_IDS: frozenset[str] = frozenset(
     {
@@ -503,7 +506,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "mini_rocket": {
-        "goal": "{{X}} Mini Rocket Moons",
+        "goal": GOAL_MINI_ROCKET_MOONS,
         "capture": "Mini Rocket",
         "moons": [
             ("sand", 60),    # Strange Neighborhood
@@ -523,7 +526,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "beanstalk": {
-        "goal": "{{X}} Beanstalk Moons",
+        "goal": GOAL_BEANSTALK_MOONS,
         "moons": [
             # Wooded Cloud Walking
             ("wooded", 47),  # Walking on Clouds
@@ -1127,8 +1130,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     # --- cross ---
     "transport": {
         "goals": [
-            "{{X}} Beanstalk Moons",
-            "{{X}} Mini Rocket Moons",
+            GOAL_BEANSTALK_MOONS,
+            GOAL_MINI_ROCKET_MOONS,
         ],
         "moons": [
             # Beanstalk / enredadera → nubes
@@ -1659,7 +1662,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Luncheon Sub-Area Moons",
             "{{X}} Bowser's Sub-Area Moons",
             # Acceso / tema de cada Level de la guía (también grupo propio)
-            "{{X}} Beanstalk Moons",  # Cloud Walking / Spinning / Dashing
+            GOAL_BEANSTALK_MOONS,  # Cloud Walking / Spinning / Dashing
             "{{X}} Bowser's Jizo Moons",  # Jizo Adventure
             "{{X}} Bowser's Pokio Moons",  # Spinning Tower
             "{{X}} Bullet Bill Moons",  # BB Maze + Bullet Billding
@@ -1674,7 +1677,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Luncheon Volbonan Moons",  # Fork Flickin'
             "{{X}} Metro Manhole Moons",  # Rotating Maze
             "{{X}} Metro Taxi Moons",  # Under Siege
-            "{{X}} Mini Rocket Moons",  # Strange N. / Fog / High-Rise / Cloud Sea
+            GOAL_MINI_ROCKET_MOONS,  # Strange N. / Fog / High-Rise / Cloud Sea
             "{{X}} Paragoomba Moons",  # Poison Tide + Fog
             "{{X}} Rocket Flower Moons",  # Cold Water Dash
             "{{X}} Sand Ice Moon[[s]]",  # Ice Cave
@@ -2346,6 +2349,62 @@ def _compile_patterns(patterns: list[str]) -> list[re.Pattern[str]]:
     return [re.compile(p, re.I) for p in patterns]
 
 
+def _moon_registry_sort_key(km: tuple[str, int]) -> tuple[int, int]:
+    return (
+        KINGDOM_COLUMNS.index(km[0]) if km[0] in KINGDOM_COLUMNS else 99,
+        km[1],
+    )
+
+
+def _keys_from_spec_patterns(
+    spec: dict[str, Any],
+    registry: dict[tuple[str, int], dict],
+) -> set[tuple[str, int]]:
+    keys: set[tuple[str, int]] = set()
+    for pair in spec.get("moons") or []:
+        keys.add((pair[0], int(pair[1])))
+    patterns = _compile_patterns(list(spec.get("name_patterns") or []))
+    if not patterns:
+        return keys
+    kingdom_filter = spec.get("kingdom")
+    for (kingdom, moon), entry in registry.items():
+        if kingdom_filter and kingdom != kingdom_filter:
+            continue
+        name = entry.get("name") or ""
+        if any(p.search(name) for p in patterns):
+            keys.add((kingdom, moon))
+    return keys
+
+
+def _resolve_moon_entry(
+    kingdom: str,
+    moon: int,
+    registry: dict[tuple[str, int], dict],
+    wiki: dict,
+) -> dict | None:
+    entry = registry.get((kingdom, moon))
+    if entry:
+        return entry
+    # Lunas in-scope aun no en matrix (p. ej. ruined#3+#4, mushroom#39).
+    we = wiki.get(kingdom, {}).get(moon)
+    if not we or not wiki_moon_in_scope(kingdom, moon, we):
+        return None
+    return {"name": we.get("name") or f"Moon {moon}"}
+
+
+def _should_drop_story_moon(
+    key: tuple[str, int],
+    entry: dict,
+    *,
+    drop_story: bool,
+    allow_story: set[tuple[str, int]],
+) -> bool:
+    if not drop_story or key in allow_story:
+        return False
+    tags = set(entry.get("tags") or [])
+    return bool(tags & {"story_moon", "multi_moon"})
+
+
 def resolve_moons(
     spec: dict[str, Any],
     registry: dict[tuple[str, int], dict],
@@ -2355,20 +2414,7 @@ def resolve_moons(
     Si el SPEC tiene `capture`, excluye story_moon/multi_moon salvo las de
     `include_story_moons` (p. ej. sand#2, snow#1, snow#5).
     """
-    keys: set[tuple[str, int]] = set()
-    for pair in spec.get("moons") or []:
-        keys.add((pair[0], int(pair[1])))
-
-    patterns = _compile_patterns(list(spec.get("name_patterns") or []))
-    kingdom_filter = spec.get("kingdom")
-    if patterns:
-        for (kingdom, moon), entry in registry.items():
-            if kingdom_filter and kingdom != kingdom_filter:
-                continue
-            name = entry.get("name") or ""
-            if any(p.search(name) for p in patterns):
-                keys.add((kingdom, moon))
-
+    keys = _keys_from_spec_patterns(spec, registry)
     allow_story = {
         (str(k), int(m)) for k, m in (spec.get("include_story_moons") or [])
     }
@@ -2376,25 +2422,15 @@ def resolve_moons(
 
     refs: list[dict] = []
     wiki = load_wiki_moon_meta()
-    for kingdom, moon in sorted(
-        keys,
-        key=lambda km: (
-            KINGDOM_COLUMNS.index(km[0]) if km[0] in KINGDOM_COLUMNS else 99,
-            km[1],
-        ),
-    ):
+    for kingdom, moon in sorted(keys, key=_moon_registry_sort_key):
         key = (kingdom, moon)
-        entry = registry.get(key)
+        entry = _resolve_moon_entry(kingdom, moon, registry, wiki)
         if not entry:
-            # Lunas in-scope aun no en matrix (p. ej. ruined#3+#4, mushroom#39).
-            we = wiki.get(kingdom, {}).get(moon)
-            if not we or not wiki_moon_in_scope(kingdom, moon, we):
-                continue
-            entry = {"name": we.get("name") or f"Moon {moon}"}
-        if drop_story and key not in allow_story:
-            tags = set(entry.get("tags") or [])
-            if tags & {"story_moon", "multi_moon"}:
-                continue
+            continue
+        if _should_drop_story_moon(
+            key, entry, drop_story=drop_story, allow_story=allow_story
+        ):
+            continue
         refs.append(
             {
                 "kingdom": kingdom,
@@ -2434,6 +2470,22 @@ def _aggregate_moons_by_moon_tag(
     return _aggregate_moons_by_moon_tags(by_id, tags=[tag], skip_ids=skip_ids)
 
 
+def _moon_ref_from_raw(raw: dict) -> tuple[tuple[str, int], dict] | None:
+    if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
+        return None
+    key = (str(raw["kingdom"]), int(raw["moon"]))
+    return key, {
+        "kingdom": key[0],
+        "moon": key[1],
+        "name": raw.get("name") or f"Moon {key[1]}",
+    }
+
+
+def _iter_group_moon_raws(group: dict):
+    yield from list(group.get("moons") or [])
+    yield from list(group.get("tag_only_moons") or [])
+
+
 def _aggregate_moons_by_moon_tags(
     by_id: dict[str, dict],
     *,
@@ -2445,34 +2497,24 @@ def _aggregate_moons_by_moon_tags(
     keys: set[tuple[str, int]] = set()
     by_key: dict[tuple[str, int], dict] = {}
     for gid, group in by_id.items():
-        if gid in skip_ids:
+        if gid in skip_ids or group.get("moon_tag") not in tag_set:
             continue
-        if group.get("moon_tag") not in tag_set:
-            continue
-        for raw in list(group.get("moons") or []) + list(
-            group.get("tag_only_moons") or []
-        ):
-            if not isinstance(raw, dict) or "kingdom" not in raw or "moon" not in raw:
+        for raw in _iter_group_moon_raws(group):
+            parsed = _moon_ref_from_raw(raw)
+            if parsed is None:
                 continue
-            key = (str(raw["kingdom"]), int(raw["moon"]))
+            key, ref = parsed
             if key in keys:
                 continue
             keys.add(key)
-            by_key[key] = {
-                "kingdom": key[0],
-                "moon": key[1],
-                "name": raw.get("name") or f"Moon {key[1]}",
-            }
-    return [
-        by_key[km]
-        for km in sorted(
-            keys,
-            key=lambda pair: (
-                KINGDOM_COLUMNS.index(pair[0]) if pair[0] in KINGDOM_COLUMNS else 99,
-                pair[1],
-            ),
-        )
-    ]
+            by_key[key] = ref
+    return [by_key[km] for km in sorted(keys, key=_moon_registry_sort_key)]
+
+
+def _append_unique_goal(seen: set[str], out: list[str], goal: str) -> None:
+    if goal and goal not in seen:
+        seen.add(goal)
+        out.append(goal)
 
 
 def _aggregate_goals_by_moon_tag(
@@ -2486,19 +2528,256 @@ def _aggregate_goals_by_moon_tag(
     seen: set[str] = set()
     out: list[str] = []
     for goal in extra_goals or []:
-        if goal and goal not in seen:
-            seen.add(goal)
-            out.append(goal)
+        _append_unique_goal(seen, out, goal)
     for gid, group in by_id.items():
-        if gid in skip_ids:
-            continue
-        if group.get("moon_tag") != tag:
+        if gid in skip_ids or group.get("moon_tag") != tag:
             continue
         for goal in group_objectives(group):
-            if goal and goal not in seen:
-                seen.add(goal)
-                out.append(goal)
+            _append_unique_goal(seen, out, goal)
     return out
+
+
+def _preserve_moons_from_group(by_id: dict[str, dict], gid: str) -> list[dict]:
+    return [
+        {
+            "kingdom": str(raw["kingdom"]),
+            "moon": int(raw["moon"]),
+            "name": raw.get("name") or f"Moon {raw['moon']}",
+        }
+        for raw in ((by_id.get(gid) or {}).get("moons") or [])
+        if isinstance(raw, dict) and "kingdom" in raw and "moon" in raw
+    ]
+
+
+def _omit_reason_for_spec(
+    gid: str,
+    moons: list[dict],
+    *,
+    allow_empty: bool,
+    has_related_objective: bool,
+) -> str | None:
+    if not moons and not allow_empty:
+        return f"  AVISO: {gid} sin lunas resueltas; se omite."
+    if (
+        moons
+        and len(moons) < MIN_MOONS
+        and not has_related_objective
+        and not allow_empty
+    ):
+        return (
+            f"  AVISO: {gid} tiene {len(moons)} lunas y sin objetivo "
+            f"relacionado (norma: >={MIN_MOONS} lunas o 1 objetivo); se omite."
+        )
+    if not moons and allow_empty and not has_related_objective:
+        return f"  AVISO: {gid} sin lunas ni objetivo relacionado; se omite."
+    return None
+
+
+def _copy_prev_meta(group: dict[str, Any], prev: dict) -> None:
+    for keep in ("_definition", "_source"):
+        if prev.get(keep) not in (None, "", [], False):
+            group[keep] = prev[keep]
+
+
+def _apply_spec_flags(group: dict[str, Any], spec: dict[str, Any]) -> None:
+    if spec.get("kingdom"):
+        group["kingdom"] = spec["kingdom"]
+    if spec.get("capture"):
+        group["capture"] = spec["capture"]
+    if spec.get("internal"):
+        group["internal"] = True
+    if spec.get("extra_tags"):
+        group["extra_tags"] = [str(t) for t in spec["extra_tags"]]
+    if spec.get("moon_tag"):
+        group["moon_tag"] = spec["moon_tag"]
+        if spec.get("umbrella") or spec["moon_tag"] in UMBRELLA_MOON_TAGS:
+            group["umbrella"] = True
+        else:
+            group["large"] = True
+    if spec.get("apply_moon_tag") is False:
+        group["apply_moon_tag"] = False
+
+
+def _build_spec_group(
+    gid: str,
+    spec: dict[str, Any],
+    *,
+    goals: list[str],
+    moons: list[dict],
+    combined: dict,
+    registry: dict[tuple[str, int], dict],
+    prev: dict,
+) -> dict[str, Any]:
+    obj_refs = [
+        objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
+    ]
+    note = spec.get("note") or (
+        "Grupo tematico derivado del objetivo Combined; "
+        "lunas curadas/patrones en OBJECTIVE_MOON_GROUP_SPECS."
+    )
+    group: dict[str, Any] = {
+        "id": gid,
+        "objectives": obj_refs,
+        "moons": moons,
+        "_note": note,
+    }
+    _copy_prev_meta(group, prev)
+    _apply_spec_flags(group, spec)
+    tag_only = resolve_tag_only_moons(spec, registry)
+    if tag_only:
+        group["tag_only_moons"] = tag_only
+    return group
+
+
+def _merge_extra_moons(moons: list[dict], extras: list[dict]) -> list[dict]:
+    for raw in extras:
+        key = (str(raw["kingdom"]), int(raw["moon"]))
+        if any((m["kingdom"], int(m["moon"])) == key for m in moons):
+            continue
+        moons.append(
+            {
+                "kingdom": key[0],
+                "moon": key[1],
+                "name": raw.get("name") or f"Moon {key[1]}",
+            }
+        )
+    moons.sort(
+        key=lambda m: (
+            KINGDOM_COLUMNS.index(m["kingdom"])
+            if m["kingdom"] in KINGDOM_COLUMNS
+            else 99,
+            int(m["moon"]),
+        )
+    )
+    return moons
+
+
+def _resolve_aggregate_payload(
+    gid: str,
+    spec: dict[str, Any],
+    *,
+    by_id: dict[str, dict],
+    aggregate_ids: frozenset[str],
+    registry: dict[tuple[str, int], dict],
+) -> tuple[list[dict], list[str], str, list[str], str | None] | None:
+    multi_tags = spec.get("aggregate_moon_tags")
+    if multi_tags:
+        tags = [str(t) for t in multi_tags]
+        moons = _aggregate_moons_by_moon_tags(
+            by_id, tags=tags, skip_ids=aggregate_ids
+        )
+        goals = _spec_goals(spec)
+        tag_label = "+".join(tags)
+        moon_tag = spec.get("moon_tag")
+    else:
+        tag = str(spec["aggregate_moon_tag"])
+        tags = [tag]
+        moons = _aggregate_moons_by_moon_tag(
+            by_id, tag=tag, skip_ids=aggregate_ids
+        )
+        moons = _merge_extra_moons(moons, resolve_moons(spec, registry))
+        goals = (
+            _spec_goals(spec)
+            if spec.get("goals_only_spec")
+            else _aggregate_goals_by_moon_tag(
+                by_id,
+                tag=tag,
+                skip_ids=aggregate_ids,
+                extra_goals=_spec_goals(spec),
+            )
+        )
+        tag_label = tag
+        moon_tag = spec.get("moon_tag") or tag
+
+    if len(moons) < MIN_MOONS:
+        print(
+            f"  AVISO: {gid} aggregate {tag_label} tiene {len(moons)} lunas "
+            f"(norma: >={MIN_MOONS}); se omite."
+        )
+        return None
+    return moons, goals, tag_label, tags, moon_tag
+
+
+def _sync_one_spec_group(
+    gid: str,
+    spec: dict[str, Any],
+    *,
+    by_id: dict[str, dict],
+    combined: dict,
+    registry: dict[tuple[str, int], dict],
+    counts: dict[str, int],
+) -> None:
+    goals = _spec_goals(spec)
+    moons = resolve_moons(spec, registry)
+    if not moons and spec.get("preserve_moons"):
+        moons = _preserve_moons_from_group(by_id, gid)
+    allow_empty = bool(spec.get("allow_empty_moons"))
+    related_goals = [g for g in goals if g in combined]
+    has_related_objective = bool(related_goals)
+
+    omit = _omit_reason_for_spec(
+        gid,
+        moons,
+        allow_empty=allow_empty,
+        has_related_objective=has_related_objective,
+    )
+    if omit:
+        print(omit)
+        by_id.pop(gid, None)
+        return
+
+    by_id[gid] = _build_spec_group(
+        gid,
+        spec,
+        goals=goals,
+        moons=moons,
+        combined=combined,
+        registry=registry,
+        prev=by_id.get(gid) or {},
+    )
+    counts[gid] = len(moons)
+
+
+def _sync_aggregate_group(
+    gid: str,
+    spec: dict[str, Any],
+    *,
+    by_id: dict[str, dict],
+    aggregate_ids: frozenset[str],
+    combined: dict,
+    registry: dict[tuple[str, int], dict],
+    counts: dict[str, int],
+) -> None:
+    payload = _resolve_aggregate_payload(
+        gid,
+        spec,
+        by_id=by_id,
+        aggregate_ids=aggregate_ids,
+        registry=registry,
+    )
+    if payload is None:
+        by_id.pop(gid, None)
+        return
+    moons, goals, tag_label, tags, moon_tag = payload
+    obj_refs = [
+        objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
+    ]
+    note = spec.get("note") or (
+        f"Paraguas {tag_label}: union de grupos con moon_tag={tags}."
+    )
+    group: dict[str, Any] = {
+        "id": gid,
+        "objectives": obj_refs,
+        "moons": moons,
+        "umbrella": True,
+        "_note": note,
+    }
+    if moon_tag:
+        group["moon_tag"] = moon_tag
+    if spec.get("apply_moon_tag") is False:
+        group["apply_moon_tag"] = False
+    by_id[gid] = group
+    counts[gid] = len(moons)
 
 
 def sync_objective_moon_groups() -> dict[str, int]:
@@ -2518,161 +2797,27 @@ def sync_objective_moon_groups() -> dict[str, int]:
         if spec.get("aggregate_moon_tag") or spec.get("aggregate_moon_tags"):
             deferred_aggregates.append((gid, spec))
             continue
-        goals = _spec_goals(spec)
-        moons = resolve_moons(spec, registry)
-        if not moons and spec.get("preserve_moons"):
-            moons = [
-                {
-                    "kingdom": str(raw["kingdom"]),
-                    "moon": int(raw["moon"]),
-                    "name": raw.get("name") or f"Moon {raw['moon']}",
-                }
-                for raw in ((by_id.get(gid) or {}).get("moons") or [])
-                if isinstance(raw, dict) and "kingdom" in raw and "moon" in raw
-            ]
-        allow_empty = bool(spec.get("allow_empty_moons"))
-        related_goals = [g for g in goals if g in combined]
-        has_related_objective = bool(related_goals)
-
-        if not moons and not allow_empty:
-            print(f"  AVISO: {gid} sin lunas resueltas; se omite.")
-            by_id.pop(gid, None)
-            continue
-        # Norma: >=3 lunas O >=1 objetivo Combined relacionado.
-        if (
-            moons
-            and len(moons) < MIN_MOONS
-            and not has_related_objective
-            and not allow_empty
-        ):
-            print(
-                f"  AVISO: {gid} tiene {len(moons)} lunas y sin objetivo "
-                f"relacionado (norma: >={MIN_MOONS} lunas o 1 objetivo); se omite."
-            )
-            by_id.pop(gid, None)
-            continue
-        if not moons and allow_empty and not has_related_objective:
-            print(f"  AVISO: {gid} sin lunas ni objetivo relacionado; se omite.")
-            by_id.pop(gid, None)
-            continue
-
-        obj_refs = [
-            objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
-        ]
-        note = spec.get("note") or (
-            "Grupo tematico derivado del objetivo Combined; "
-            "lunas curadas/patrones en OBJECTIVE_MOON_GROUP_SPECS."
+        _sync_one_spec_group(
+            gid,
+            spec,
+            by_id=by_id,
+            combined=combined,
+            registry=registry,
+            counts=counts,
         )
-        group: dict[str, Any] = {
-            "id": gid,
-            "objectives": obj_refs,
-            "moons": moons,
-            "_note": note,
-        }
-        # Conserva _definition/_source del rebuild si existen.
-        prev = by_id.get(gid) or {}
-        for keep in ("_definition", "_source"):
-            if prev.get(keep) not in (None, "", [], False):
-                group[keep] = prev[keep]
-        # levels ya no viven en bingo_groups (→ goal_lists.lists.sub_area_levels).
-        if spec.get("kingdom"):
-            group["kingdom"] = spec["kingdom"]
-        if spec.get("capture"):
-            group["capture"] = spec["capture"]
-        if spec.get("internal"):
-            group["internal"] = True
-        if spec.get("extra_tags"):
-            group["extra_tags"] = [str(t) for t in spec["extra_tags"]]
-        if spec.get("moon_tag"):
-            group["moon_tag"] = spec["moon_tag"]
-            if spec.get("umbrella") or spec["moon_tag"] in UMBRELLA_MOON_TAGS:
-                group["umbrella"] = True
-            else:
-                group["large"] = True
-        if spec.get("apply_moon_tag") is False:
-            group["apply_moon_tag"] = False
-        tag_only = resolve_tag_only_moons(spec, registry)
-        if tag_only:
-            group["tag_only_moons"] = tag_only
-        by_id[gid] = group
-        counts[gid] = len(moons)
 
     # Paraguas fauna/flora/nature: tras familias concretas.
     aggregate_ids = frozenset(gid for gid, _ in deferred_aggregates)
     for gid, spec in deferred_aggregates:
-        multi_tags = spec.get("aggregate_moon_tags")
-        if multi_tags:
-            tags = [str(t) for t in multi_tags]
-            moons = _aggregate_moons_by_moon_tags(
-                by_id, tags=tags, skip_ids=aggregate_ids
-            )
-            goals = _spec_goals(spec)
-            tag_label = "+".join(tags)
-            moon_tag = spec.get("moon_tag")
-        else:
-            tag = str(spec["aggregate_moon_tag"])
-            tags = [tag]
-            moons = _aggregate_moons_by_moon_tag(
-                by_id, tag=tag, skip_ids=aggregate_ids
-            )
-            # Lunas extra del spec (si hicieran falta; sheep ya tiene grupo).
-            for raw in resolve_moons(spec, registry):
-                key = (str(raw["kingdom"]), int(raw["moon"]))
-                if any(
-                    (m["kingdom"], int(m["moon"])) == key for m in moons
-                ):
-                    continue
-                moons.append(
-                    {
-                        "kingdom": key[0],
-                        "moon": key[1],
-                        "name": raw.get("name") or f"Moon {key[1]}",
-                    }
-                )
-            moons.sort(
-                key=lambda m: (
-                    KINGDOM_COLUMNS.index(m["kingdom"])
-                    if m["kingdom"] in KINGDOM_COLUMNS
-                    else 99,
-                    int(m["moon"]),
-                )
-            )
-            goals = _spec_goals(spec) if spec.get("goals_only_spec") else (
-                _aggregate_goals_by_moon_tag(
-                    by_id,
-                    tag=tag,
-                    skip_ids=aggregate_ids,
-                    extra_goals=_spec_goals(spec),
-                )
-            )
-            tag_label = tag
-            moon_tag = spec.get("moon_tag") or tag
-        if len(moons) < MIN_MOONS:
-            print(
-                f"  AVISO: {gid} aggregate {tag_label} tiene {len(moons)} lunas "
-                f"(norma: >={MIN_MOONS}); se omite."
-            )
-            by_id.pop(gid, None)
-            continue
-        obj_refs = [
-            objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
-        ]
-        note = spec.get("note") or (
-            f"Paraguas {tag_label}: union de grupos con moon_tag={tags}."
+        _sync_aggregate_group(
+            gid,
+            spec,
+            by_id=by_id,
+            aggregate_ids=aggregate_ids,
+            combined=combined,
+            registry=registry,
+            counts=counts,
         )
-        group: dict[str, Any] = {
-            "id": gid,
-            "objectives": obj_refs,
-            "moons": moons,
-            "umbrella": True,
-            "_note": note,
-        }
-        if moon_tag:
-            group["moon_tag"] = moon_tag
-        if spec.get("apply_moon_tag") is False:
-            group["apply_moon_tag"] = False
-        by_id[gid] = group
-        counts[gid] = len(moons)
 
     bingo["groups"] = [
         normalize_bingo_group(g, combined)

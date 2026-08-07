@@ -189,7 +189,7 @@ NAME_CAPPY = [
 ]
 
 # Overrides curados: ganan sobre la clasificacion wiki.
-# None = mario (sin captures/cappy). "both" = captures+cappy.
+# None: mario (sin captures/cappy). "both": captures+cappy.
 # Scarecrow abre → mario (Cappy solo activa).
 FORCE_ACTION: dict[tuple[str, int], str | None] = {
     ("sand", 60): None,  # Mini Rocket → plataformas sin Cappy (#61 arriba)
@@ -201,7 +201,7 @@ FORCE_ACTION: dict[tuple[str, int], str | None] = {
     # Spinning Athletics: scarecrow abre; Mario corre → mario
     ("luncheon", 45): None,
     ("luncheon", 46): None,
-    # Contenido real (forma = la luna), no transporte:
+    # Contenido real (forma: la luna), no transporte:
     ("lake", 16): "captures",  # Cheep Cheep Moons (+ npc)
     ("luncheon", 4): "captures",
     ("luncheon", 5): "captures",  # Cookatiel (también NAME_CAPTURE_REQUIRED)
@@ -225,11 +225,11 @@ FORCE_ACTION: dict[tuple[str, int], str | None] = {
     ("sand", 13): None,  # On the Lone Pillar: salto, sin captura
     ("metro", 43): None,  # Rotating Maze: Manhole = acceso
     ("metro", 44): None,
-    ("metro", 45): None,  # High-Rise: cohete = acceso; contenido = poles
+    ("metro", 45): None,  # High-Rise: cohete solo acceso; contenido poles
     ("metro", 46): None,
     ("metro", 18): None,  # How Do They Take Out the Trash?: dumpster (salto), no cappy
     ("metro", 34): None,  # City Hall Lost & Found: cofre → treasure_chest (no cappy)
-    # Palanca / hold-Cappy (contenido = Cappy; captura solo acceso o grupo aparte):
+    # Palanca / hold-Cappy (contenido Cappy; captura solo acceso o grupo aparte):
     ("metro", 37): "cappy",  # Pushing Through the Crowd: palanca → TC corto
     # Palanca/hold + captura de contenido → ALLOW_CAPTURES_AND_CAPPY (ambas tags).
     ("luncheon", 2): "both",  # Lever + Hammer Bro
@@ -335,30 +335,91 @@ def strip_tags(html: str) -> str:
     return unescape(re.sub(r"\s+", " ", text)).strip()
 
 
+def _extract_wikitable_body(html: str) -> str | None:
+    lower = html.lower()
+    pos = 0
+    while True:
+        marker = lower.find("wikitable", pos)
+        if marker < 0:
+            return None
+        table_open = lower.rfind("<table", 0, marker)
+        if table_open < 0:
+            pos = marker + 1
+            continue
+        gt = lower.find(">", table_open)
+        if gt < 0 or "wikitable" not in lower[table_open:gt]:
+            pos = marker + 1
+            continue
+        end = lower.find("</table>", gt)
+        if end < 0:
+            return None
+        return html[gt + 1 : end]
+
+
+def _parse_mariowiki_row(cells: list[str]) -> tuple[int, dict[str, str]] | None:
+    if len(cells) < 3:
+        return None
+    num_match = re.match(r"(\d+)", strip_tags(cells[0]))
+    if not num_match:
+        return None
+    moon = int(num_match.group(1))
+    name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
+    name = name.rstrip("❸②①").strip()
+    desc_idx = 3 if len(cells) >= 5 else 2
+    description = strip_tags(cells[desc_idx]) if len(cells) > desc_idx else ""
+    return moon, {"name": name, "description": description}
+
+
 def parse_mariowiki_table(html: str) -> dict[int, dict[str, str]]:
-    tables = re.findall(
-        r'<table[^>]*class="[^"]*wikitable[^"]*"[^>]*>(.*?)</table>',
-        html,
-        flags=re.S | re.I,
-    )
-    if not tables:
+    table_html = _extract_wikitable_body(html)
+    if table_html is None:
         return {}
-    rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tables[0], flags=re.S | re.I)
+
+    rows = re.findall(r"<tr\b[^>]*>(.*?)</tr>", table_html, flags=re.S | re.I)
     result: dict[int, dict[str, str]] = {}
     for row in rows[1:]:
-        cells = re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)
-        if len(cells) < 3:
+        cells = re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)
+        parsed = _parse_mariowiki_row(cells)
+        if parsed is None:
             continue
-        num_match = re.match(r"(\d+)", strip_tags(cells[0]))
-        if not num_match:
-            continue
-        moon = int(num_match.group(1))
-        name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
-        name = re.sub(r"[❸②①]+$", "", name).strip()
-        desc_idx = 3 if len(cells) >= 5 else 2
-        description = strip_tags(cells[desc_idx]) if len(cells) > desc_idx else ""
-        result[moon] = {"name": name, "description": description}
+        moon, data = parsed
+        result[moon] = data
     return result
+
+
+def _capture_hit(name: str, blob: str, *, no_capture: bool) -> bool:
+    if no_capture:
+        return False
+    if any(p.search(name) for p in NAME_CAPTURE_REQUIRED):
+        return True
+    if any(p.search(name) for p in NAME_CAPTURE):
+        return True
+    # En descripcion: verbo capture*, no "cap" de Cappy.
+    return any(p.search(blob) for p in CAPTURE_PATTERNS)
+
+
+def _scarecrow_gate(blob: str) -> bool:
+    return bool(SCARECROW_PATTERN.search(blob))
+
+
+def _cappy_activation(name: str, blob: str) -> bool:
+    if any(p.search(blob) for p in CAPPY_PATTERNS):
+        return True
+    return any(p.search(name) for p in NAME_CAPPY)
+
+
+def _classify_timer_challenge(
+    name: str, blob: str, *, no_capture: bool
+) -> str | None:
+    if _capture_hit(name, blob, no_capture=no_capture):
+        return "captures"
+    # Scarecrow: Cappy abre el reloj; la carrera es Mario → mario.
+    if _scarecrow_gate(blob):
+        return None
+    # Palanca / hold-Cappy como contenido de activacion → cappy.
+    if _cappy_activation(name, blob):
+        return "cappy"
+    return None
 
 
 def classify_action(name: str, description: str, existing_tags: set[str]) -> str | None:
@@ -374,47 +435,21 @@ def classify_action(name: str, description: str, existing_tags: set[str]) -> str
     blob = f"{name}. {description}"
     no_capture = any(p.search(name) for p in NAME_NO_CAPTURE)
 
-    def capture_hit() -> bool:
-        if no_capture:
-            return False
-        if any(p.search(name) for p in NAME_CAPTURE_REQUIRED):
-            return True
-        if any(p.search(name) for p in NAME_CAPTURE):
-            return True
-        # En descripcion: verbo capture*, no "cap" de Cappy.
-        return any(p.search(blob) for p in CAPTURE_PATTERNS)
-
-    def scarecrow_gate() -> bool:
-        return bool(SCARECROW_PATTERN.search(blob))
-
-    def cappy_activation() -> bool:
-        if any(p.search(blob) for p in CAPPY_PATTERNS):
-            return True
-        return any(p.search(name) for p in NAME_CAPPY)
-
     if "timer_challenge" in existing_tags:
-        if capture_hit():
-            return "captures"
-        # Scarecrow: Cappy abre el reloj; la carrera es Mario → mario.
-        if scarecrow_gate():
-            return None
-        # Palanca / hold-Cappy como contenido de activacion → cappy.
-        if cappy_activation():
-            return "cappy"
-        return None
+        return _classify_timer_challenge(name, blob, no_capture=no_capture)
 
-    if capture_hit():
+    if _capture_hit(name, blob, no_capture=no_capture):
         return "captures"
 
     # Scarecrow abre puerta/subarea: la luna la hace Mario.
-    if scarecrow_gate():
+    if _scarecrow_gate(blob):
         return None
 
     # Pajaros: bingo group propio; no clasificar como cappy aunque se use el sombrero.
     if any(p.search(name) for p in NAME_NO_CAPPY):
         return None
 
-    cappy_hit = cappy_activation()
+    cappy_hit = _cappy_activation(name, blob)
     if cappy_hit and not no_capture:
         return "cappy"
     # Broodals pueden usar Cappy sin captura → sin tag de accion aqui.
