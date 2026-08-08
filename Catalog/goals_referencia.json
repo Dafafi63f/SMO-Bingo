@@ -2698,8 +2698,8 @@
     },
     {
       "orden": 110,
-      "goal": "{{X}} Pokio Hole Moon[[s]]",
-      "range": [1, 2, 3],
+      "goal": "{{X}} Pokio Hole Moons",
+      "range": [2, 3],
       "progression": ["n"],
       "individual_limit": 2,
       "board_categories": ["bowser", "moontype"],

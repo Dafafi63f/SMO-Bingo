@@ -95,7 +95,7 @@
         "{{X}} Bowser's Stairface Ogre Moons",
         "{{X}} Bowser's Story Moons",
         "{{X}} Bowser's Sub-Area Moons",
-        "{{X}} Pokio Hole Moon[[s]]",
+        "{{X}} Pokio Hole Moons",
         "Bowser's Captain Toad Moon",
         "Bowser's Shop Moon"
       ],
@@ -324,7 +324,7 @@
         "{{X}} Mini Rocket Moons",
         "{{X}} Moon Banzai Bill Moon[[s]]",
         "{{X}} Paragoomba Moons",
-        "{{X}} Pokio Hole Moon[[s]]",
+        "{{X}} Pokio Hole Moons",
         "{{X}} Puzzle Moon[[s]]",
         "{{X}} Sand Moe-Eye Moons",
         "{{X}} Seaside Gushen Moons",
@@ -1754,7 +1754,7 @@
       "lunas": 3,
       "pct_lunas": 0.7,
       "n_goals": 1,
-      "goals": ["{{X}} Pokio Hole Moon[[s]]"],
+      "goals": ["{{X}} Pokio Hole Moons"],
       "moons": [
         {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall", "goal": true},
         {"kingdom": "bowser", "moon": 22, "name": "Poking the Turret Wall", "goal": true},

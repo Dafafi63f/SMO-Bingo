@@ -147,7 +147,7 @@
         {"goal": "{{X}} Bowser's Pokio Moons", "range": [2, 4], "progression": ["n"], "individual_limit": 2},
         {"goal": "{{X}} Bowser's Stairface Ogre Moons", "range": [1, 2, 3], "progression": ["n"]},
         {"goal": "{{X}} Bowser's Sub-Area Moons", "range": [2, 4, 6, 8], "progression": ["n"], "individual_limit": 2},
-        {"goal": "{{X}} Pokio Hole Moon[[s]]", "range": [1, 2, 3], "progression": ["n"], "individual_limit": 2},
+        {"goal": "{{X}} Pokio Hole Moons", "range": [2, 3], "progression": ["n"], "individual_limit": 2},
         {"goal": "Bowser's Captain Toad Moon", "progression": ["n"]},
         {"goal": "Bowser's Moon Rock", "progression": ["n"]},
         {"goal": "Bowser's Shop Moon", "progression": ["n"]},
@@ -412,7 +412,7 @@
         {"goal": "{{X}} Mini Rocket Moons", "range": [2, 4, 6, 8], "progression": ["e", "m", "l", "n"], "progressive_ranges": true},
         {"goal": "{{X}} Moon Banzai Bill Moon[[s]]", "range": [1, 2], "progression": ["n"]},
         {"goal": "{{X}} Paragoomba Moons", "range": [2, 4], "progression": ["e", "m"], "progressive_ranges": true},
-        {"goal": "{{X}} Pokio Hole Moon[[s]]", "range": [1, 2, 3], "progression": ["n"], "individual_limit": 2},
+        {"goal": "{{X}} Pokio Hole Moons", "range": [2, 3], "progression": ["n"], "individual_limit": 2},
         {"goal": "{{X}} Puzzle Moon[[s]]", "range": [1, 2], "progression": ["m", "l"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "{{X}} Sand Moe-Eye Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "{{X}} Seaside Gushen Moons", "range": [2, 4, 6], "progression": ["l", "n"], "progressive_ranges": true},
@@ -2295,7 +2295,7 @@
       "n_objectives": 1,
       "n_moons": 3,
       "objectives": [
-        {"goal": "{{X}} Pokio Hole Moon[[s]]", "range": [1, 2, 3], "progression": ["n"], "individual_limit": 2}
+        {"goal": "{{X}} Pokio Hole Moons", "range": [2, 3], "progression": ["n"], "individual_limit": 2}
       ],
       "moons": [
         {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall"},

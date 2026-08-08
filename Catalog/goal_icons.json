@@ -195,7 +195,7 @@
     {"icon": "smo/moonpaintingwooded.webp", "orden": 187, "n_goals": 1, "goals": ["Wooded Warp-Painting Moon"]},
     {"icon": "smo/moonpauline.webp", "orden": 188, "n_goals": 1, "goals": ["Metro Festival Moon"]},
     {"icon": "smo/moonpeach.webp", "orden": 189, "n_goals": 0, "goals": []},
-    {"icon": "smo/moonpokio.webp", "orden": 190, "n_goals": 1, "goals": ["{{X}} Pokio Hole Moon[[s]]"]},
+    {"icon": "smo/moonpokio.webp", "orden": 190, "n_goals": 1, "goals": ["{{X}} Pokio Hole Moons"]},
     {"icon": "smo/moonpuzzle.webp", "orden": 191, "n_goals": 1, "goals": ["{{X}} Puzzle Moon[[s]]"]},
     {"icon": "smo/moonrabbit.webp", "orden": 192, "n_goals": 1, "goals": ["{{X}} Rabbit Chase Moons"]},
     {"icon": "smo/moonrccar.webp", "orden": 193, "n_goals": 1, "goals": ["{{X}} Metro RC Car Moons"]},

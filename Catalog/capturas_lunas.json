@@ -800,7 +800,7 @@
       "n_goal_moons": 8,
       "objectives": [
         {"goal": "{{X}} Bowser's Pokio Moons", "range": [2, 4], "progression": ["n"], "individual_limit": 2},
-        {"goal": "{{X}} Pokio Hole Moon[[s]]", "range": [1, 2, 3], "progression": ["n"], "individual_limit": 2}
+        {"goal": "{{X}} Pokio Hole Moons", "range": [2, 3], "progression": ["n"], "individual_limit": 2}
       ],
       "moons": [
         {"kingdom": "bowser", "moon": 2, "name": "Smart Bombing", "goal": false},

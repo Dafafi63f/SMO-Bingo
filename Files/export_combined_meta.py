@@ -486,7 +486,7 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Luncheon Volbonan Moons": "smo/capturevolbonan.webp",
     "{{X}} Bowser's Pokio Moons": "smo/capturepokio.webp",
     "{{X}} Bowser's Stairface Ogre Moons": "smo/moongroundpoundbowser.webp",
-    "{{X}} Pokio Hole Moon[[s]]": "smo/moonpokio.webp",
+    "{{X}} Pokio Hole Moons": "smo/moonpokio.webp",
     "Capture Chargin' Chuck": "smo/capturecharginchuck.webp",
     "{{X}} Moon Banzai Bill Moon[[s]]": "smo/capturebanzaibill.webp",
     "Moon Parabones Moon": "smo/captureparabones.webp",

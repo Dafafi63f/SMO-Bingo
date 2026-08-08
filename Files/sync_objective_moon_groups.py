@@ -638,7 +638,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "pokio_hole": {
-        "goal": "{{X}} Pokio Hole Moon[[s]]",
+        "goal": "{{X}} Pokio Hole Moons",
         "kingdom": "bowser",
         "capture": "Pokio",
         "moon_tag": "pokio_hole",
