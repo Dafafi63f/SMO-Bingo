@@ -683,16 +683,16 @@ CHECKPOINT_TOOLTIP_NO_PAINTING = (
 # (pedir X parciales tiene sentido; no hace falta historia entera para salir).
 TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Cap Checkpoints": [2],
-    "{{X}} Snow Checkpoint[[s]]": [2],  # CP1 gratis al llegar
+    "{{X}} Snow Checkpoints": [2],  # CP1 gratis al llegar
     "{{X}} Seaside Checkpoints": [2, 4, 6],
     "{{X}} Total Checkpoints": [15, 30, 45, 60],
-    "All Checkpoints in {{X}} Kingdom[[s]]": [2, 3],  # min 1 = Cap/Mushroom barato
+    "All Checkpoints in {{X}} Kingdoms": [2, 3],  # min 1 = Cap/Mushroom barato
     "Activate {{X}} Levers": [2, 3, 4, 5],  # 6 en lista; 1 gratis en ruta
-    "Call Jaxi from {{X}} Stands": [1, 3, 5, 7],  # 9 stands; compra 30c cuenta como 1
-    "Activate {{X}} P-Switch[[es]]": [2, 3, 4],  # 1 = Lake acceso barato
-    "Activate {{X}} Ground-Pound Switch[[es]]": [2, 3, 4],  # 1 = Lost peaje
-    "{{X}} Sand Story Moon[[s]]": [2],  # #1 peaje historia
-    "{{X}} Wooded Story Moon[[s]]": [2],  # #1 Road to Sky Garden
+    "Call Jaxi from {{X}} Stand[[s]]": [1, 3, 5, 7],  # 9 stands; compra 30c cuenta como 1
+    "Activate {{X}} P-Switches": [2, 3, 4],  # 1 = Lake acceso barato
+    "Activate {{X}} Ground-Pound Switches": [2, 3, 4],  # 1 = Lost peaje
+    "{{X}} Sand Story Moons": [2],  # #1 peaje historia
+    "{{X}} Wooded Story Moons": [2],  # #1 Road to Sky Garden
     "{{X}} Total Multi-Moons": [3, 6, 9],
     "{{X}} Total Regional Coins": [75, 150, 225, 300],
     "{{X}} Deep Woods Regional Coins": [3, 6, 9],
@@ -718,7 +718,7 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Luncheon Story Moons": [2, 3],
     "{{X}} Bowser's Story Moons": [2, 3],
     "{{X}} NPC Moons": [2, 3, 4],
-    "{{X}} Tourist Moons": [1, 2, 3, 4],
+    "{{X}} Tourist Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Metro Girder Moon[[s]]": [1, 2, 3],
     "{{X}} Cappy Moons": [3, 6, 9, 12],
     "{{X}} Fauna Moons": [3, 6, 9, 12],
@@ -752,13 +752,13 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Luncheon Lava Bubble Moons": [2, 3],
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
-    "{{X}} Hammer Bro Moon[[s]]": [2, 3],
+    "{{X}} Hammer Bro Moons": [2, 3],
     "{{X}} Luncheon Fire Piranha Plant Moons": [2, 3],
     "{{X}} Hybrid 2D Sub-Area Moons": [2, 4, 6],
     "{{X}} Bullet Bill Moons": [2, 4],
-    "{{X}} Critter Moons": [1, 2, 3],
+    "{{X}} Critter Moon[[s]]": [1, 2, 3],
     "{{X}} Dorrie Moon[[s]]": [1, 2, 3],
-    "{{X}} Rabbit Chase Moons": [1, 3, 5],
+    "{{X}} Rabbit Chase Moon[[s]]": [1, 3, 5],
     "{{X}} Rocket Flower Moons": [2, 4, 6],
     "{{X}} Sand Bird Moons": [2, 3],
     "{{X}} Cascade Chasm Lifts Moons": [2],
@@ -770,7 +770,7 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Sherm Moons": [2, 4, 6],
     "{{X}} Seaside Maw-Ray Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Bowser's Pokio Moons": [2, 4],
-    "{{X}} Bowser's Stairface Ogre Moons": [1, 2, 3],
+    "{{X}} Bowser's Stairface Ogre Moon[[s]]": [1, 2, 3],
     "{{X}} Shiny Rock Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Pokio Hole Moon[[s]]": [1, 2, 3],
     "{{X}} Snow Bitefrost Moons": [2],

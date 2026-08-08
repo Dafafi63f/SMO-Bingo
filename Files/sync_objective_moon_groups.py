@@ -139,7 +139,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "goals": [
             "{{X}} Sand Jaxi Moons",
             "{{X}} Sand Jaxi Regional Coins",
-            "Call Jaxi from {{X}} Stands",
+            "Call Jaxi from {{X}} Stand[[s]]",
         ],
         "kingdom": "sand",
         "name_patterns": [r"\bjaxi\b"],
@@ -623,7 +623,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "stairface_ogre": {
-        "goal": "{{X}} Bowser's Stairface Ogre Moons",
+        "goal": "{{X}} Bowser's Stairface Ogre Moon[[s]]",
         "kingdom": "bowser",
         "moons": [
             ("bowser", 1),   # Infiltrate Bowser's Castle! (story)
@@ -701,7 +701,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "hammer_bro": {
-        "goal": "{{X}} Hammer Bro Moon[[s]]",
+        "goal": "{{X}} Hammer Bro Moons",
         "capture": "Hammer Bro",
         "kingdom": "luncheon",
         "moons": [
@@ -1238,7 +1238,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "rabbit": {
-        "goal": "{{X}} Rabbit Chase Moons",
+        "goal": "{{X}} Rabbit Chase Moon[[s]]",
         "name_patterns": [r"caught hopping"],
         "note": (
             "Caught Hopping / Rabbit Chase. Fuera del paraguas fauna. "
@@ -1322,8 +1322,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     "switch": {
         "goals": [
             "{{X}} Switch Moon[[s]]",
-            "Activate {{X}} P-Switch[[es]]",
-            "Activate {{X}} Ground-Pound Switch[[es]]",
+            "Activate {{X}} P-Switches",
+            "Activate {{X}} Ground-Pound Switches",
         ],
         "moons": [
             # P-Switch (Moon Get)
@@ -1607,10 +1607,10 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Bowser's Story Moons",
             "{{X}} Luncheon Story Moons",
             "{{X}} Metro Story Moons",
-            "{{X}} Sand Story Moon[[s]]",
+            "{{X}} Sand Story Moons",
             "{{X}} Seaside Story Moons",
             "{{X}} Snow Story Moons",
-            "{{X}} Wooded Story Moon[[s]]",
+            "{{X}} Wooded Story Moons",
             # Multi-Moons (board/line → storymoons)
             "{{X}} Total Multi-Moons",
             "All Multi-Moons in {{X}} Kingdoms",
@@ -1625,8 +1625,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Broodal Fights",
             "{{X}} Kingdom Boss Fight[[s]]",
             "Activate {{X}} Levers",
-            "Activate {{X}} P-Switch[[es]]",
-            "Activate {{X}} Ground-Pound Switch[[es]]",
+            "Activate {{X}} P-Switches",
+            "Activate {{X}} Ground-Pound Switches",
             "Correct Wooded Sphynx Question",
             "Defeat Bowser in Cloud Kingdom",
             "Defeat Madame Broode in Moon Kingdom",
@@ -1976,7 +1976,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "critter": {
-        "goal": "{{X}} Critter Moons",
+        "goal": "{{X}} Critter Moon[[s]]",
         "moons": [
             ("cascade", 12),  # Dinosaur Nest: Big Cleanup! (Burrbo)
             ("sand", 49),     # Under the Mummy's Curse (Chincho)
@@ -2041,7 +2041,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "tourist": {
-        "goal": "{{X}} Tourist Moons",
+        "goal": "{{X}} Tourist Moon[[s]]",
         "moons": [
             ("metro", 52),     # A Tourist in the Metro Kingdom!
             ("cascade", 19),   # A Tourist in the Cascade Kingdom
@@ -2054,7 +2054,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Cadena Desert Wanderer in-scope (4). "
             "Sin mushroom#40 ni sand#68 Round-the-World. "
             "Solo tag npc (como otras lunas de hablar); el goal "
-            "{{X}} Tourist Moons diferencia el subconjunto."
+            "{{X}} Tourist Moon[[s]] diferencia el subconjunto."
         ),
     },
     "ndc_festival_band": {
@@ -2081,7 +2081,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Total Regional Coins",
             "{{X}} Sub-Area Regional Coins",
             "{{X}} Total Story Moons",
-            "All Checkpoints in {{X}} Kingdom[[s]]",
+            "All Checkpoints in {{X}} Kingdoms",
             "All Regional Coins in {{X}} Large Kingdom",
             "All Regional Coins in {{X}} Small Kingdom[[s]]",
         ],

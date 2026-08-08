@@ -7,12 +7,18 @@ list_candidates, SINGLE_VALUE_OK) que importan otros scripts del repo
 Si en el futuro hace falta re-analizar rangos contra catalogos por reino o
 contra Combined oficial, reconstruir aqui un subcomando puntual — evitar
 dejar ese analisis corriendo por defecto (sus salidas no son catalogo activo).
+
+Lockout.live (editor): aviso "High Range Variance" si max(range) > 3×min(range).
+No es regla dura del repo; ver Bingos/README.md.
 """
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
 # reasonable_ranges: valores progresivos con paso uniforme y sensato.
 # ---------------------------------------------------------------------------
+
+# Aviso soft de lockout.live: max no debería superar este múltiplo del min.
+LOCKOUT_RANGE_VARIANCE_MAX_RATIO = 3
 
 NICE_STEPS = {1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20}
 
@@ -36,6 +42,16 @@ def is_reasonable(values: list[int]) -> bool:
         return False
     steps = [values[i + 1] - values[i] for i in range(len(values) - 1)]
     return len(set(steps)) == 1 and steps[0] > 0
+
+
+def lockout_high_range_variance(values: list[int]) -> bool:
+    """True si lockout.live mostraría 'High Range Variance' (max > 3×min)."""
+    if len(values) < 2:
+        return False
+    lo = min(values)
+    if lo <= 0:
+        return False
+    return max(values) > LOCKOUT_RANGE_VARIANCE_MAX_RATIO * lo
 
 
 def _divisible_harmony(start: int, step: int, values: list[int]) -> int:

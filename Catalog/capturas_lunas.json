@@ -745,7 +745,7 @@
       "n_moons": 5,
       "n_goal_moons": 4,
       "objectives": [
-        {"goal": "{{X}} Hammer Bro Moon[[s]]", "range": [2, 3], "progression": ["l", "n"], "progressive_ranges": true}
+        {"goal": "{{X}} Hammer Bro Moons", "range": [2, 3], "progression": ["l", "n"], "progressive_ranges": true}
       ],
       "moons": [
         {"kingdom": "luncheon", "moon": 2, "name": "Under the Cheese Rocks", "goal": false},

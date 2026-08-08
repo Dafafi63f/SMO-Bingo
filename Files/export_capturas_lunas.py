@@ -186,7 +186,7 @@ CAPTURE_OBJECTIVE: dict[int, str] = {
     36: "{{X}} Seaside Gushen Moons",
     37: "{{X}} Luncheon Lava Bubble Moons",
     38: "{{X}} Luncheon Volbonan Moons",
-    39: "{{X}} Hammer Bro Moon[[s]]",
+    39: "{{X}} Hammer Bro Moons",
     41: "{{X}} Luncheon Fire Piranha Plant Moons",
     # Pokio: primary + Pokio Hole (mismo capture en bingo_groups → 2 objectives).
     42: "{{X}} Bowser's Pokio Moons",

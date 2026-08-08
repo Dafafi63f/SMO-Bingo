@@ -2,8 +2,6 @@
 
 Respaldo personal del bingo de **Super Mario Odyssey** para [lockout.live](https://lockout.live/).
 
-Repo: https://github.com/Dafafi63f/SMO-Bingo
-
 ## Flujo habitual
 
 1. Editar goals en el Combined (`Bingos/`).

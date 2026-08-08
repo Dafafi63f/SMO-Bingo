@@ -51,7 +51,7 @@ FULL_ZONE_PROGRESSION = list(ZONE_ORDER)  # e, m, l, n
 
 GOAL_CAPPY_MOONS = "{{X}} Cappy Moons"
 GOAL_MARIO_MOONS = "{{X}} Mario Moons"
-GOAL_TOURIST_MOONS = "{{X}} Tourist Moons"
+GOAL_TOURIST_MOONS = "{{X}} Tourist Moon[[s]]"
 
 GLOBAL_FROM_MID: frozenset[str] = frozenset(
     {
@@ -96,7 +96,7 @@ GLOBAL_FROM_CAP: frozenset[str] = frozenset(
         "Look at {{X}} Hint-Arts",
         "Purchase {{X}} Costume Sets",
         "Purchase {{X}} Hats",
-        "All Checkpoints in {{X}} Kingdom[[s]]",
+        "All Checkpoints in {{X}} Kingdoms",
         "All Multi-Moons in {{X}} Kingdoms",
         "All Regional Coins in {{X}} Large Kingdom",
         "All Regional Coins in {{X}} Small Kingdom[[s]]",
@@ -108,9 +108,9 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     GOAL_TOURIST_MOONS: [1, 2, 3, 4],
     "{{X}} Bullet Bill Moons": [2, 4],
     "{{X}} Cheep Cheep Moons": [2, 4, 6],
-    "{{X}} Critter Moons": [1, 2, 3],
+    "{{X}} Critter Moon[[s]]": [1, 2, 3],
     "{{X}} Dorrie Moon[[s]]": [1, 2, 3],
-    "{{X}} Rabbit Chase Moons": [1, 3, 5],
+    "{{X}} Rabbit Chase Moon[[s]]": [1, 3, 5],
     "{{X}} Rocket Flower Moons": [2, 4, 6],
     "{{X}} Sand Bird Moons": [2, 3],
     "{{X}} Sand Jaxi Moons": [2, 4, 6],
@@ -118,7 +118,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Seaside Komboo Moons": [2, 4],
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
-    "{{X}} Hammer Bro Moon[[s]]": [2, 3],
+    "{{X}} Hammer Bro Moons": [2, 3],
     "{{X}} Luncheon Fire Piranha Plant Moons": [2, 3],
     "{{X}} Luncheon Lantern Moon[[s]]": [1, 2, 3],
     "{{X}} Luncheon Lava Bubble Moons": [2, 3],
@@ -128,7 +128,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Shiny Rock Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Spark Pylon Moons": [2, 4],
     "{{X}} Moon Banzai Bill Moon[[s]]": [1, 2],
-    "{{X}} Bowser's Stairface Ogre Moons": [1, 2, 3],
+    "{{X}} Bowser's Stairface Ogre Moon[[s]]": [1, 2, 3],
     "{{X}} Lurker/Rumble Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Sand Ground Pound Moons": [2, 4, 6],
     "{{X}} Sherm Moons": [2, 4, 6],
@@ -184,7 +184,7 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "{{X}} Mini Rocket Moons": ["e", "m", "l", "n"],
     # Cascade + Wooded + Moon.
     "{{X}} Shiny Rock Moon[[s]]": ["e", "m", "n"],
-    "Activate {{X}} Ground-Pound Switch[[es]]": ["m", "l", "n"],
+    "Activate {{X}} Ground-Pound Switches": ["m", "l", "n"],
     # Pools con pocas lunas early: el min(range) no cabe en e.
     # Minigame: sand×1 en e/m; metro abre en Late. Incluir m como puente
     # Rush/Mid→Late (como Glydon/Warp-Painting), no solo l/n.
@@ -885,7 +885,7 @@ def main() -> None:
         "{{X}} 8-Bit Moons",
         "{{X}} Glydon Moon[[s]]",
         "{{X}} Fire Bro Moon[[s]]",
-        "{{X}} Hammer Bro Moon[[s]]",
+        "{{X}} Hammer Bro Moons",
         "{{X}} Total Moons",
     ]
     for g in samples:

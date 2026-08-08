@@ -304,7 +304,7 @@
       "progressive_ranges": true
     },
     {
-      "goal": "{{X}} Sand Story Moon[[s]]",
+      "goal": "{{X}} Sand Story Moons",
       "range": [
         1,
         2
@@ -327,7 +327,7 @@
       ]
     },
     {
-      "goal": "{{X}} Wooded Story Moon[[s]]",
+      "goal": "{{X}} Wooded Story Moons",
       "range": [
         1,
         2
@@ -1394,7 +1394,7 @@
       ]
     },
     {
-      "goal": "Call Jaxi from {{X}} Stands",
+      "goal": "Call Jaxi from {{X}} Stand[[s]]",
       "range": [
         2,
         3,
