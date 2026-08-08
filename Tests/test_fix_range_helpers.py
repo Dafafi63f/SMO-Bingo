@@ -32,10 +32,16 @@ class InventCountRangeTests(unittest.TestCase):
 
 
 class LockoutRangeVarianceTests(unittest.TestCase):
-    def test_warns_when_max_over_3x_min(self) -> None:
+    def test_warns_when_max_over_3x_effective_min(self) -> None:
         self.assertTrue(lockout_high_range_variance([3, 6, 9, 12]))
         self.assertFalse(lockout_high_range_variance([4, 6, 8, 12]))
         self.assertFalse(lockout_high_range_variance([2]))
+
+    def test_excluding_1_uses_effective_min_2(self) -> None:
+        # lockout: "7 is more than 3× the minimum 2 (excluding 1)"
+        self.assertTrue(lockout_high_range_variance([1, 3, 5, 7]))
+        self.assertFalse(lockout_high_range_variance([1, 2, 3, 4]))
+        self.assertFalse(lockout_high_range_variance([1, 3, 5]))
 
 
 if __name__ == "__main__":

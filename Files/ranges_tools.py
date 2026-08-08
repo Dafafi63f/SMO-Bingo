@@ -8,7 +8,8 @@ Si en el futuro hace falta re-analizar rangos contra catalogos por reino o
 contra Combined oficial, reconstruir aqui un subcomando puntual — evitar
 dejar ese analisis corriendo por defecto (sus salidas no son catalogo activo).
 
-Lockout.live (editor): aviso "High Range Variance" si max(range) > 3×min(range).
+Lockout.live (editor): aviso "High Range Variance" si max(range) > 3×min_efectivo,
+donde min_efectivo = 2 si 1 está en range (excluding 1), si no min(range).
 No es regla dura del repo; ver Bingos/README.md.
 """
 from __future__ import annotations
@@ -17,7 +18,7 @@ from __future__ import annotations
 # reasonable_ranges: valores progresivos con paso uniforme y sensato.
 # ---------------------------------------------------------------------------
 
-# Aviso soft de lockout.live: max no debería superar este múltiplo del min.
+# Aviso soft de lockout.live: max no debería superar este múltiplo del min efectivo.
 LOCKOUT_RANGE_VARIANCE_MAX_RATIO = 3
 
 NICE_STEPS = {1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20}
@@ -45,10 +46,16 @@ def is_reasonable(values: list[int]) -> bool:
 
 
 def lockout_high_range_variance(values: list[int]) -> bool:
-    """True si lockout.live mostraría 'High Range Variance' (max > 3×min)."""
+    """True si lockout.live mostraría 'High Range Variance'.
+
+    Regla: max > 3 × min_efectivo. Si 1 ∈ range, el mínimo se toma como 2
+    ("excluding 1"); p. ej. [1,3,5,7] → 7 > 3×2.
+    """
     if len(values) < 2:
         return False
     lo = min(values)
+    if lo == 1:
+        lo = 2
     if lo <= 0:
         return False
     return max(values) > LOCKOUT_RANGE_VARIANCE_MAX_RATIO * lo

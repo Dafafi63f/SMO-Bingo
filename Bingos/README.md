@@ -20,5 +20,4 @@ Al editar/importar goals, lockout puede mostrar avisos de esquema. No rompen el 
 
 | Aviso | Regla | Notas |
 |---|---|---|
-| **High Range Variance** | `max(range) ≤ 3 × min(range)` | p. ej. `[3,6,9,12]` avisa (12 = 4×3). Muchos goals Combined usan 4 escalones aritméticos a propósito; si el aviso molesta, subir el mínimo o acortar el último umbral. |
-| **`[[s]]` / `[[es]]`** | Solo si `1` puede salir en `range` | Si `min(range) ≥ 2`, plural fijo (`Moons`, `Switches`, …). |
+| **High Range Variance** | `max(range) > 3 × min_efectivo` | Si `1` está en `range`, el mínimo se cuenta como **2** (“excluding 1”). Ej.: `[1,3,5,7]` → 7 > 3×2; `[3,6,9,12]` → 12 > 3×3. Combined tiene ~37 goals así (4 escalones ×4 a propósito). |
