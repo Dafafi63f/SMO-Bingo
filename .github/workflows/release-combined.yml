@@ -1,0 +1,60 @@
+# Publica/actualiza el release "combined" con el JSON Combined (nombre estable).
+
+name: Release Combined
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Bingos/Super Mario Odyssey-Combined-*.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Upload Combined JSON
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Prepare Combined asset
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(Bingos/Super\ Mario\ Odyssey-Combined-????-??-??.json)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "No Combined JSON in Bingos/" >&2
+            exit 1
+          fi
+          mapfile -t sorted < <(printf '%s\n' "${files[@]}" | sort)
+          src="${sorted[-1]}"
+          mkdir -p dist
+          cp -- "$src" dist/Super-Mario-Odyssey-Combined.json
+          date_stamp="$(basename "$src" .json | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}$')"
+          {
+            echo "src=$src"
+            echo "date=$date_stamp"
+          } >> "$GITHUB_OUTPUT"
+          echo "Asset from $src ($date_stamp)"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        with:
+          tag_name: combined
+          name: Combined bingo
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            Bingo **Combined** para importar en [lockout.live](https://lockout.live/).
+
+            - Archivo: `Super-Mario-Odyssey-Combined.json` (nombre estable)
+            - Fuente en el repo: `${{ steps.prep.outputs.src }}`
+            - Fecha Combined: **${{ steps.prep.outputs.date }}**
+
+            Descarga directa:
+            https://github.com/${{ github.repository }}/releases/latest/download/Super-Mario-Odyssey-Combined.json
+          files: dist/Super-Mario-Odyssey-Combined.json

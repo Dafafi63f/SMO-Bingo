@@ -2,6 +2,14 @@
 
 Respaldo personal del bingo de **Super Mario Odyssey** para [lockout.live](https://lockout.live/).
 
+## Descargar Combined
+
+JSON listo para importar en lockout (siempre la última versión del repo):
+
+**[Descargar Super-Mario-Odyssey-Combined.json](https://github.com/Dafafi63f/SMO-Bingo/releases/latest/download/Super-Mario-Odyssey-Combined.json)**
+
+También en [Releases](https://github.com/Dafafi63f/SMO-Bingo/releases/tag/combined) (tag `combined`, se actualiza al cambiar el Combined en `main`).
+
 ## Flujo habitual
 
 1. Editar goals en el Combined (`Bingos/`).
@@ -37,8 +45,9 @@ GitHub Actions:
 |----------|------|
 | **Tests** | Pre-Commits, Unit + integrity, MyPy, tests-summary |
 | **SonarCloud** | Análisis (requiere `SONAR_TOKEN`; si falta, el job se omite) |
+| **Release Combined** | Al cambiar Combined en `main`, actualiza el release `combined` |
 
-Ficheros: `.github/workflows/tests.yml`, `sonarcloud.yml`, `.pre-commit-config.yaml`, `mypy.ini`, `sonar-project.properties`, `.python-version`.
+Ficheros: `.github/workflows/tests.yml`, `sonarcloud.yml`, `release-combined.yml`, `.pre-commit-config.yaml`, `mypy.ini`, `sonar-project.properties`, `.python-version`.
 
 **SonarCloud (una vez):** en [SonarCloud](https://sonarcloud.io) importa `SMO-Bingo` → confirma `sonar.organization` / `sonar.projectKey` en `sonar-project.properties` → crea token → secreto `SONAR_TOKEN` en GitHub.
 

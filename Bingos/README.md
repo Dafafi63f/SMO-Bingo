@@ -14,6 +14,8 @@ Las cuatro referencias comparten la misma fecha: `LOCKOUT_REFERENCE_DATE` en `Fi
 
 Tras cambiar Combined: `python Files/regenerate_all.py`
 
+Descarga estable (Release GitHub): [Super-Mario-Odyssey-Combined.json](https://github.com/Dafafi63f/SMO-Bingo/releases/latest/download/Super-Mario-Odyssey-Combined.json)
+
 Datos derivados (grupos, líneas, icons, referencia): `Catalog/`.
 
 ## Avisos del editor lockout.live (schema)
