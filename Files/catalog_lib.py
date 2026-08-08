@@ -746,9 +746,9 @@ def clear_runtime_caches() -> None:
     for path in ROOT.rglob("__pycache__"):
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
-    pytest_cache = ROOT / ".pytest_cache"
-    if pytest_cache.is_dir():
-        shutil.rmtree(pytest_cache, ignore_errors=True)
+    for path in ROOT.rglob(".pytest_cache"):
+        if path.is_dir():
+            shutil.rmtree(path, ignore_errors=True)
     agent_tools = (
         Path.home()
         / ".cursor"

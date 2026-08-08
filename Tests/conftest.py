@@ -10,6 +10,6 @@ _ROOT = Path(__file__).resolve().parent.parent
 
 
 def pytest_sessionfinish(session, exitstatus) -> None:  # noqa: ARG001
-    cache = _ROOT / ".pytest_cache"
-    if cache.is_dir():
-        shutil.rmtree(cache, ignore_errors=True)
+    for cache in _ROOT.rglob(".pytest_cache"):
+        if cache.is_dir():
+            shutil.rmtree(cache, ignore_errors=True)
