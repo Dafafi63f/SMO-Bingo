@@ -819,8 +819,8 @@ def main() -> None:
     ceilings = dict(meta["run_tier_ceiling"])
     goal_moons = build_goal_moons()
 
-    path = stamp_combined_filename_today()
-    data = json.loads(path.read_text(encoding="utf-8"))
+    stamp_combined_filename_today()
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     changed = []
     for obj in data["objectives"]:
         change = _update_combined_objective(
@@ -832,7 +832,7 @@ def main() -> None:
         if change is not None:
             changed.append(change)
 
-    path.write_text(
+    JSON_PATH.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
@@ -848,7 +848,7 @@ def main() -> None:
             by_icon[icon].append(g)
     dupes = sum(1 for goals in by_icon.values() if len(goals) > 1)
     con_rangos = sum(1 for obj in objectives_sorted if obj.get("range"))
-    print(f"\nJSON ordenado: {path.name}")
+    print(f"\nJSON ordenado: {JSON_PATH.name}")
     print(f"Objetivos: {len(objectives_sorted)} (con rangos: {con_rangos})")
     print(f"orden: 1..{len(objectives_sorted)}")
     print(f"Iconos duplicados: {dupes} ({len(by_icon)} iconos distintos)")

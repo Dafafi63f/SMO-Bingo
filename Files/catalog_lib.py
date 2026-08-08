@@ -77,6 +77,7 @@ BINGOS_DIR.mkdir(exist_ok=True)
 # Referencias lockout: misma fecha LOCKOUT_REFERENCE_DATE en todos (última update lockout.live).
 COMBINED_GLOB = "Super Mario Odyssey-Combined-????-??-??.json"
 COMBINED_NAME_PREFIX = "Super Mario Odyssey-Combined-"
+_COMBINED_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Bump al re-exportar Short/Default/Long/All Kingdoms desde lockout.live.
 LOCKOUT_REFERENCE_DATE = "2026-08-08"
 
@@ -97,15 +98,23 @@ def stamp_combined_filename_today(today: str | None = None) -> Path:
     """
     global JSON_PATH
     day = today or date.today().isoformat()
-    target = BINGOS_DIR / f"{COMBINED_NAME_PREFIX}{day}.json"
+    if not _COMBINED_DATE_RE.fullmatch(day):
+        raise ValueError(f"Fecha Combined inválida: {day!r} (esperado YYYY-MM-DD)")
+    bingos = BINGOS_DIR.resolve()
+    target = (BINGOS_DIR / f"{COMBINED_NAME_PREFIX}{day}.json").resolve()
+    if not target.is_relative_to(bingos):
+        raise ValueError(f"Ruta Combined fuera de Bingos/: {target}")
     matches = sorted(BINGOS_DIR.glob(COMBINED_GLOB))
     if not matches:
         raise FileNotFoundError(f"No hay Combined en {BINGOS_DIR} ({COMBINED_GLOB})")
-    current = matches[-1]
-    if current.resolve() != target.resolve():
+    current = matches[-1].resolve()
+    if not current.is_relative_to(bingos):
+        raise ValueError(f"Combined actual fuera de Bingos/: {current}")
+    if current != target:
         current.replace(target)
     for extra in BINGOS_DIR.glob(COMBINED_GLOB):
-        if extra.resolve() != target.resolve():
+        extra_res = extra.resolve()
+        if extra_res != target and extra_res.is_relative_to(bingos):
             extra.unlink()
     JSON_PATH = target
     return target
