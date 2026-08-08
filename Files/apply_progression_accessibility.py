@@ -44,6 +44,7 @@ from catalog_lib import (
     load_meta,
     normalize_bingo_groups_file,
     parse_kingdom_prefixed_goal,
+    stamp_combined_filename_today,
 )
 from export_capturas_lunas import CAPTURE_LIST
 
@@ -748,10 +749,11 @@ def sort_objectives(data: dict) -> None:
 
 def sort_combined_json() -> dict:
     """Ordena Combined ({{X}}+alfa) y reescribe orden 1..N. Devuelve el dict."""
-    with open(JSON_PATH, encoding="utf-8") as f:
+    path = stamp_combined_filename_today()
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     sort_objectives(data)
-    with open(JSON_PATH, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
     return data
@@ -817,7 +819,8 @@ def main() -> None:
     ceilings = dict(meta["run_tier_ceiling"])
     goal_moons = build_goal_moons()
 
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    path = stamp_combined_filename_today()
+    data = json.loads(path.read_text(encoding="utf-8"))
     changed = []
     for obj in data["objectives"]:
         change = _update_combined_objective(
@@ -829,7 +832,7 @@ def main() -> None:
         if change is not None:
             changed.append(change)
 
-    JSON_PATH.write_text(
+    path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
@@ -845,7 +848,7 @@ def main() -> None:
             by_icon[icon].append(g)
     dupes = sum(1 for goals in by_icon.values() if len(goals) > 1)
     con_rangos = sum(1 for obj in objectives_sorted if obj.get("range"))
-    print(f"\nJSON ordenado: {JSON_PATH.name}")
+    print(f"\nJSON ordenado: {path.name}")
     print(f"Objetivos: {len(objectives_sorted)} (con rangos: {con_rangos})")
     print(f"orden: 1..{len(objectives_sorted)}")
     print(f"Iconos duplicados: {dupes} ({len(by_icon)} iconos distintos)")

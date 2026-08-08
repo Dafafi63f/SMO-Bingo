@@ -4,11 +4,13 @@ JSON importables en [lockout.live](https://lockout.live/) para Super Mario Odyss
 
 | Archivo | Rol |
 |---|---|
-| `Super Mario Odyssey-Combined-2026-08-07.json` | **Fuente de verdad** del proyecto (editar goals aquí) |
-| `Super Mario Odyssey-Short Goals-2026-07-27.json` | Referencia lockout (91 goals) |
-| `Super Mario Odyssey-Default-2026-07-27.json` | Referencia lockout (108 goals) |
-| `Super Mario Odyssey-Long Goals-2026-07-27.json` | Referencia lockout (126 goals) |
-| `Super Mario Odyssey-All Kingdoms-2026-07-24.json` | Referencia lockout (más completo; umbrales altos) |
+| `Super Mario Odyssey-Combined-YYYY-MM-DD.json` | **Fuente de verdad** (fecha = última update del repo; al regenerar se renombra a hoy) |
+| `Super Mario Odyssey-Short Goals-YYYY-MM-DD.json` | Referencia lockout (91 goals) |
+| `Super Mario Odyssey-Default-YYYY-MM-DD.json` | Referencia lockout (108 goals) |
+| `Super Mario Odyssey-Long Goals-YYYY-MM-DD.json` | Referencia lockout (126 goals) |
+| `Super Mario Odyssey-All Kingdoms-YYYY-MM-DD.json` | Referencia lockout (más completo; umbrales altos) |
+
+Las cuatro referencias comparten la misma fecha: `LOCKOUT_REFERENCE_DATE` en `Files/catalog_lib.py` (última update de los sets oficiales en lockout.live). Al re-exportar desde lockout, subir esa constante y renombrar los JSON.
 
 Tras cambiar Combined: `python Files/regenerate_all.py`
 

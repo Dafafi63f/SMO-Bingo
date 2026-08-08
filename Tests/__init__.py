@@ -13,3 +13,6 @@ _FILES = Path(__file__).resolve().parent.parent / "Files"
 _files_str = str(_FILES)
 if _files_str not in sys.path:
     sys.path.insert(0, _files_str)
+
+# Registra atexit → clear_runtime_caches (incluye .pytest_cache al salir).
+import catalog_lib as _catalog_lib  # noqa: E402, F401

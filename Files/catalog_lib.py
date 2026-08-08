@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 FILES_DIR = Path(__file__).resolve().parent
@@ -72,14 +73,57 @@ PROJECT_PATH = CATALOG_DIR / "project.json"
 AVAILABILITY_PATH = CATALOG_DIR / "kingdom_availability.json"  # legado → project.json
 RANGE_TIERS_PATH = CATALOG_DIR / "kingdom_range_tiers.json"  # legado → project.json
 BINGOS_DIR.mkdir(exist_ok=True)
-# Fuente de verdad de objetivos (editar solo este).
-JSON_PATH = BINGOS_DIR / "Super Mario Odyssey-Combined-2026-08-07.json"
-# Referencias lockout.live (no modificar). AK = mas completo / umbrales altos;
-# Short/Default/Long = cobertura menor, rangos mas blandos (mejor guia Combined).
-ALL_KINGDOMS_REFERENCE_PATH = BINGOS_DIR / "Super Mario Odyssey-All Kingdoms-2026-07-24.json"
-SHORT_GOALS_REFERENCE_PATH = BINGOS_DIR / "Super Mario Odyssey-Short Goals-2026-07-27.json"
-DEFAULT_GOALS_REFERENCE_PATH = BINGOS_DIR / "Super Mario Odyssey-Default-2026-07-27.json"
-LONG_GOALS_REFERENCE_PATH = BINGOS_DIR / "Super Mario Odyssey-Long Goals-2026-07-27.json"
+# Combined: Super Mario Odyssey-Combined-YYYY-MM-DD.json (fecha = última update del repo).
+# Referencias lockout: misma fecha LOCKOUT_REFERENCE_DATE en todos (última update lockout.live).
+COMBINED_GLOB = "Super Mario Odyssey-Combined-????-??-??.json"
+COMBINED_NAME_PREFIX = "Super Mario Odyssey-Combined-"
+# Bump al re-exportar Short/Default/Long/All Kingdoms desde lockout.live.
+LOCKOUT_REFERENCE_DATE = "2026-08-08"
+
+
+def discover_combined_path() -> Path:
+    """Ruta del Combined datado (si hay varios, el de fecha más reciente)."""
+    matches = sorted(BINGOS_DIR.glob(COMBINED_GLOB))
+    if matches:
+        return matches[-1]
+    return BINGOS_DIR / f"{COMBINED_NAME_PREFIX}{date.today().isoformat()}.json"
+
+
+def stamp_combined_filename_today(today: str | None = None) -> Path:
+    """Renombra Combined a YYYY-MM-DD de hoy y actualiza JSON_PATH.
+
+    Llamar al regenerar / al escribir Combined para que el nombre refleje
+    la última update del proyecto.
+    """
+    global JSON_PATH
+    day = today or date.today().isoformat()
+    target = BINGOS_DIR / f"{COMBINED_NAME_PREFIX}{day}.json"
+    matches = sorted(BINGOS_DIR.glob(COMBINED_GLOB))
+    if not matches:
+        raise FileNotFoundError(f"No hay Combined en {BINGOS_DIR} ({COMBINED_GLOB})")
+    current = matches[-1]
+    if current.resolve() != target.resolve():
+        current.replace(target)
+    for extra in BINGOS_DIR.glob(COMBINED_GLOB):
+        if extra.resolve() != target.resolve():
+            extra.unlink()
+    JSON_PATH = target
+    return target
+
+
+def lockout_reference_path(set_label: str) -> Path:
+    """JSON de referencia lockout.live datado con LOCKOUT_REFERENCE_DATE."""
+    return BINGOS_DIR / f"Super Mario Odyssey-{set_label}-{LOCKOUT_REFERENCE_DATE}.json"
+
+
+# Fuente de verdad de objetivos (editar solo el Combined datado).
+JSON_PATH = discover_combined_path()
+# Referencias lockout.live (no modificar contenido a mano). AK = más completo /
+# umbrales altos; Short/Default/Long = cobertura menor, rangos más blandos.
+ALL_KINGDOMS_REFERENCE_PATH = lockout_reference_path("All Kingdoms")
+SHORT_GOALS_REFERENCE_PATH = lockout_reference_path("Short Goals")
+DEFAULT_GOALS_REFERENCE_PATH = lockout_reference_path("Default")
+LONG_GOALS_REFERENCE_PATH = lockout_reference_path("Long Goals")
 # Norma Combined: totales de lunas por reino salto +2; regionales salto +5.
 MOON_TOTAL_STEP = 2
 REGIONAL_COIN_STEP = 5
@@ -675,7 +719,7 @@ def register_cache_clear(fn) -> None:
 
 
 def clear_runtime_caches() -> None:
-    """Limpia caches en memoria, __pycache__ del repo y agent-tools temporal.
+    """Limpia caches en memoria, __pycache__, .pytest_cache y agent-tools temporal.
 
     Cuándo: tras cualquier script Python del repo (exports, sync, one-shots,
     -c). Casi todos importan catalog_lib → se registra en atexit, así que al
@@ -693,6 +737,9 @@ def clear_runtime_caches() -> None:
     for path in ROOT.rglob("__pycache__"):
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
+    pytest_cache = ROOT / ".pytest_cache"
+    if pytest_cache.is_dir():
+        shutil.rmtree(pytest_cache, ignore_errors=True)
     agent_tools = (
         Path.home()
         / ".cursor"

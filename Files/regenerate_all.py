@@ -16,6 +16,7 @@ Por qué:
   range/progression/etc. obsoletos del JSON de grupos.
 
 Qué hace (en orden):
+  0. stamp Combined → renombra a Combined-YYYY-MM-DD (hoy)
   1. sync_objective_moon_groups.py → specs → bingo_groups (goals Combined)
   2. sync_kingdom_groups → reinos Combined → bingo_groups
   3. apply_progression_accessibility.py → Combined + normalize bingo_groups
@@ -55,6 +56,15 @@ EXPORT_LUNAS_TAGS_PY = "export_lunas_tags.py"
 # capturas_lunas antes que lunas-objetivos (tags de captura leen el JSON).
 # goals_referencia antes que tags_inventario (goals[] por tag desde pools).
 STEPS: list[tuple[str, list[str]]] = [
+    (
+        "stamp Combined filename (fecha hoy)",
+        [
+            sys.executable,
+            "-c",
+            "from catalog_lib import stamp_combined_filename_today; "
+            "p=stamp_combined_filename_today(); print(p.name)",
+        ],
+    ),
     ("sync objective moon groups", [sys.executable, "sync_objective_moon_groups.py"]),
     (
         "sync kingdom groups",

@@ -33,6 +33,7 @@ from catalog_lib import (
     ROOT,
     load_combined_objectives_by_goal,
     objective_ref_from_combined,
+    stamp_combined_filename_today,
     write_catalog_json,
 )
 
@@ -732,11 +733,12 @@ def remap_icons(*, apply: bool) -> int:
     _print_shared_icons(by_icon)
 
     if apply:
-        JSON_PATH.write_text(
+        path = stamp_combined_filename_today()
+        path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-        print(f"\nEscrito: {JSON_PATH.relative_to(ROOT)}")
+        print(f"\nEscrito: {path.relative_to(ROOT)}")
         export_icons()
         return 0
 
