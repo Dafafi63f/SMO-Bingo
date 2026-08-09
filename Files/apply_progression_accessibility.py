@@ -131,6 +131,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Sand Jaxi Moons": [2, 4, 6],
     "{{X}} Sand Oasis Moons": [3, 6],
     "{{X}} Sand Ruins Moons": [4, 6, 8, 10],
+    "{{X}} Minigame Moons": [2, 4, 6, 8],
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Seaside Komboo Moons": [2, 4],
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
@@ -207,9 +208,9 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     # Cascade + Wooded + Moon.
     "{{X}} Shiny Rock Moon[[s]]": ["e", "m", "n"],
     "Activate {{X}} Ground-Pound Switches": ["m", "l", "n"],
-    # Minigame: sand×1; metro abre Late. m como puente Mid→Late (no emln:
-    # no hay reino Mid natural en el pool).
-    "{{X}} Minigame Moons": ["m", "l", "n"],
+    # Minigame: trofeos + carrera Snow (Bound Bowl / Class S).
+    # sand×2 cubre min 2 en Early; m puente Mid→Late; seaside/luncheon → n.
+    "{{X}} Minigame Moons": ["e", "m", "l", "n"],
     # Blocks / Outfit total: hay Sand en Early, pero el min(range) solo se
     # cubre desde Mid (Blocks ≥3 con Wooded; Outfit ≥2 con Lake/Wooded).
     "{{X}} Destructible Block Moons": ["m", "l", "n"],

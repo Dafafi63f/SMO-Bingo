@@ -2465,7 +2465,8 @@
       "range": [
         2,
         4,
-        6
+        6,
+        8
       ],
       "board_categories": [
         "moontype"
@@ -2478,13 +2479,14 @@
         "totk/minigame.webp"
       ],
       "progression": [
+        "e",
         "m",
         "l",
         "n"
       ],
       "progressive_ranges": true,
       "orden": 95,
-      "weighting": 85
+      "weighting": 55
     },
     {
       "goal": "{{X}} Moon Banzai Bill Moon[[s]]",

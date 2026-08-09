@@ -982,7 +982,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "apply_moon_tag": False,
         "note": (
             "n=2 → sin tag shiverian_racer; paraguas captures + shiveria. "
-            "#5 Bound Bowl (multi, sí cuenta) + #23 Class S. También Snow Multi-Moon."
+            "#5 Bound Bowl (multi, sí cuenta) + #23 Class S. "
+            "También Snow Multi-Moon y pool Minigame."
         ),
     },
     "snow_shiveria": {
@@ -1260,7 +1261,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "n=2 → sin tag koopa_trace; tag npc (Koopa) sin entrar en "
             "npc_moons / {{X}} NPC Moons. snow#22 también overworld. "
-            "2 in-scope (sand/snow). moon#21 Walking on the Moon! = post-Bowser. "
+            "2 in-scope (sand/snow); también pool Minigame (trofeo mapa). "
+            "moon#21 Walking on the Moon! = post-Bowser. "
             "wooded#47 Walking on Clouds = enredadera, no Trace."
         ),
     },
@@ -1269,22 +1271,36 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Minigame Moons",
             "{{X}} Metro Minigame Moon[[s]]",  # pool: 4 metro (filtro export)
             "{{X}} Slots Moon[[s]]",
+            "{{X}} Koopa Trace-Walking Moon[[s]]",
+            "{{X}} Snow Shiverian Racer Moon[[s]]",
         ],
+        "moon_tag": "minigame",
+        "include_story_moons": [("snow", 5)],  # Bound Bowl (multi)
         "moons": [
-            ("sand", 44),
-            ("metro", 28),
-            ("metro", 29),
-            ("metro", 30),
-            ("metro", 32),  # RC Car Pro! (minijuego; #31 = tutorial captura)
-            ("seaside", 37),
-            ("seaside", 38),
-            ("luncheon", 26),
+            # Trofeo / minijuegos in-scope: slots, jump-rope, RC Car Pro,
+            # volleyball, Trace-Walking, carrera Snow (Bound Bowl + Class S).
+            # Sin Freerunning (post-historia), Picture Match (postgame),
+            # #31 RC tutorial.
+            ("sand", 44),   # Sand Kingdom Slots
+            ("sand", 45),   # Walking the Desert! (Trace-Walking)
+            ("metro", 28),  # Metro Kingdom Slots
+            ("metro", 29),  # Jump-Rope Hero
+            ("metro", 30),  # Jump-Rope Genius
+            ("metro", 32),  # RC Car Pro!
+            ("snow", 5),    # The Bound Bowl Grand Prix (multi)
+            ("snow", 22),   # Walking on Ice! (Trace-Walking)
+            ("snow", 23),   # Snowline Circuit Class S
+            ("seaside", 37),  # Beach Volleyball: Champ
+            ("seaside", 38),  # Beach Volleyball: Hero of the Beach!
+            ("luncheon", 26),  # Luncheon Kingdom Slots
         ],
         "note": (
-            "8 lunas: slots(3) + jump-rope(2) + volleyball(2) + RC Car Pro. "
-            "Goals: Minigame [2,4,6] m/l/n (sin e; m=puente); "
-            "Metro Minigame [1,2,3] m/l; Slots [1,2,3] e/l/n. "
-            "Sin Volleyball Moon (goal retirada)."
+            "12 lunas: trofeos mapa (slots×3 + jump-rope×2 + volleyball×2 + "
+            "RC Car Pro + Trace sand#45/snow#22) + carrera Snow (#5+#23). "
+            "Goals: Minigame [2,4,6,8] e/m/l/n; Metro Minigame [1,2,3] m/l; "
+            "Slots [1,2,3] e/l/n; Trace [1,2] e/l; Shiverian Racer [1,2] l. "
+            "Sin Freerunning/Picture Match/Moon Trace (fuera de alcance). "
+            "Sin Volleyball Moon (goal retirada). Sin #31 RC tutorial."
         ),
     },
     "key": {

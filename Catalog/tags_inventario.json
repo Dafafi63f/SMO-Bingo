@@ -1382,20 +1382,26 @@
       "id": 51,
       "tag": "minigame",
       "rol": "context",
-      "lunas": 8,
-      "pct_lunas": 1.8,
-      "n_goals": 3,
+      "lunas": 12,
+      "pct_lunas": 2.8,
+      "n_goals": 5,
       "goals": [
+        "{{X}} Koopa Trace-Walking Moon[[s]]",
         "{{X}} Metro Minigame Moon[[s]]",
         "{{X}} Minigame Moons",
-        "{{X}} Slots Moon[[s]]"
+        "{{X}} Slots Moon[[s]]",
+        "{{X}} Snow Shiverian Racer Moon[[s]]"
       ],
       "moons": [
         {"kingdom": "sand", "moon": 44, "name": "Sand Kingdom Slots", "goal": true},
+        {"kingdom": "sand", "moon": 45, "name": "Walking the Desert!", "goal": true},
         {"kingdom": "metro", "moon": 28, "name": "Metro Kingdom Slots", "goal": true},
         {"kingdom": "metro", "moon": 29, "name": "Jump-Rope Hero", "goal": true},
         {"kingdom": "metro", "moon": 30, "name": "Jump-Rope Genius", "goal": true},
         {"kingdom": "metro", "moon": 32, "name": "RC Car Pro!", "goal": true},
+        {"kingdom": "snow", "moon": 5, "name": "The Bound Bowl Grand Prix", "goal": true},
+        {"kingdom": "snow", "moon": 22, "name": "Walking on Ice!", "goal": true},
+        {"kingdom": "snow", "moon": 23, "name": "Snowline Circuit Class S", "goal": true},
         {"kingdom": "seaside", "moon": 37, "name": "Beach Volleyball: Champ", "goal": true},
         {"kingdom": "seaside", "moon": 38, "name": "Beach Volleyball: Hero of the Beach!", "goal": true},
         {"kingdom": "luncheon", "moon": 26, "name": "Luncheon Kingdom Slots", "goal": true}

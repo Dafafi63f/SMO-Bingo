@@ -1162,7 +1162,7 @@
       ],
       "extra_tags": ["npc"],
       "apply_moon_tag": false,
-      "_note": "n=2 → sin tag koopa_trace; tag npc (Koopa) sin entrar en npc_moons / {{X}} NPC Moons. snow#22 también overworld. 2 in-scope (sand/snow). moon#21 Walking on the Moon! = post-Bowser. wooded#47 Walking on Clouds = enredadera, no Trace."
+      "_note": "n=2 → sin tag koopa_trace; tag npc (Koopa) sin entrar en npc_moons / {{X}} NPC Moons. snow#22 también overworld. 2 in-scope (sand/snow); también pool Minigame (trofeo mapa). moon#21 Walking on the Moon! = post-Bowser. wooded#47 Walking on Clouds = enredadera, no Trace."
     },
     {
       "id": "lake",
@@ -1882,24 +1882,33 @@
       "id": "minigame",
       "orden": 66,
       "kind": "both",
-      "n_objectives": 3,
-      "n_moons": 8,
+      "n_objectives": 5,
+      "n_moons": 12,
       "objectives": [
+        {"goal": "{{X}} Koopa Trace-Walking Moon[[s]]", "range": [1, 2], "progression": ["e", "l"], "progressive_ranges": true},
         {"goal": "{{X}} Metro Minigame Moon[[s]]", "range": [1, 2, 3], "progression": ["m", "l"], "progressive_ranges": true},
-        {"goal": "{{X}} Minigame Moons", "range": [2, 4, 6], "progression": ["m", "l", "n"], "progressive_ranges": true},
-        {"goal": "{{X}} Slots Moon[[s]]", "range": [1, 2, 3], "progression": ["e", "l", "n"], "progressive_ranges": true}
+        {"goal": "{{X}} Minigame Moons", "range": [2, 4, 6, 8], "progression": ["e", "m", "l", "n"], "progressive_ranges": true},
+        {"goal": "{{X}} Slots Moon[[s]]", "range": [1, 2, 3], "progression": ["e", "l", "n"], "progressive_ranges": true},
+        {"goal": "{{X}} Snow Shiverian Racer Moon[[s]]", "range": [1, 2], "progression": ["l"]}
       ],
       "moons": [
         {"kingdom": "sand", "moon": 44, "name": "Sand Kingdom Slots"},
+        {"kingdom": "sand", "moon": 45, "name": "Walking the Desert!"},
         {"kingdom": "metro", "moon": 28, "name": "Metro Kingdom Slots"},
         {"kingdom": "metro", "moon": 29, "name": "Jump-Rope Hero"},
         {"kingdom": "metro", "moon": 30, "name": "Jump-Rope Genius"},
         {"kingdom": "metro", "moon": 32, "name": "RC Car Pro!"},
+        {"kingdom": "snow", "moon": 5, "name": "The Bound Bowl Grand Prix", "odyssey_units": 3},
+        {"kingdom": "snow", "moon": 22, "name": "Walking on Ice!"},
+        {"kingdom": "snow", "moon": 23, "name": "Snowline Circuit Class S"},
         {"kingdom": "seaside", "moon": 37, "name": "Beach Volleyball: Champ"},
         {"kingdom": "seaside", "moon": 38, "name": "Beach Volleyball: Hero of the Beach!"},
         {"kingdom": "luncheon", "moon": 26, "name": "Luncheon Kingdom Slots"}
       ],
-      "_note": "8 lunas: slots(3) + jump-rope(2) + volleyball(2) + RC Car Pro. Goals: Minigame [2,4,6] m/l/n (sin e; m=puente); Metro Minigame [1,2,3] m/l; Slots [1,2,3] e/l/n. Sin Volleyball Moon (goal retirada)."
+      "n_odyssey_units": 14,
+      "moon_tag": "minigame",
+      "large": true,
+      "_note": "12 lunas: trofeos mapa (slots×3 + jump-rope×2 + volleyball×2 + RC Car Pro + Trace sand#45/snow#22) + carrera Snow (#5+#23). Goals: Minigame [2,4,6,8] e/m/l/n; Metro Minigame [1,2,3] m/l; Slots [1,2,3] e/l/n; Trace [1,2] e/l; Shiverian Racer [1,2] l. Sin Freerunning/Picture Match/Moon Trace (fuera de alcance). Sin Volleyball Moon (goal retirada). Sin #31 RC tutorial."
     },
     {
       "id": "moon",
@@ -2680,7 +2689,7 @@
       "kingdom": "sand",
       "moon_tag": "ruins",
       "large": true,
-      "_note": "Ruinas de Tostarena (estructura principal: entrada → torre). 10 lunas: path de ruinas + Goombette. Tag ruins. Sin Ice Cave #50 ni sus 4 purple (solo sand_ice; no doble conteo). Sin semilla #26, Jaxi Ruins, pirámide/templo ni Moe-Eye Habitat. Regional: 16 purple coins (entrada/8-bits 10 + Sphynx 3 + plataformas Round Tower→Moe-Eye 3). Sin Jaxi Ruins / oasis / pirámide / Underground Temple / Moe-Eye."
+      "_note": "Ruinas de Tostarena (estructura principal: entrada → torre). 10 lunas: path de ruinas + Goombette. Tag ruins. Sand Ruins Moons range [4, 6, 8, 10]. Sin Ice Cave #50 ni sus 4 purple (solo sand_ice; no doble conteo). Sin semilla #26, Jaxi Ruins, pirámide/templo ni Moe-Eye Habitat. Regional: 16 purple coins (entrada/8-bits 10 + Sphynx 3 + plataformas Round Tower→Moe-Eye 3). Sin Jaxi Ruins / oasis / pirámide / Underground Temple / Moe-Eye."
     },
     {
       "id": "sand_tostarena",
@@ -2917,7 +2926,7 @@
       "kingdom": "snow",
       "capture": "Shiverian Racer",
       "apply_moon_tag": false,
-      "_note": "n=2 → sin tag shiverian_racer; paraguas captures + shiveria. #5 Bound Bowl (multi, sí cuenta) + #23 Class S. También Snow Multi-Moon."
+      "_note": "n=2 → sin tag shiverian_racer; paraguas captures + shiveria. #5 Bound Bowl (multi, sí cuenta) + #23 Class S. También Snow Multi-Moon y pool Minigame."
     },
     {
       "id": "shop",

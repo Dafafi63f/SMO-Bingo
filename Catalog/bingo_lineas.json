@@ -396,7 +396,7 @@
         {"goal": "{{X}} Metro Night Moons", "range": [2, 4, 6], "progression": ["m", "l"], "progressive_ranges": true},
         {"goal": "{{X}} Metro RC Car Moons", "range": [2], "progression": ["m", "l"]},
         {"goal": "{{X}} Metro Trash Moon[[s]]", "range": [1, 2, 3], "progression": ["m", "l"], "progressive_ranges": true},
-        {"goal": "{{X}} Minigame Moons", "range": [2, 4, 6], "progression": ["m", "l", "n"], "progressive_ranges": true},
+        {"goal": "{{X}} Minigame Moons", "range": [2, 4, 6, 8], "progression": ["e", "m", "l", "n"], "progressive_ranges": true},
         {"goal": "{{X}} Moon Banzai Bill Moon[[s]]", "range": [1, 2], "progression": ["n"]},
         {"goal": "{{X}} Moon Cave Moons", "range": [2, 3, 4], "progression": ["n"], "individual_limit": 2},
         {"goal": "{{X}} Moon Shard Moons", "range": [3, 6, 9, 12], "progression": ["e", "m", "l", "n"], "individual_limit": 2, "progressive_ranges": true},
