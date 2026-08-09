@@ -706,7 +706,7 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Sand Ice Regional Coins": [4, 8, 11],
     "{{X}} Sand Jaxi Regional Coins": [4, 8, 12],
     "{{X}} Sand Tostarena Regional Coins": [8, 16, 24, 29],
-    "{{X}} Sand Ruins Moons": [3, 6, 9],
+    "{{X}} Sand Ruins Moons": [4, 6, 8, 10],  # pool 10
     "{{X}} Sand Oasis Moons": [3, 6],
     "{{X}} Sand Pyramid Moons": [2, 4, 6],
     "{{X}} Sub-Area Regional Coins": [12, 24, 36, 48],

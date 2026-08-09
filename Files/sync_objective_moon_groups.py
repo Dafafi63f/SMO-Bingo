@@ -312,6 +312,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "Ruinas de Tostarena (estructura principal: entrada → torre). "
             "10 lunas: path de ruinas + Goombette. Tag ruins. "
+            "Sand Ruins Moons range [4, 6, 8, 10]. "
             "Sin Ice Cave #50 ni sus 4 purple (solo sand_ice; no doble conteo). "
             "Sin semilla #26, Jaxi Ruins, pirámide/templo ni Moe-Eye Habitat. "
             "Regional: 16 purple coins (entrada/8-bits 10 + Sphynx 3 + "

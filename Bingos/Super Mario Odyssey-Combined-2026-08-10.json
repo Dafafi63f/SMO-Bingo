@@ -3379,9 +3379,10 @@
     {
       "goal": "{{X}} Sand Ruins Moons",
       "range": [
-        3,
+        4,
         6,
-        9
+        8,
+        10
       ],
       "board_categories": [
         "moontype",

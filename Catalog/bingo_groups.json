@@ -2443,7 +2443,7 @@
         {"goal": "{{X}} Sand Moe-Eye Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "{{X}} Sand Oasis Moons", "range": [3, 6], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "{{X}} Sand Pyramid Moons", "range": [2, 4, 6], "progression": ["e", "m"], "progressive_ranges": true},
-        {"goal": "{{X}} Sand Ruins Moons", "range": [3, 6, 9], "progression": ["e", "m"], "progressive_ranges": true},
+        {"goal": "{{X}} Sand Ruins Moons", "range": [4, 6, 8, 10], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "{{X}} Sand Ruins Regional Coins", "range": [5, 10, 15], "progression": ["e", "m"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "{{X}} Sand Sub-Area Moons", "range": [4, 6, 8], "progression": ["e", "m"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "{{X}} Sand Tostarena Moons", "range": [4, 8, 12], "progression": ["e", "m"], "progressive_ranges": true},
@@ -2662,7 +2662,7 @@
       "n_objectives": 2,
       "n_moons": 10,
       "objectives": [
-        {"goal": "{{X}} Sand Ruins Moons", "range": [3, 6, 9], "progression": ["e", "m"], "progressive_ranges": true},
+        {"goal": "{{X}} Sand Ruins Moons", "range": [4, 6, 8, 10], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "{{X}} Sand Ruins Regional Coins", "range": [5, 10, 15], "progression": ["e", "m"], "individual_limit": 2, "progressive_ranges": true}
       ],
       "moons": [

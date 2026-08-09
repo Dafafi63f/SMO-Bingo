@@ -3184,7 +3184,7 @@
     {
       "orden": 130,
       "goal": "{{X}} Sand Ruins Moons",
-      "range": [3, 6, 9],
+      "range": [4, 6, 8, 10],
       "progression": ["e", "m"],
       "progressive_ranges": true,
       "board_categories": ["moontype", "sand"],

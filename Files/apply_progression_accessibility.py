@@ -130,6 +130,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Sand Bird Moons": [2, 3],
     "{{X}} Sand Jaxi Moons": [2, 4, 6],
     "{{X}} Sand Oasis Moons": [3, 6],
+    "{{X}} Sand Ruins Moons": [4, 6, 8, 10],
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Seaside Komboo Moons": [2, 4],
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
