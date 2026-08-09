@@ -67,6 +67,7 @@ FULL_ZONE_PROGRESSION = list(ZONE_ORDER)  # e, m, l, n
 GOAL_CAPPY_MOONS = "{{X}} Cappy Moons"
 GOAL_MARIO_MOONS = "{{X}} Mario Moons"
 GOAL_TOURIST_MOONS = "{{X}} Tourist Moon[[s]]"
+GOAL_MINIGAME_MOONS = "{{X}} Minigame Moons"
 
 GLOBAL_FROM_MID: frozenset[str] = frozenset(
     {
@@ -100,7 +101,7 @@ GLOBAL_FROM_CAP: frozenset[str] = frozenset(
         "{{X}} Stickers",
         "{{X}} NPC Moons",
         GOAL_TOURIST_MOONS,
-        "{{X}} Minigame Moons",
+        GOAL_MINIGAME_MOONS,
         "{{X}} Warp-Painting Moons",
         "{{X}} Outfit Door Moons",
         "{{X}} Seed Moon (No Time Travel)",
@@ -131,7 +132,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Sand Jaxi Moons": [2, 4, 6],
     "{{X}} Sand Oasis Moons": [3, 6],
     "{{X}} Sand Ruins Moons": [4, 6, 8, 10],
-    "{{X}} Minigame Moons": [2, 4, 6, 8],
+    GOAL_MINIGAME_MOONS: [2, 4, 6, 8],
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Seaside Komboo Moons": [2, 4],
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
@@ -210,7 +211,7 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "Activate {{X}} Ground-Pound Switches": ["m", "l", "n"],
     # Minigame: trofeos + carrera Snow (Bound Bowl / Class S).
     # sand×2 cubre min 2 en Early; m puente Mid→Late; seaside/luncheon → n.
-    "{{X}} Minigame Moons": ["e", "m", "l", "n"],
+    GOAL_MINIGAME_MOONS: ["e", "m", "l", "n"],
     # Blocks / Outfit total: hay Sand en Early, pero el min(range) solo se
     # cubre desde Mid (Blocks ≥3 con Wooded; Outfit ≥2 con Lake/Wooded).
     "{{X}} Destructible Block Moons": ["m", "l", "n"],
