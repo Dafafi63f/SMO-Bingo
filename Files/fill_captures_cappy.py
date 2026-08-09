@@ -234,7 +234,7 @@ FORCE_ACTION: dict[tuple[str, int], str | None] = {
     # Palanca/hold + captura de contenido → ALLOW_CAPTURES_AND_CAPPY (ambas tags).
     ("luncheon", 2): "both",  # Lever + Hammer Bro
     ("sand", 55): "both",  # hold Cappy + Moe-Eye
-    ("sand", 29): "captures",  # TC2: P-Switch abre; fuera de pool moe_eye
+    ("sand", 29): "captures",  # TC2: P-Switch/llave + Moe-Eye (pool Moe-Eye sin tag)
     ("metro", 20): None,  # TC2: scooter + P-Switch/llave; scooter ≠ captura de lista (como #25)
     ("wooded", 14): "captures",  # Uproot/nut; palanca cueva = solo Activate Levers (lista)
     ("wooded", 19): "both",  # Cappy + Fire Bro

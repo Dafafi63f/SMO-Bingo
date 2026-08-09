@@ -31,6 +31,13 @@ GOAL_UNIQUE_CAPTURES = "{{X}} Unique Captures"
 # Captura normal con ≥N lunas → tag concreta junto a `captures`.
 # Especial o minoritaria (<N) → basta `captures`.
 CAPTURE_TAG_MIN = 3
+# Capturas con ≥CAPTURE_TAG_MIN lunas+goal que aun asi no reciben tag concreta
+# en lunas (basta `captures`). Grupos: apply_moon_tag=False.
+CAPTURE_NO_CONCRETE_TAGS: frozenset[str] = frozenset(
+    {
+        "moe_eye",  # Sand Moe-Eye Moons (n=3; sub_area/TC ya van justos de tags)
+    }
+)
 # Nombre en capturas_lunas.json → tag canónica (alineada con grupos cuando existe).
 CAPTURE_NAME_TO_TAG: dict[str, str] = {
     "Frog": "frog",
@@ -332,6 +339,7 @@ MOON_TAG_CATALOGS = frozenset()
 # seeds es tag/grupo propio (no entra en flora).
 # Grupos tematicos con ≤2 lunas: apply_moon_tag=False (goal OK; sin tag micro;
 #   usar paraguas natural si existe: treasure_chest, sub_area, captures, shiveria…).
+# Excepción n=3 sin tag concreta: ver CAPTURE_NO_CONCRETE_TAGS (Moe-Eye).
 TAG_CONTEXT = frozenset(
     {
         "sub_area",
@@ -556,6 +564,7 @@ def load_capture_tag_by_moon() -> dict[tuple[str, int], str | None]:
     tag unificada (p. ej. los 3 Chomps → `chomp`), no por fila suelta:
     variantes especial/minoritaria del mismo slug reciben la tag si la
     familia llega al mínimo. Si no, basta `captures`.
+    CAPTURE_NO_CONCRETE_TAGS (Moe-Eye): nunca tag concreta pese al umbral.
 
     Lunas con `goal: false` (p. ej. story/multi que usan la captura pero no
     cuentan en la goal Combined) no reciben tag concreta: basta `captures`
@@ -574,7 +583,9 @@ def load_capture_tag_by_moon() -> dict[tuple[str, int], str | None]:
                 _ingest_capture_row(row, moons_by_tag, moon_to_tag)
 
     majority = {
-        tag for tag, moons in moons_by_tag.items() if len(moons) >= CAPTURE_TAG_MIN
+        tag
+        for tag, moons in moons_by_tag.items()
+        if len(moons) >= CAPTURE_TAG_MIN and tag not in CAPTURE_NO_CONCRETE_TAGS
     }
     mapping: dict[tuple[str, int], str | None] = {
         key: (tag if tag in majority else None) for key, tag in moon_to_tag.items()
@@ -591,12 +602,16 @@ def _apply_capture_subgroup_tag_overrides(
     if not BINGO_GROUPS_PATH.exists():
         return
     for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
+        if group.get("apply_moon_tag") is False:
+            continue
         if not group.get("capture"):
             continue
         moon_tag = group.get("moon_tag")
         if not moon_tag:
             continue
         tag = str(moon_tag)
+        if tag in CAPTURE_NO_CONCRETE_TAGS:
+            continue
         for raw in group_moons(group):
             key = (str(raw["kingdom"]), int(raw["moon"]))
             if key in mapping:

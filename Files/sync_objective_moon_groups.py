@@ -160,16 +160,19 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "kingdom": "sand",
         "capture": "Moe-Eye",
         "moons": [
-            ("sand", 2),   # Moon Shards in the Sand (story; excepción)
+            ("sand", 29),  # TC2: llave/P-Switch + Moe-Eye en el camino
             ("sand", 54),  # Invisible Maze
             ("sand", 55),  # Skull Sign in the Transparent Maze
         ],
-        "include_story_moons": [("sand", 2)],
-        "moon_tag": "moe_eye",
+        # n=3 + goal propia, pero sin tag moe_eye (basta captures): excepción
+        # documentada en CAPTURE_NO_CONCRETE_TAGS / apply_moon_tag=False.
+        "apply_moon_tag": False,
         "note": (
-            "#2 Moon Shards (story, sí cuenta) + Invisible Maze (#54+#55). "
-            "Tag moe_eye. Sin TC2 (#29): captura en el camino pero no cuenta "
-            "aqui (sigue en captures/key/switch/timer). "
+            "TC2 (#29) + Invisible Maze (#54+#55). Sin tag moe_eye "
+            "(n=3 con goal; basta captures; presupuesto de tags en "
+            "sub_area/key/switch/timer). "
+            "Sin #2 Moon Shards (story; captura Moe-Eye en habitat pero "
+            "fuera del pool Combined). "
             "Sin goal regional (habitat/Invisible Maze siguen en Sand Regional)."
         ),
     },
@@ -1286,7 +1289,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     "key": {
         "goal": "{{X}} Key Moon[[s]]",
         "moons": [
-            ("sand", 29),      # TC2: llave (P-Switch; fuera de moe_eye)
+            ("sand", 29),      # TC2: llave (P-Switch; también pool Moe-Eye)
             ("lake", 22),      # Unzip the Chasm (zipper sub_area → llave al final)
             ("lost", 17),      # Twist 'n' Turn-Up Treasure (Wiggler → llave)
             ("metro", 20),     # TC2: scooter → llave
@@ -1299,6 +1302,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Llave → Keyhole Pedestal. 8 in-scope: sand#29, lake#22 "
             "(zipper; wiki omite la llave), lost#17, metro#20, "
             "luncheon#19+#20, bowser#34, moon#10. "
+            "sand#29 también en pool Sand Moe-Eye Moons (sin tag moe_eye). "
             "Sin lake#23 Super-Secret Zipper (sin llave). "
             "Sin TCs de carrera pura. Cages rotas → cages."
         ),
@@ -1327,7 +1331,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "moons": [
             # P-Switch (Moon Get)
-            ("sand", 29),      # TC2 (fuera de moe_eye)
+            ("sand", 29),      # TC2 (también pool Moe-Eye sin tag)
             ("metro", 20),     # TC2 scooter
             # Ground-Pound Switch (Moon Get)
             ("seaside", 27),   # Timer Challenge 1

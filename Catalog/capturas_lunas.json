@@ -199,21 +199,21 @@
     {
       "id": 10,
       "capture": "Moe-Eye",
-      "tipo": "normal",
+      "tipo": "minoritaria",
       "kind": "both",
       "n_objectives": 1,
-      "n_moons": 3,
+      "n_moons": 4,
       "n_goal_moons": 3,
       "objectives": [
         {"goal": "{{X}} Sand Moe-Eye Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
       ],
       "moons": [
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": true},
+        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": false},
+        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "goal": true},
         {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "goal": true},
         {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "goal": true}
       ],
-      "kingdom": "sand",
-      "moon_tag": "moe_eye"
+      "kingdom": "sand"
     },
     {
       "id": 11,

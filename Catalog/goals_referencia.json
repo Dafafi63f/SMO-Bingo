@@ -2988,7 +2988,7 @@
       "pool": "moons",
       "n_moons": 3,
       "moons": [
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "disponibilidad": "base"},
+        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "disponibilidad": "world_peace"},
         {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "disponibilidad": "base"},
         {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "disponibilidad": "base"}
       ],

@@ -1126,7 +1126,7 @@
         {"kingdom": "bowser", "moon": 34, "name": "Down and Up the Spinning Tower"},
         {"kingdom": "moon", "moon": 10, "name": "In a Hole in the Magma"}
       ],
-      "_note": "Llave → Keyhole Pedestal. 8 in-scope: sand#29, lake#22 (zipper; wiki omite la llave), lost#17, metro#20, luncheon#19+#20, bowser#34, moon#10. Sin lake#23 Super-Secret Zipper (sin llave). Sin TCs de carrera pura. Cages rotas → cages."
+      "_note": "Llave → Keyhole Pedestal. 8 in-scope: sand#29, lake#22 (zipper; wiki omite la llave), lost#17, metro#20, luncheon#19+#20, bowser#34, moon#10. sand#29 también en pool Sand Moe-Eye Moons (sin tag moe_eye). Sin lake#23 Super-Secret Zipper (sin llave). Sin TCs de carrera pura. Cages rotas → cages."
     },
     {
       "id": "komboo",
@@ -2601,15 +2601,14 @@
         {"goal": "{{X}} Sand Moe-Eye Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true}
       ],
       "moons": [
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand"},
+        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2"},
         {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze"},
         {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze"}
       ],
       "kingdom": "sand",
-      "moon_tag": "moe_eye",
-      "large": true,
       "capture": "Moe-Eye",
-      "_note": "#2 Moon Shards (story, sí cuenta) + Invisible Maze (#54+#55). Tag moe_eye. Sin TC2 (#29): captura en el camino pero no cuenta aqui (sigue en captures/key/switch/timer). Sin goal regional (habitat/Invisible Maze siguen en Sand Regional)."
+      "apply_moon_tag": false,
+      "_note": "TC2 (#29) + Invisible Maze (#54+#55). Sin tag moe_eye (n=3 con goal; basta captures; presupuesto de tags en sub_area/key/switch/timer). Sin #2 Moon Shards (story; captura Moe-Eye en habitat pero fuera del pool Combined). Sin goal regional (habitat/Invisible Maze siguen en Sand Regional)."
     },
     {
       "id": "sand_oasis",

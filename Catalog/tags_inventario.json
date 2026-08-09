@@ -1,6 +1,6 @@
 {
   "_definition": "Inventario de tags de Power Moons in-scope. Fuente de tags permitidas para catalog/lunas-objetivos.json. Campos: id, tag, rol, lunas, pct_lunas, n_goals, goals[] (Combined con >=1 luna de la tag en su pool), moons[{kingdom,moon,name,goal}] (goal=true si cuenta para alguna de goals[]; false = solo tag), avisos (solo si aplican). Reglas incompatibles/multi/implica: catalog_lib.py. Concurrencia: consola al regenerar.",
-  "n_tags": 98,
+  "n_tags": 97,
   "tags": [
     {
       "id": 1,
@@ -357,11 +357,11 @@
         {"kingdom": "cascade", "moon": 13, "name": "Dinosaur Nest: Running Wild!", "goal": true},
         {"kingdom": "cascade", "moon": 14, "name": "Nice Shot with the Chain Chomp!", "goal": true},
         {"kingdom": "cascade", "moon": 15, "name": "Very Nice Shot with the Chain Chomp!", "goal": true},
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": true},
+        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": false},
         {"kingdom": "sand", "moon": 4, "name": "The Hole in the Desert", "goal": false},
         {"kingdom": "sand", "moon": 19, "name": "Bullet Bill Breakthrough", "goal": false},
         {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "goal": false},
-        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "goal": false},
+        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "goal": true},
         {"kingdom": "sand", "moon": 34, "name": "Fishing in the Oasis", "goal": true},
         {"kingdom": "sand", "moon": 35, "name": "Love in the Heart of the Desert", "goal": true},
         {"kingdom": "sand", "moon": 36, "name": "Among the Five Cactuses", "goal": true},
@@ -1403,21 +1403,6 @@
     },
     {
       "id": 52,
-      "tag": "moe_eye",
-      "rol": "context",
-      "lunas": 3,
-      "pct_lunas": 0.7,
-      "n_goals": 1,
-      "goals": ["{{X}} Sand Moe-Eye Moons"],
-      "moons": [
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "goal": true},
-        {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "goal": true},
-        {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "goal": true}
-      ],
-      "avisos": ["rara_luna(<=3)"]
-    },
-    {
-      "id": 53,
       "tag": "moon",
       "rol": "kingdom",
       "lunas": 15,
@@ -1449,7 +1434,7 @@
       ]
     },
     {
-      "id": 54,
+      "id": 53,
       "tag": "moon_shard",
       "rol": "obtain",
       "lunas": 16,
@@ -1476,7 +1461,7 @@
       ]
     },
     {
-      "id": 55,
+      "id": 54,
       "tag": "multi_moon",
       "rol": "story",
       "lunas": 14,
@@ -1509,7 +1494,7 @@
       ]
     },
     {
-      "id": 56,
+      "id": 55,
       "tag": "music_note",
       "rol": "obtain",
       "lunas": 13,
@@ -1533,7 +1518,7 @@
       ]
     },
     {
-      "id": 57,
+      "id": 56,
       "tag": "night",
       "rol": "context",
       "lunas": 6,
@@ -1550,7 +1535,7 @@
       ]
     },
     {
-      "id": 58,
+      "id": 57,
       "tag": "npc",
       "rol": "context",
       "lunas": 14,
@@ -1578,7 +1563,7 @@
       ]
     },
     {
-      "id": 59,
+      "id": 58,
       "tag": "nut",
       "rol": "context",
       "lunas": 12,
@@ -1601,7 +1586,7 @@
       ]
     },
     {
-      "id": 60,
+      "id": 59,
       "tag": "oasis",
       "rol": "context",
       "lunas": 6,
@@ -1618,7 +1603,7 @@
       ]
     },
     {
-      "id": 61,
+      "id": 60,
       "tag": "outfit_door",
       "rol": "context",
       "lunas": 12,
@@ -1651,7 +1636,7 @@
       ]
     },
     {
-      "id": 62,
+      "id": 61,
       "tag": "overworld",
       "rol": "context",
       "lunas": 15,
@@ -1677,7 +1662,7 @@
       ]
     },
     {
-      "id": 63,
+      "id": 62,
       "tag": "painting",
       "rol": "context",
       "lunas": 6,
@@ -1702,7 +1687,7 @@
       ]
     },
     {
-      "id": 64,
+      "id": 63,
       "tag": "paragoomba",
       "rol": "context",
       "lunas": 4,
@@ -1717,7 +1702,7 @@
       ]
     },
     {
-      "id": 65,
+      "id": 64,
       "tag": "pipe",
       "rol": "context",
       "lunas": 3,
@@ -1732,7 +1717,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 66,
+      "id": 65,
       "tag": "pokio",
       "rol": "context",
       "lunas": 5,
@@ -1748,7 +1733,7 @@
       ]
     },
     {
-      "id": 67,
+      "id": 66,
       "tag": "pokio_hole",
       "rol": "context",
       "lunas": 3,
@@ -1763,7 +1748,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 68,
+      "id": 67,
       "tag": "poochy",
       "rol": "context",
       "lunas": 4,
@@ -1778,7 +1763,7 @@
       ]
     },
     {
-      "id": 69,
+      "id": 68,
       "tag": "pyramid",
       "rol": "context",
       "lunas": 6,
@@ -1795,7 +1780,7 @@
       ]
     },
     {
-      "id": 70,
+      "id": 69,
       "tag": "rabbit",
       "rol": "context",
       "lunas": 7,
@@ -1813,7 +1798,7 @@
       ]
     },
     {
-      "id": 71,
+      "id": 70,
       "tag": "rocket_flower",
       "rol": "context",
       "lunas": 6,
@@ -1830,7 +1815,7 @@
       ]
     },
     {
-      "id": 72,
+      "id": 71,
       "tag": "ruined",
       "rol": "kingdom",
       "lunas": 4,
@@ -1845,7 +1830,7 @@
       ]
     },
     {
-      "id": 73,
+      "id": 72,
       "tag": "ruins",
       "rol": "context",
       "lunas": 10,
@@ -1866,7 +1851,7 @@
       ]
     },
     {
-      "id": 74,
+      "id": 73,
       "tag": "sand",
       "rol": "kingdom",
       "lunas": 62,
@@ -1958,7 +1943,7 @@
       ]
     },
     {
-      "id": 75,
+      "id": 74,
       "tag": "seaside",
       "rol": "kingdom",
       "lunas": 49,
@@ -2032,7 +2017,7 @@
       ]
     },
     {
-      "id": 76,
+      "id": 75,
       "tag": "seeds",
       "rol": "context",
       "lunas": 15,
@@ -2063,7 +2048,7 @@
       ]
     },
     {
-      "id": 77,
+      "id": 76,
       "tag": "sherm",
       "rol": "context",
       "lunas": 6,
@@ -2080,7 +2065,7 @@
       ]
     },
     {
-      "id": 78,
+      "id": 77,
       "tag": "shiny_rocks",
       "rol": "obtain",
       "lunas": 4,
@@ -2095,7 +2080,7 @@
       ]
     },
     {
-      "id": 79,
+      "id": 78,
       "tag": "shiveria",
       "rol": "context",
       "lunas": 18,
@@ -2124,7 +2109,7 @@
       ]
     },
     {
-      "id": 80,
+      "id": 79,
       "tag": "shop",
       "rol": "context",
       "lunas": 11,
@@ -2159,7 +2144,7 @@
       ]
     },
     {
-      "id": 81,
+      "id": 80,
       "tag": "snow",
       "rol": "kingdom",
       "lunas": 33,
@@ -2219,7 +2204,7 @@
       ]
     },
     {
-      "id": 82,
+      "id": 81,
       "tag": "spark_pylon",
       "rol": "context",
       "lunas": 5,
@@ -2235,7 +2220,7 @@
       ]
     },
     {
-      "id": 83,
+      "id": 82,
       "tag": "sphynx",
       "rol": "context",
       "lunas": 4,
@@ -2250,7 +2235,7 @@
       ]
     },
     {
-      "id": 84,
+      "id": 83,
       "tag": "story_moon",
       "rol": "story",
       "lunas": 24,
@@ -2294,7 +2279,7 @@
       ]
     },
     {
-      "id": 85,
+      "id": 84,
       "tag": "sub_area",
       "rol": "context",
       "lunas": 62,
@@ -2403,7 +2388,7 @@
       ]
     },
     {
-      "id": 86,
+      "id": 85,
       "tag": "swinging_pole",
       "rol": "context",
       "lunas": 3,
@@ -2418,7 +2403,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 87,
+      "id": 86,
       "tag": "switch",
       "rol": "context",
       "lunas": 3,
@@ -2433,7 +2418,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 88,
+      "id": 87,
       "tag": "t_rex",
       "rol": "context",
       "lunas": 6,
@@ -2450,7 +2435,7 @@
       ]
     },
     {
-      "id": 89,
+      "id": 88,
       "tag": "timer_challenge",
       "rol": "obtain",
       "lunas": 23,
@@ -2484,7 +2469,7 @@
       ]
     },
     {
-      "id": 90,
+      "id": 89,
       "tag": "tostarena",
       "rol": "context",
       "lunas": 14,
@@ -2509,7 +2494,7 @@
       ]
     },
     {
-      "id": 91,
+      "id": 90,
       "tag": "trash",
       "rol": "context",
       "lunas": 4,
@@ -2524,7 +2509,7 @@
       ]
     },
     {
-      "id": 92,
+      "id": 91,
       "tag": "treasure_chest",
       "rol": "obtain",
       "lunas": 23,
@@ -2558,7 +2543,7 @@
       ]
     },
     {
-      "id": 93,
+      "id": 92,
       "tag": "tropical_wiggler",
       "rol": "context",
       "lunas": 6,
@@ -2575,7 +2560,7 @@
       ]
     },
     {
-      "id": 94,
+      "id": 93,
       "tag": "ty_foo",
       "rol": "context",
       "lunas": 3,
@@ -2590,7 +2575,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 95,
+      "id": 94,
       "tag": "uproot",
       "rol": "context",
       "lunas": 12,
@@ -2616,7 +2601,7 @@
       ]
     },
     {
-      "id": 96,
+      "id": 95,
       "tag": "wooded",
       "rol": "kingdom",
       "lunas": 50,
@@ -2693,7 +2678,7 @@
       ]
     },
     {
-      "id": 97,
+      "id": 96,
       "tag": "wooden_crates",
       "rol": "context",
       "lunas": 4,
@@ -2708,7 +2693,7 @@
       ]
     },
     {
-      "id": 98,
+      "id": 97,
       "tag": "zipper",
       "rol": "context",
       "lunas": 3,

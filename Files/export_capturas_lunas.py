@@ -19,6 +19,8 @@ Reglas:
   - Capturas especiales (cactus, tree, meat, bowser statue…): tipo=especial.
   - Normales con < CAPTURE_TAG_MIN lunas: tipo=minoritaria (solo `captures`).
   - Normales con ≥ CAPTURE_TAG_MIN: tipo=normal (tag concreta / moon_tag).
+  - CAPTURE_NO_CONCRETE_TAGS (p. ej. Moe-Eye n=3): tipo=minoritaria pese al
+    umbral; grupo con apply_moon_tag=False.
   - objectives[]: goal(s) Combined dedicada(s) si existen (Capture X / Moon Get /
     {{X}} Total Moons). Varios grupos con el mismo `capture` aportan goals extra
     (Pokio = Bowser's Pokio + Pokio Hole). Vacio = sin goal propia
@@ -42,6 +44,7 @@ from pathlib import Path
 from catalog_lib import (
     BINGO_GROUPS_PATH,
     CAPTURE_NAME_TO_TAG,
+    CAPTURE_NO_CONCRETE_TAGS,
     CAPTURE_TAG_MIN,
     CATALOG_DIR,
     KINGDOM_COLUMNS,
@@ -203,11 +206,12 @@ CAPTURE_OBJECTIVE: dict[int, str] = {
 #   wooded#4 Torkdrift → Uproot (2ª; 1ª=Spewart sin captura)
 #   metro#1 Mechawiggler → Sherm | luncheon#3 Big Pot → Meat (1ª; 2ª=Cookatiel/Lava Bubble)
 #   seaside#5 Mollusque → Gushen | snow#5 Bound Bowl → Shiverian Racer
-# Story sand#2 Moon Shards: habitat Moe-Eye (plataformas invisibles)
+# Story sand#2 Moon Shards: habitat Moe-Eye (plataformas invisibles; fuera del
+# pool Combined Sand Moe-Eye Moons → goal:false en capturas).
 CURATED_PRIMARY: dict[tuple[str, int], int] = {
     ("cascade", 1): 4,
     ("cascade", 2): 6,
-    ("sand", 2): 10,  # Moon Shards in the Sand: Moe-Eye
+    ("sand", 2): 10,  # Moon Shards: Moe-Eye (no cuenta en goal Combined)
     ("sand", 4): 13,
     ("wooded", 4): 21,
     ("wooded", 3): 23,  # Path to Secret Flower Field: cañon con Sherm
@@ -282,6 +286,7 @@ CURATED_PRIMARY: dict[tuple[str, int], int] = {
     ("bowser", 26): 2,  # Found Behind Bars!: Spark Pylon (no Pokio)
     ("sand", 54): 10,  # Invisible Maze: Moe-Eye
     ("sand", 55): 10,
+    ("sand", 29): 10,  # TC2: Moe-Eye (sí en pool Sand Moe-Eye Moons)
     # snow#26/#27 = sub_area agua helada (scarecrow abre → mario); sin captura.
 }
 
@@ -294,7 +299,6 @@ NO_SUBAREA_CAPTURE: set[tuple[str, int]] = {
 # Si una del par Lockout esta aqui, el sibling tambien se excluye.
 EXCLUDE_PRIMARY: set[tuple[str, int]] = {
     ("metro", 14),  # basura en tejado; spark/pole solo para llegar
-    ("sand", 29),  # TC2: fuera de pool Moe-Eye (captures sin captura de lista)
     # Mini Rocket solo lleva a la subarea; contenido sin captura de lista:
     ("sand", 60),  # Mini Rocket → plataformas sin Cappy
     ("sand", 61),  # Above Strange Neighborhood (bloques ocultos)
@@ -976,6 +980,11 @@ def _capture_tipo(meta: dict, n_for_tipo: int) -> str:
         return "postgame"
     if meta.get("special"):
         return "especial"
+    from catalog_lib import _slugify_capture_name
+
+    name = str(meta.get("name") or meta.get("capture") or "")
+    if name and _slugify_capture_name(name) in CAPTURE_NO_CONCRETE_TAGS:
+        return "minoritaria"
     if n_for_tipo >= CAPTURE_TAG_MIN:
         return "normal"
     return "minoritaria"
