@@ -5172,7 +5172,7 @@
       "orden": 207,
       "goal": "All Regional Coins in {{X}} Small Kingdom[[s]]",
       "range": [1, 2],
-      "progression": ["e", "m"],
+      "progression": ["e", "m", "l", "n"],
       "progressive_ranges": true,
       "board_categories": ["regionalcoins"],
       "line_categories": ["regionalcoins"],
@@ -5556,7 +5556,7 @@
     {
       "orden": 234,
       "goal": "Lake Hint Art Moon",
-      "progression": ["e", "m"],
+      "progression": ["m"],
       "board_categories": ["artistic", "lake"],
       "line_categories": ["artistic", "lake"],
       "icons": ["smo/moonhintart.webp"],
@@ -5863,7 +5863,7 @@
     {
       "orden": 257,
       "goal": "Metro Warp-Painting Moon",
-      "progression": ["e"],
+      "progression": ["m"],
       "board_categories": ["artistic", "metro"],
       "line_categories": ["artistic", "metro"],
       "icons": ["smo/moonpaintingmetro.webp"],

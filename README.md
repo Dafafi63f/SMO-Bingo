@@ -51,4 +51,4 @@ Ficheros: `.github/workflows/tests.yml`, `sonarcloud.yml`, `release-combined.yml
 
 **SonarCloud (una vez):** en [SonarCloud](https://sonarcloud.io) importa `SMO-Bingo` → confirma `sonar.organization` / `sonar.projectKey` en `sonar-project.properties` → crea token → secreto `SONAR_TOKEN` en GitHub.
 
-Detalle de cada set lockout: [`Bingos/README.md`](Bingos/README.md).
+Detalle de cada set lockout, restricciones de goals y puentes `range`/`progression`: [`Bingos/README.md`](Bingos/README.md).

@@ -37,13 +37,14 @@ GOAL_X_PREFIX = "{{X}} "
 
 
 def finalize_range(goal: str, suggested: list[int]) -> list[int]:
-    """Umbral uniforme → [N]; progresivos → 4 escalones e/m/l/n."""
+    """Umbral uniforme → [N]; SINGLE_VALUE_OK sin pad; resto → 4 escalones."""
     if not suggested:
         return suggested
     vals = _nondecreasing([int(x) for x in suggested])
     if len(set(vals)) == 1:
         return [vals[0]]
     if goal in SINGLE_VALUE_OK:
+        # No interpolar a 4; respetar la longitud ya curada (1..n < 4).
         return vals
     out = vals[:RANGE_LEN]
     while len(out) < RANGE_LEN:
@@ -1343,11 +1344,18 @@ def _process_one_objective_range(
         moons_by_goal=moons_by_goal,
         registry=registry,
     )
-    by_source[source] = by_source.get(source, 0) + 1
     if suggested is None:
+        by_source[source] = by_source.get(source, 0) + 1
         return 0
     suggested = finalize_range(goal, suggested)
     combined_obj = combined.get(goal) or {}
+    # Fijas / pocos escalones: Combined manda; no dejar que invent_* abra a 4 umbrales.
+    if goal in SINGLE_VALUE_OK:
+        keep = list(combined_obj.get("range") or obj.get("range") or [])
+        if keep:
+            suggested = finalize_range(goal, keep)
+            source = "single_value_ok"
+    by_source[source] = by_source.get(source, 0) + 1
     expected_prog = list(
         combined_obj.get("progression")
         or obj.get("progression")

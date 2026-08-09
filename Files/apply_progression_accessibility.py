@@ -7,13 +7,27 @@ los valores de range son equiprobables).
 
 Con lunas (grupo bingo mas especifico):
   Cada luna aporta la zona de su reino. Un solo reino → progression de frontera
-  (Sand/Lake e+m; Lost/Metro m+l; Seaside/Luncheon l+n; interiores 1 zona).
+    (Sand/Lake e+m; Lost/Metro m+l; Seaside/Luncheon l+n; interiores 1 zona).
   Multireino → zonas naturales cubiertas (sin forzar mas).
 
 len(range) NO determina cuantas progression hay: cuenta las zonas e/m/l/n
 con ≥1 reino en el pool de la goal. Ej.: Broodal Fights range [x,y,z] pero
 las 4 zonas → progression e,m,l,n. Activate Levers solo e+m → [e,m]
 aunque range tenga 4 umbrales (progressive_ranges reparte umbrales en esas zonas).
+
+Regla de producto (totales / moontype multi-reino):
+  Totales y agregados (Total Moons, All … Kingdoms, Large/Small Regional, …)
+  → siempre e,m,l,n.
+  Moontype (u otros pools) con reinos en las 4 zonas naturales → e,m,l,n,
+  independiente de len(range), salvo si el min(range) no cabe en Early
+  (Blocks / Outfit Door / Hint-Arts / Warp-Painting → m,l,n). Si solo cubren
+  2–3 zonas, progression = esas.
+  Prefijo de reino / puente frontera → 1–2 zonas (no forzar emln).
+  Overrides puntuales (Tourist, Minigame, Seeds, Warp-Painting, Lake Hint Art, …) ganan.
+
+Goals fijas (range de 1 valor) + puente 2+ zonas son validas e intencionales;
+no colapsar progression. Restricciones lockout + patron puente:
+  Bingos/README.md («Restricciones al crear una goal» / «Range vs progression»).
 
 Goals con lunas, 2 zonas naturales y 2+ reinos: range = acumulado por reino
 (orden historia), un umbral por reino.
@@ -145,14 +159,16 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     # Warp paintings: progression = reino de ENTRADA (outbound), no destino.
     # Cadena fija: Sand→Metro, Lake/Wooded→Sand|Luncheon, Snow/Seaside→Cascade,
     # Metro|Snow/Seaside→Lake|Wooded, Luncheon→Mushroom.
-    "Metro Warp-Painting Moon": ["e"],  # entra desde Sand
+    # Metro WP: entra desde Sand, pero requiere Night Sand → Mid (no Early).
+    "Metro Warp-Painting Moon": ["m"],
     "Sand Warp-Painting Moon": ["m"],  # entra desde Lake/Wooded (1º fork)
     "Luncheon Warp-Painting Moon": ["m"],  # entra desde Lake/Wooded (2º)
     "Cascade Warp-Painting Moon": ["l"],  # entra desde Snow/Seaside
     "Lake Warp-Painting Moon": ["l"],  # entra desde Metro o Snow/Seaside
     "Wooded Warp-Painting Moon": ["l"],  # entra desde Metro o Snow/Seaside
     "Mushroom Warp-Painting Moon": ["n"],  # entra desde Luncheon
-    # Techos por entrada: e=1 m=3 l=6 n=7 → rango [2,3,4] desde mid
+    # Techos por entrada: e=1 m=3 l=6 n=7 → rango [2,3,4] desde Mid (sin Early:
+    # primer warp usable en cadena Lake/Wooded → Sand|Luncheon).
     "{{X}} Warp-Painting Moons": ["m", "l", "n"],
     # Multireino a pie: todas las zonas aunque falten lunas en alguna (puente Rush).
     GOAL_MARIO_MOONS: ["e", "m", "l", "n"],
@@ -161,8 +177,10 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     GOAL_TOURIST_MOONS: ["l", "n"],
     # key: sand(e) + lost(l) + metro(l) + luncheon×2(n)
     "{{X}} Key Moon[[s]]": ["e", "m", "l", "n"],
-    # Mirar Hint-Arts (pinturas; sin contador Moon Get global).
+    # Mirar Hint-Arts: primeras en Lake/Wooded → sin Early (min 2).
     "Look at {{X}} Hint-Arts": ["m", "l", "n"],
+    # Hint Art de Lake: zona natural Mid (no puente e,m del reino).
+    "Lake Hint Art Moon": ["m"],
     # Seeds: NTT = plaza Sand (fijo 1); solo Early.
     # Seeds Planted: sin Endgame (no backtracking de semillas).
     "{{X}} Seed Moon (No Time Travel)": ["e"],
@@ -177,7 +195,9 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "Defeat Bowser in Cloud Kingdom": ["m"],
     "Defeat Madame Broode in Moon Kingdom": ["n"],
     "Defeat Ruined Dragon": ["n"],
-    "All Regional Coins in {{X}} Small Kingdom[[s]]": ["e", "m"],
+    # Totales / pools multi-reino que tocan las 4 zonas → siempre emln
+    # (da igual len(range)); weighting ~55. No restringir a e,m.
+    "All Regional Coins in {{X}} Small Kingdom[[s]]": ["e", "m", "l", "n"],
     # Lake + Seaside; disponible Mid→Endgame (Seaside empuja a n).
     "{{X}} Cheep Cheep Moons": ["m", "l", "n"],
     # Wooded + Lost + Seaside → Mid→Endgame.
@@ -186,13 +206,12 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     # Cascade + Wooded + Moon.
     "{{X}} Shiny Rock Moon[[s]]": ["e", "m", "n"],
     "Activate {{X}} Ground-Pound Switches": ["m", "l", "n"],
-    # Pools con pocas lunas early: el min(range) no cabe en e.
-    # Minigame: sand×1 en e/m; metro abre en Late. Incluir m como puente
-    # Rush/Mid→Late (como Glydon/Warp-Painting), no solo l/n.
+    # Minigame: sand×1; metro abre Late. m como puente Mid→Late (no emln:
+    # no hay reino Mid natural en el pool).
     "{{X}} Minigame Moons": ["m", "l", "n"],
-    # Blocks: sand×1; wooded×3 cubre min 3 → desde Mid.
+    # Blocks / Outfit total: hay Sand en Early, pero el min(range) solo se
+    # cubre desde Mid (Blocks ≥3 con Wooded; Outfit ≥2 con Lake/Wooded).
     "{{X}} Destructible Block Moons": ["m", "l", "n"],
-    # Outfit doors: sand×1; lake+wooded → cum 3 en Mid (min 2).
     "{{X}} Outfit Door Moons": ["m", "l", "n"],
 }
 

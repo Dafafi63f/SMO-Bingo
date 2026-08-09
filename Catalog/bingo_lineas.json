@@ -10,13 +10,13 @@
       "objectives": [
         {"goal": "{{X}} Warp-Painting Moons", "range": [2, 3, 4], "progression": ["m", "l", "n"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "Cascade Warp-Painting Moon", "progression": ["l"]},
-        {"goal": "Lake Hint Art Moon", "progression": ["e", "m"]},
+        {"goal": "Lake Hint Art Moon", "progression": ["m"]},
         {"goal": "Lake Warp-Painting Moon", "progression": ["l"]},
         {"goal": "Look at {{X}} Hint-Arts", "range": [2, 3, 4], "progression": ["m", "l", "n"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "Luncheon Hint Art Moon", "progression": ["l", "n"]},
         {"goal": "Luncheon Warp-Painting Moon", "progression": ["m"]},
         {"goal": "Metro Hint Art Moon", "progression": ["m", "l"]},
-        {"goal": "Metro Warp-Painting Moon", "progression": ["e"]},
+        {"goal": "Metro Warp-Painting Moon", "progression": ["m"]},
         {"goal": "Mushroom Warp-Painting Moon", "progression": ["n"]},
         {"goal": "Sand Warp-Painting Moon", "progression": ["m"]},
         {"goal": "Seaside Hint Art Moon", "progression": ["l", "n"]},
@@ -181,7 +181,7 @@
         {"goal": "{{X}} Lake Sub-Area Moons", "range": [2, 4], "progression": ["e", "m"], "individual_limit": 2, "progressive_ranges": true},
         {"goal": "{{X}} Lake Zipper Moons", "range": [2, 3], "progression": ["e", "m"], "progressive_ranges": true},
         {"goal": "Lake Captain Toad Moon", "progression": ["e", "m"]},
-        {"goal": "Lake Hint Art Moon", "progression": ["e", "m"]},
+        {"goal": "Lake Hint Art Moon", "progression": ["m"]},
         {"goal": "Lake Moon Rock", "progression": ["e", "m"]},
         {"goal": "Lake Outfit Door Moon", "progression": ["e", "m"]},
         {"goal": "Lake Shop Moon", "progression": ["e", "m"]},
@@ -272,7 +272,7 @@
         {"goal": "Metro Moon Rock", "progression": ["m", "l"]},
         {"goal": "Metro Shop Moon", "progression": ["m", "l"]},
         {"goal": "Metro Talkatoo", "progression": ["m", "l"]},
-        {"goal": "Metro Warp-Painting Moon", "progression": ["e"]}
+        {"goal": "Metro Warp-Painting Moon", "progression": ["m"]}
       ],
       "board": "metro",
       "limit_board": 10,
@@ -475,7 +475,7 @@
         {"goal": "{{X}} Total Regional Coins", "range": [75, 150, 225, 300], "progression": ["e", "m", "l", "n"], "progressive_ranges": true},
         {"goal": "{{X}} Wooded Regional Coins", "range": [50, 55, 60, 65], "progression": ["m"]},
         {"goal": "All Regional Coins in {{X}} Large Kingdom", "range": [1], "progression": ["e", "m", "l", "n"]},
-        {"goal": "All Regional Coins in {{X}} Small Kingdom[[s]]", "range": [1, 2], "progression": ["e", "m"], "progressive_ranges": true}
+        {"goal": "All Regional Coins in {{X}} Small Kingdom[[s]]", "range": [1, 2], "progression": ["e", "m", "l", "n"], "progressive_ranges": true}
       ],
       "board": "regionalcoins",
       "limit_board": 24,

@@ -5430,10 +5430,13 @@
       ],
       "progression": [
         "e",
-        "m"
+        "m",
+        "l",
+        "n"
       ],
       "progressive_ranges": true,
-      "orden": 207
+      "orden": 207,
+      "weighting": 55
     },
     {
       "goal": "Bowser Statue Moon",
@@ -5966,7 +5969,6 @@
         "smo/moonhintart.webp"
       ],
       "progression": [
-        "e",
         "m"
       ],
       "orden": 234
@@ -6437,7 +6439,7 @@
         "smo/moonpaintingmetro.webp"
       ],
       "progression": [
-        "e"
+        "m"
       ],
       "orden": 257
     },

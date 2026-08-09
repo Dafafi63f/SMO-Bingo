@@ -200,8 +200,9 @@ def format_step(values: list[int]) -> str:
 
 
 SINGLE_VALUE_OK = {
-    # Goals con umbral fijo: un valor en range[] (p. ej. [1]) o pocos escalones
-    # distintos (checkpoints). No interpolar a 4 umbrales distintos.
+    # Umbral fijo (len(range)==1) o pocos escalones: no interpolar a 4 umbrales.
+    # Incluye puentes mono-reino: range fijo + progression 2+ zonas (independientes).
+    # Ver Bingos/README.md → «Range vs progression (puentes)».
     "{{X}} Dog Moon[[s]]",
     "{{X}} Luncheon Volbonan Moons",
     "{{X}} Metro Taxi Moons",
@@ -218,6 +219,8 @@ SINGLE_VALUE_OK = {
     "{{X}} Moon Checkpoints",
     "{{X}} Lost Checkpoints",
     "{{X}} Lost Butterfly Moons",
+    "{{X}} Sand Story Moons",
+    "{{X}} Seaside Uproot Moons",
     "{{X}} Wooded Flower Road Moons",
     "All Regional Coins in {{X}} Large Kingdom",
 }
