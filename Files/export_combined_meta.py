@@ -1,6 +1,6 @@
 """Exports de metadata "plana" de Combined + remapeo de iconos unicos.
 
-Subcomandos (todos leen Combined y escriben en catalog/):
+Subcomandos (todos leen Combined y escriben en Catalog/):
   lineas       -> bingo_lineas.json (categorias board/line)
   icons        -> goal_icons.json (inventario iconos SMO)
   tooltips     -> goal_tooltips.json (tooltips unicos)
@@ -25,7 +25,6 @@ import json
 import urllib.error
 import urllib.request
 from collections import Counter, defaultdict
-from pathlib import Path
 
 from catalog_lib import (
     CATALOG_DIR,
@@ -134,9 +133,6 @@ def _build_lineas_group(
     line_goals: dict[str, list[str]],
     board_disabled: dict[str, list[str]],
     line_disabled: dict[str, list[str]],
-    board_limits: dict[str, int],
-    line_limits: dict[str, int],
-    pairs: dict[str, dict[str, str]],
     combined: dict,
 ) -> dict:
     active: list[str] = []
@@ -150,26 +146,12 @@ def _build_lineas_group(
     active = _uniq(active)
     disabled = _uniq([g for g in disabled if g not in set(active)])
 
-    group: dict = {
+    return {
         "id": gid,
         "orden": orden,
         "n_goals": len(active),
         "objectives": _lineas_group_objectives(active, disabled, combined),
     }
-    if board_key:
-        group["board"] = board_key
-        if board_key in board_limits:
-            group["limit_board"] = board_limits[str(board_key)]
-    if line_key:
-        group["line"] = line_key
-        if line_key in line_limits:
-            group["limit_line"] = line_limits[str(line_key)]
-    if disabled:
-        group["n_disabled"] = len(disabled)
-        group["goals_disabled"] = disabled
-    if gid in pairs:
-        group["pair"] = pairs[gid]
-    return group
 
 
 def export_lineas() -> None:
@@ -182,7 +164,7 @@ def export_lineas() -> None:
     board_goals, line_goals, board_disabled, line_disabled = _collect_lineas_goals(
         data.get("objectives") or []
     )
-    board_to, line_to, pairs = _pair_lookup()
+    board_to, line_to, _pairs = _pair_lookup()
     all_board = set(board_limits) | set(board_goals) | set(board_disabled)
     all_line = set(line_limits) | set(line_goals) | set(line_disabled)
     group_sides = _build_group_sides(all_board, all_line, board_to, line_to)
@@ -200,37 +182,89 @@ def export_lineas() -> None:
                 line_goals=line_goals,
                 board_disabled=board_disabled,
                 line_disabled=line_disabled,
-                board_limits=board_limits,
-                line_limits=line_limits,
-                pairs=pairs,
                 combined=combined,
             )
         )
 
-    catalog = {
+    goal_hits: Counter[str] = Counter()
+    for group in groups:
+        for obj in group.get("objectives") or []:
+            goal = str((obj or {}).get("goal") or "")
+            if goal:
+                goal_hits[goal] += 1
+    n_goals = len(goal_hits)
+    # En Combined: 1 board+1 line → 1 cat en este archivo; 2+2 → 2 cats.
+    # Totales de tags board+line impares (1/3/5) no deberían existir.
+    n_goals_1_cat = sum(1 for n in goal_hits.values() if n == 1)
+    n_goals_2_cats = sum(1 for n in goal_hits.values() if n == 2)
+    n_goals_bad_cats = sum(1 for n in goal_hits.values() if n not in (1, 2))
+
+    bad_parity: list[str] = []
+    for obj in data.get("objectives") or []:
+        if obj.get("disabled"):
+            continue
+        goal = str(obj.get("goal") or "")
+        if not goal:
+            continue
+        board = list(obj.get("board_categories") or [])
+        line = list(obj.get("line_categories") or [])
+        if sorted(board) != sorted(line) or len(board) not in (1, 2):
+            bad_parity.append(goal)
+
+    catalog: dict = {
         "_definition": (
-            "Inventario board/line de Combined: por cada categoria, "
-            "n_goals y objectives[] ({goal, range, progression}). "
-            "Cats/icons/tooltip → bingo_lineas (este archivo) / goal_icons / "
-            "goals_referencia. No son tags de luna ni pools de moons. "
-            "orden = 1..N tras ordenar por id (slug). "
-            "Cada cat existe en board y line (mismo slug)."
+            "Inventario de categorias board/line de Combined: por cada "
+            "categoria (id=slug), n_goals y objectives[] "
+            "({goal, range, progression, …}). Limits board/line → Combined.limits. "
+            "Icons/tooltip → goal_icons / goals_referencia. "
+            "orden = 1..N alfa por id."
         ),
         "_note": (
-            "Campos: id, orden (1..N alfa), n_goals, "
-            "objectives[{goal,range,progression,…}], board/line, "
-            "limit_board/limit_line, pair (si claves difieren), "
-            "n_disabled/goals_disabled. "
-            "objectives desactivados llevan disabled=true."
+            "Campos grupo: id, orden, n_goals, objectives[]. "
+            "Cabecera: n_goals = distintas; n_goals_1_cat = 1 board + 1 line "
+            "(misma cat aquí); n_goals_2_cats = 2 board + 2 line (2 cats). "
+            "No debería haber 1/3/5 tags board+line. "
+            "objectives desactivados llevan disabled=true. "
+            "Regenerar: python Files/export_combined_meta.py lineas"
         ),
         "n_categories": len(groups),
+        "n_goals": n_goals,
+        "n_goals_1_cat": n_goals_1_cat,
+        "n_goals_2_cats": n_goals_2_cats,
         "groups": groups,
     }
+    if n_goals_bad_cats or bad_parity:
+        catalog["n_goals_bad_cats"] = n_goals_bad_cats
+        if bad_parity:
+            catalog["goals_bad_board_line"] = sorted(bad_parity)
+        # Reordenar: bad flags antes de groups.
+        catalog = {
+            k: catalog[k]
+            for k in (
+                "_definition",
+                "_note",
+                "n_categories",
+                "n_goals",
+                "n_goals_1_cat",
+                "n_goals_2_cats",
+                "n_goals_bad_cats",
+                "goals_bad_board_line",
+                "groups",
+            )
+            if k in catalog
+        }
     write_catalog_json(LINEAS_OUT_JSON, catalog)
 
     print(
         f"Exportado: {LINEAS_OUT_JSON.relative_to(ROOT)} "
-        f"({len(groups)} categories)"
+        f"({len(groups)} categories, {n_goals} goals, "
+        f"1_cat={n_goals_1_cat} 2_cats={n_goals_2_cats}"
+        + (
+            f" BAD_cats={n_goals_bad_cats} BAD_parity={len(bad_parity)}"
+            if n_goals_bad_cats or bad_parity
+            else ""
+        )
+        + ")"
     )
 
 
@@ -339,10 +373,40 @@ def _build_icon_entries(
     return icons_out, goals_with_icon, n_unused
 
 
+def _goals_with_non_smo_icon(by_icon: dict[str, list[str]]) -> list[str]:
+    """Goals activas con ≥1 icono cuyo path no empieza por smo/."""
+    goals: set[str] = set()
+    for icon, gs in by_icon.items():
+        if str(icon).startswith("smo/"):
+            continue
+        goals.update(gs)
+    return _uniq(list(goals))
+
+
+def _count_goals_by_icon_arity(
+    objectives: list,
+) -> tuple[int, int]:
+    """(goals con exactamente 1 icon, goals con ≥2 icons); solo activas."""
+    n_one = 0
+    n_multi = 0
+    for obj in objectives:
+        if obj.get("disabled"):
+            continue
+        if not str(obj.get("goal") or ""):
+            continue
+        n = len([i for i in (obj.get("icons") or []) if i])
+        if n == 1:
+            n_one += 1
+        elif n >= 2:
+            n_multi += 1
+    return n_one, n_multi
+
+
 def export_icons() -> None:
     data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    objectives = data.get("objectives") or []
     by_icon, by_icon_disabled, no_icon, no_icon_disabled = _collect_icon_usage(
-        data.get("objectives") or []
+        objectives
     )
     used_icons = set(by_icon) | set(by_icon_disabled)
     official = fetch_official_smo_icons()
@@ -350,6 +414,8 @@ def export_icons() -> None:
     icons_out, goals_with_icon, n_unused = _build_icon_entries(
         all_icons, by_icon, by_icon_disabled
     )
+    non_smo_goals = _goals_with_non_smo_icon(by_icon)
+    n_one_icon, n_multi_icon = _count_goals_by_icon_arity(objectives)
 
     catalog: dict = {
         "_definition": (
@@ -362,13 +428,20 @@ def export_icons() -> None:
         "_note": (
             "Campos: icon, orden, n_goals, goals[]. "
             "n_disabled/goals_disabled si hay objectives desactivados. "
-            "n_official / n_used / n_unused = conteos. "
+            "n_official / n_used / n_unused = conteos de icons. "
+            "n_goals_with_icon = activas con ≥1 icon; "
+            "n_goals_one_icon + n_goals_multi_icon = n_goals_with_icon "
+            "(1 icon vs ≥2). "
+            "n_goals_non_smo = activas con ≥1 icono fuera de smo/. "
             "no_icon = goals Combined sin icons[]."
         ),
         "n_icons": len(icons_out),
         "n_used": len(used_icons),
         "n_unused": n_unused,
         "n_goals_with_icon": len(goals_with_icon),
+        "n_goals_one_icon": n_one_icon,
+        "n_goals_multi_icon": n_multi_icon,
+        "n_goals_non_smo": len(non_smo_goals),
         "icons": icons_out,
     }
     if official is not None:
@@ -389,7 +462,9 @@ def export_icons() -> None:
     print(
         f"Exportado: {ICONS_OUT_JSON.relative_to(ROOT)} "
         f"({len(icons_out)} icons, {len(used_icons)} used, "
-        f"{n_unused} unused, {shared} compartidos)"
+        f"{n_unused} unused, {shared} compartidos, "
+        f"goals one/multi/non_smo="
+        f"{n_one_icon}/{n_multi_icon}/{len(non_smo_goals)})"
     )
 
 
@@ -433,11 +508,10 @@ def export_tooltips() -> None:
         ),
         "_note": (
             "Campos tooltips[]: tooltip, n_goals (cuantas goals lo reusan). "
-            "n_unique / n_goals / n_missing = conteos."
+            "n_unique / n_goals = conteos."
         ),
         "n_unique": len(tips_out),
         "n_goals": n_goals,
-        "n_missing": len(no_tooltip),
         "tooltips": tips_out,
     }
     if no_tooltip:
@@ -514,6 +588,7 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Moon Rocks": "smo/moonrock.webp",
     "{{X}} Seaside Komboo Moons": "smo/souvenir6.webp",
     "Mushroom Warp-Painting Moon": "smo/moonpaintingmushroom.webp",
+    "Metro City Hall Moon": "smo/souvenir13.webp",  # New Donk City Hall Model
     "{{X}} Unique Captures": "smo/captures.webp",
     "{{X}} Cap Moons": "smo/mooncap.webp",
     "{{X}} Cascade Moons": "smo/mooncascade.webp",
@@ -613,6 +688,7 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "Call Jaxi from {{X}} Stand[[s]]": "smo/jaxicall.webp",
     "{{X}} Sand Jaxi Moons": "smo/souvenir3.webp",
     "Correct Wooded Sphynx Question": "smo/sphynxquestions.webp",
+    "Correct Moon Sphynx Question": "smo/sphynxquestions.webp",
     "{{X}} Sphynx Moons": "smo/sphynxquestions.webp",
     "{{X}} Timer Challenge Moons": "smo/moontimer.webp",
     "{{X}} Hidden Timer Moon[[s]]": "smo/moontimer.webp",

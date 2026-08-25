@@ -20,3 +20,5 @@ htmlcov/
 .scannerwork/
 *.swp
 *~
+_lockout_probe/
+Files/_lockout_chunks/

@@ -1,4 +1,4 @@
-"""Recalcula `range` de objectives en catalog/bingo_groups.json.
+"""Recalcula `range` de objectives en Catalog/bingo_groups.json.
 
 Inventa escalones e/m/l/n coherentes. Goals de umbral fijo usan un solo
 valor en range[] (p. ej. NTT [1]); los progresivos usan 4 escalones.
@@ -160,14 +160,13 @@ def effective_sub_area_pair_count(
 
 
 # Moons necesarios para alimentar la Odyssey y salir del reino (smo.wiki).
-# Cap/Moon/Cloud = 0 (sin peaje de salida).
+# Cap/Moon = 0 (sin peaje de salida). Boss Cloud Kingdom → lost.
 KINGDOM_EXIT_MOONS: dict[str, int] = {
     "cap": 0,
     "cascade": 5,
     "sand": 16,
     "lake": 8,
     "wooded": 16,
-    "cloud": 0,
     "lost": 10,
     "metro": 20,
     "snow": 10,
@@ -509,6 +508,17 @@ PAINTING_CHECKPOINT_PROGRESSION: dict[str, str] = {
     "mushroom": "n",
 }
 
+# Destino → Secret Path moon (disponibilidad = llegada vía pintura outbound).
+PAINTING_CHECKPOINT_MOON: dict[str, tuple[str, int]] = {
+    "cascade": ("cascade", 18),
+    "sand": ("sand", 62),
+    "lake": ("lake", 26),
+    "wooded": ("wooded", 49),
+    "metro": ("metro", 51),
+    "luncheon": ("luncheon", 47),
+    "mushroom": ("mushroom", 39),
+}
+
 # All Checkpoints: Secret Path / isla fuera de alcance (no hay “todos” jugables).
 ALL_CHECKPOINTS_EXCLUDED_KINGDOMS: frozenset[str] = frozenset(
     {"snow", "seaside", "bowser"}
@@ -521,6 +531,17 @@ ALL_CHECKPOINTS_EXCLUDED_KINGDOMS: frozenset[str] = frozenset(
 # (Waterfall Basin pre-story y Odyssey son el mismo CP).
 # Missables SMO (Mario Wiki): Cascade Waterfall Basin→Odyssey; Metro City Outskirts→Main St
 # y Construction Access→NDC Hall Plaza (bandera distinta pre/post story; CPs separados).
+# Metro Night (pre-Mechawiggler): obtenibles en noche → individuales lost/m.
+METRO_NIGHT_CHECKPOINT_NAMES: frozenset[str] = frozenset(
+    {
+        "City Outskirts",
+        "Construction Site",
+        "Construction Access",
+        "NDC Hall Rooftop",
+        "Heliport",
+    }
+)
+
 KINGDOM_CHECKPOINT_META: dict[str, dict] = {
     "cap": {"total": 2, "odyssey": False},
     "cascade": {"total": 5, "odyssey": True},
@@ -694,7 +715,7 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "Activate {{X}} Ground-Pound Switches": [2, 3, 4],  # 1 = Lost peaje
     "{{X}} Sand Story Moons": [2],  # #1 peaje historia
     "{{X}} Wooded Story Moons": [2],  # #1 Road to Sky Garden
-    "{{X}} Total Multi-Moons": [3, 6, 9],
+    "{{X}} Total Multi-Moons": [3, 6, 9, 12],
     "{{X}} Total Regional Coins": [75, 150, 225, 300],
     "{{X}} Deep Woods Regional Coins": [3, 6, 9],
     "{{X}} 8-Bit Regional Coins": [6, 12, 18, 24],
@@ -721,6 +742,7 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} NPC Moons": [2, 3, 4],
     "{{X}} Tourist Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Metro Girder Moon[[s]]": [1, 2, 3],
+    "{{X}} Metro Night Moons": [2, 4, 6],  # 5 noche + #51 Secret Path
     "{{X}} Cappy Moons": [3, 6, 9, 12],
     "{{X}} Fauna Moons": [3, 6, 9, 12],
     "{{X}} Flora Moons": [2, 4, 6, 8],
@@ -1310,6 +1332,11 @@ def _apply_suggested_range(
         obj["progressive_ranges"] = True
     else:
         obj.pop("progressive_ranges", None)
+    # Con 3+ umbrales: individual_limit=2. Con 1–2 umbrales no aplica.
+    if len(suggested) >= 3:
+        obj["individual_limit"] = 2
+    else:
+        obj.pop("individual_limit", None)
     if source == "invent_checkpoint" and gid in KINGDOM_COLUMNS:
         tip = checkpoint_tooltip_for(gid)
         if obj.get("tooltip") != tip:

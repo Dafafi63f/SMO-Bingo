@@ -35,7 +35,6 @@
         4,
         6
       ],
-      "individual_limit": 2,
       "board_categories": [
         "other",
         "subarea"
@@ -52,7 +51,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Destructible Block Moons",
@@ -60,7 +60,6 @@
         4,
         5
       ],
-      "individual_limit": 2,
       "board_categories": [
         "moontype",
         "other"
@@ -75,7 +74,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Golden Turnip Moons",
@@ -83,7 +83,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "luncheon",
         "moontype"
@@ -121,7 +120,8 @@
       ],
       "progression": [
         "n"
-      ]
+      ],
+      "individual_limit": 2
     },
     {
       "goal": "Purchase {{X}} Hats",
@@ -129,7 +129,6 @@
         7,
         8
       ],
-      "individual_limit": 2,
       "board_categories": [
         "other",
         "shopping"
@@ -146,7 +145,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "Purchase {{X}} Costume Sets",
@@ -174,7 +174,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Stickers",
@@ -209,7 +210,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Souvenirs",
@@ -217,7 +219,6 @@
         6,
         8
       ],
-      "individual_limit": 2,
       "board_categories": [
         "other",
         "shopping"
@@ -243,7 +244,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Shop Moons",
@@ -279,7 +281,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "storymoons"
       ],
@@ -301,7 +302,6 @@
         1,
         2
       ],
-      "individual_limit": 2,
       "board_categories": [
         "early",
         "storymoons"
@@ -317,7 +317,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Story Moon[[s]]",
@@ -342,7 +343,8 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Seaside Story Moon[[s]]",
@@ -367,7 +369,8 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Metro Story Moons",
@@ -392,7 +395,8 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Total Story Moons",
@@ -418,7 +422,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Luncheon Multi-Moon[[s]]",
@@ -446,7 +451,6 @@
         1,
         2
       ],
-      "individual_limit": 2,
       "board_categories": [
         "early",
         "multimoons"
@@ -462,7 +466,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Multi-Moon[[s]]",
@@ -470,7 +475,6 @@
         1,
         2
       ],
-      "individual_limit": 2,
       "board_categories": [
         "early",
         "multimoons"
@@ -486,7 +490,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Multi-Moon[[s]]",
@@ -538,7 +543,6 @@
         1,
         2
       ],
-      "individual_limit": 2,
       "board_categories": [
         "mid",
         "multimoons"
@@ -554,7 +558,8 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Total Multi-Moon[[s]]",
@@ -562,7 +567,6 @@
         5,
         6
       ],
-      "individual_limit": 2,
       "board_categories": [
         "multimoons",
         "other"
@@ -579,7 +583,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "All Multi-Moons in {{X}} Kingdoms",
@@ -603,7 +608,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Cap Moons",
@@ -627,7 +633,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Cascade Moons",
@@ -652,7 +660,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sand Moons",
@@ -679,7 +689,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lake Moons",
@@ -704,7 +716,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Moons",
@@ -728,7 +742,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lost Moons",
@@ -753,7 +769,9 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Metro Moons",
@@ -779,7 +797,9 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Moons",
@@ -804,7 +824,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Seaside Moons",
@@ -829,7 +851,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Moons",
@@ -865,7 +889,6 @@
         4,
         6
       ],
-      "individual_limit": 2,
       "board_categories": [
         "cap",
         "early",
@@ -882,7 +905,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Cascade Sub-Area Moons",
@@ -908,7 +932,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sand Sub-Area Moons",
@@ -934,7 +959,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Luncheon Sub-Area Moons",
@@ -966,7 +992,6 @@
         2,
         4
       ],
-      "individual_limit": 2,
       "board_categories": [
         "early",
         "lake",
@@ -983,7 +1008,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Sub-Area Moons",
@@ -1009,7 +1035,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Metro Sub-Area Moons",
@@ -1035,7 +1062,8 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Seaside Sub-Area Moons",
@@ -1060,7 +1088,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sub-Area Moons",
@@ -1075,7 +1105,7 @@
         22,
         24
       ],
-      "individual_limit": 3,
+      "individual_limit": 2,
       "board_categories": [
         "other",
         "subarea"
@@ -1189,7 +1219,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lake Checkpoints",
@@ -1213,7 +1244,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Checkpoints",
@@ -1237,7 +1269,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lost Checkpoints",
@@ -1284,7 +1317,8 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Checkpoints",
@@ -1331,7 +1365,8 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Cap Regional Coins",
@@ -1357,7 +1392,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Cascade Regional Coins",
@@ -1383,7 +1420,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sand Regional Coins",
@@ -1410,7 +1449,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Luncheon Regional Coins",
@@ -1434,7 +1475,8 @@
       ],
       "progression": [
         "n"
-      ]
+      ],
+      "individual_limit": 2
     },
     {
       "goal": "{{X}} Lake Regional Coins",
@@ -1461,7 +1503,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Regional Coins",
@@ -1488,7 +1532,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lost Regional Coins",
@@ -1514,7 +1560,9 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Metro Regional Coins",
@@ -1541,7 +1589,9 @@
       "progression": [
         "m",
         "l"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Regional Coins",
@@ -1567,7 +1617,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Seaside Regional Coins",
@@ -1594,7 +1646,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Total Regional Coins",
@@ -1617,7 +1671,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Total Regional Coins",
@@ -1640,7 +1696,9 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "All Regional Coins in {{X}} Small Kingdom[[s]]",
@@ -1709,7 +1767,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Luncheon Outfit Door Moon",
@@ -1885,7 +1944,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "Cap Captain Toad Moon",
@@ -2077,7 +2137,8 @@
         "l",
         "n"
       ],
-      "progressive_ranges": true
+      "progressive_ranges": true,
+      "individual_limit": 2
     },
     {
       "goal": "{{X}} Nut Moons",
@@ -2102,7 +2163,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "Call Jaxi from {{X}} Stand[[s]]",
@@ -2126,7 +2189,9 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Lake Seed[[s]] Planted",
@@ -2174,7 +2239,8 @@
         "l",
         "n"
       ],
-      "progressive_ranges": true
+      "progressive_ranges": true,
+      "individual_limit": 2
     },
     {
       "goal": "{{X}} Seed Moon (No Time Travel)",
@@ -2203,7 +2269,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "moontype",
         "other"
@@ -2218,7 +2283,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Slots Moons",
@@ -2341,7 +2407,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Correct Sphynx Questions",
@@ -2349,7 +2416,6 @@
         6,
         8
       ],
-      "individual_limit": 2,
       "board_categories": [
         "miscellaneous",
         "other"
@@ -2477,7 +2543,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "moontype",
         "other"
@@ -2492,7 +2557,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Deep Woods Moons",
@@ -2515,7 +2581,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Goomba Moon[[s]]",
@@ -2539,7 +2606,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooden Crate Moons",
@@ -2547,7 +2615,6 @@
         3,
         4
       ],
-      "individual_limit": 2,
       "board_categories": [
         "moontype",
         "other"
@@ -2587,7 +2654,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Unique Captures",
@@ -2731,7 +2799,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "early",
         "moontype",
@@ -2747,7 +2814,8 @@
       "progression": [
         "e",
         "m"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Seaside Ground Pound Moons",
@@ -2773,7 +2841,8 @@
       "progression": [
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Luncheon Ground Pound Moons",
@@ -2820,7 +2889,8 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Broodal Fights",
@@ -2882,7 +2952,6 @@
         2,
         3
       ],
-      "individual_limit": 2,
       "board_categories": [
         "moontype",
         "other"
@@ -3051,7 +3120,9 @@
         "m",
         "l",
         "n"
-      ]
+      ],
+      "individual_limit": 2,
+      "progressive_ranges": true
     }
   ],
   "limits": {

@@ -17,13 +17,11 @@ Usage:
 """
 from __future__ import annotations
 
-import json
 import re
 import time
 import urllib.request
 from collections import Counter
 from html import unescape
-from pathlib import Path
 
 from catalog_lib import (
     ALLOW_CAPTURES_AND_CAPPY,

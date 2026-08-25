@@ -9,14 +9,17 @@ Reglas:
     la misma. Si cada luna pide captura distinta (p. ej. BB + Goomba en
     Underground Temple), no se unifican. Tipos (8bit, chest, shards…) no
     se copian entre el par.
-  - Lista las 52 capturas in-game (wiki). Acceso/transporte (Mini Rocket,
+  - Lista las capturas in-game in-scope (sin Picture Match / postgame Bowser,
+    Letter, Puzzle Metro, Yoshi). Acceso/transporte (Mini Rocket,
     Taxi, Manhole, Pole): moons del grupo bingo se anexan aqui aunque el
     contenido tematico sea otra captura (p. ej. Fog = Paragoomba + Mini
     Rocket; High-Rise = Mini Rocket + Pole). Rocket Flower no es captura
     wiki. goal=true solo si cuentan para la goal Combined de esa fila.
-  - Fire Bro + Hammer Bro: filas distintas (wiki); goals Combined separadas.
-    Unique Captures las cuenta como una (merge_into).
-  - Capturas especiales (cactus, tree, meat, bowser statue…): tipo=especial.
+  - Fire Bro + Hammer Bro: filas y goals Combined distintas; Unique Captures
+    también las cuenta por separado.
+  - Capturas especiales (``special``): ≤2 lunas asignadas (Meat, Boulder,
+    Fire Bro, RC Car, capturas Moon…). Excepción: Binoculars (muchas
+    ubicaciones; no special). Transporte no usa special. tipo=especial.
   - Normales con < CAPTURE_TAG_MIN lunas: tipo=minoritaria (solo `captures`).
   - Normales con ≥ CAPTURE_TAG_MIN: tipo=normal (tag concreta / moon_tag).
   - CAPTURE_NO_CONCRETE_TAGS (p. ej. Moe-Eye n=3): tipo=minoritaria pese al
@@ -29,7 +32,7 @@ Reglas:
     fila (union de pools bingo_groups). Sin goal propia → todas false
     (p. ej. Meat, Broode's).
 
-Salida: catalog/capturas_lunas.json (formato tipo bingo_groups / goals_referencia).
+Salida: Catalog/capturas_lunas.json (formato tipo bingo_groups / goals_referencia).
 
 Usage:
   python export_capturas_lunas.py
@@ -39,7 +42,6 @@ from __future__ import annotations
 import re
 import time
 from collections import defaultdict
-from pathlib import Path
 
 from catalog_lib import (
     BINGO_GROUPS_PATH,
@@ -53,7 +55,7 @@ from catalog_lib import (
     build_matrix_moon_registry,
     enrich_moon_ref_odyssey,
     group_moons,
-    load_catalog,
+    load_bingo_groups,
     load_combined_objectives_by_goal,
     load_sub_area_levels,
     objective_ref_from_combined,
@@ -63,8 +65,8 @@ from fill_captures_cappy import MARIOWIKI_URLS, fetch, parse_mariowiki_table
 
 OUT_JSON = CATALOG_DIR / "capturas_lunas.json"
 
-# Lista in-game. postgame=True → fuera del CSV salvo que haya lunas in-scope.
-# reinos_juego: donde puede aparecer la captura (no solo el primer encuentro).
+# Lista in-game in-scope (sin postgame / Picture Match).
+# reinos: donde puede aparecer la captura (no solo el primer encuentro).
 CAPTURE_LIST: list[dict] = [
     {"id": 1, "name": "Frog", "reinos": ["cap"], "postgame": False},
     {"id": 2, "name": "Spark pylon", "reinos": ["cap", "metro", "bowser", "moon"], "postgame": False},
@@ -77,15 +79,15 @@ CAPTURE_LIST: list[dict] = [
     {"id": 8, "name": "Binoculars", "reinos": [
         "sand", "cap", "cascade", "lake", "wooded", "lost",
         "metro", "seaside", "luncheon", "bowser", "moon",
-    ], "postgame": False, "special": True},
-    # Binoculars: 0 lunas. Primer reino = sand (3 ubicaciones). Conteos:
+    ], "postgame": False},
+    # Binoculars: excepción a special pese a 0 lunas (muchas ubicaciones; lista binoculars).
+    # Primer reino = sand (3 ubicaciones). Conteos:
     # cap1 cascade1 sand3 | lake1 wooded2 lost1 | metro1 snow0 seaside≥3
     # | luncheon1 bowser1 moon1 → techos e/m/l/n=5/9/13/16 → rango [3,5,7,9].
     {"id": 9, "name": "Bullet Bill", "reinos": ["sand", "metro"], "postgame": False},
     {"id": 10, "name": "Moe-Eye", "reinos": ["sand"], "postgame": False},
-    # Cactus: sand#36+#40 (goal Cactus/Tree con Tree wooded#34). No special:
-    # enforce_special_single_moon dejaría solo 1 luna.
-    {"id": 11, "name": "Cactus", "reinos": ["sand"], "postgame": False},
+    # Cactus = Tree (goal Cactus/Tree); ≤2 lunas → special.
+    {"id": 11, "name": "Cactus", "reinos": ["sand"], "postgame": False, "special": True},
     {"id": 12, "name": "Goomba", "reinos": ["sand", "wooded", "snow", "seaside", "luncheon", "bowser"], "postgame": False},
     {"id": 13, "name": "Knucklotec's Fist", "reinos": ["sand"], "postgame": False, "special": True},
     {"id": 14, "name": "Mini Rocket", "reinos": ["sand", "wooded", "metro", "seaside"], "postgame": False, "transport": True},
@@ -97,28 +99,26 @@ CAPTURE_LIST: list[dict] = [
     {"id": 20, "name": "Poison Piranha Plant", "reinos": ["wooded"], "postgame": False, "special": True},
     # Poison Piranha: 0 lunas → Capture Poison Piranha Plant (Wooded).
     {"id": 21, "name": "Uproot", "reinos": ["wooded", "seaside"], "postgame": False},
-    # Fire Bro: fila propia (wiki). Unique Captures fusiona con Hammer Bro.
-    {"id": 22, "name": "Fire Bro", "reinos": ["wooded", "luncheon"], "postgame": False, "merge_into": 39},
+    {"id": 22, "name": "Fire Bro", "reinos": ["wooded", "luncheon"], "postgame": False, "special": True},
     {"id": 23, "name": "Sherm", "reinos": ["wooded", "metro"], "postgame": False},
     {"id": 24, "name": "Coin Coffer", "reinos": ["wooded"], "postgame": False, "special": True},
     {"id": 25, "name": "Tree", "reinos": ["wooded"], "postgame": False, "special": True},
     {"id": 26, "name": "Boulder", "reinos": ["wooded"], "postgame": False, "special": True},
     # Boulder: 0 lunas (Deep Woods) → Capture Boulder (Wooded).
-    {"id": 27, "name": "Picture Match Part (Goomba)", "reinos": ["cloud"], "postgame": True, "special": True},
     {"id": 28, "name": "Tropical Wiggler", "reinos": ["lost"], "postgame": False},
     {"id": 29, "name": "Pole", "reinos": ["metro", "wooded"], "postgame": False, "transport": True},
     # Pole: barras → swinging_pole (como Mini Rocket/Taxi/Manhole).
     {"id": 30, "name": "Manhole", "reinos": ["metro"], "postgame": False, "transport": True},
     # Manhole: acceso sub_area; goal Metro Manhole Moons.
     {"id": 31, "name": "Taxi", "reinos": ["metro"], "postgame": False, "transport": True},
-    {"id": 32, "name": "RC Car", "reinos": ["metro"], "postgame": False},
-    {"id": 33, "name": "Ty-foo", "reinos": ["snow"], "postgame": False, "special": True},
-    {"id": 34, "name": "Shiverian Racer", "reinos": ["snow"], "postgame": False},
+    {"id": 32, "name": "RC Car", "reinos": ["metro"], "postgame": False, "special": True},
+    {"id": 33, "name": "Ty-foo", "reinos": ["snow"], "postgame": False},
+    {"id": 34, "name": "Shiverian Racer", "reinos": ["snow"], "postgame": False, "special": True},
     # Cheep Cheep nieve: 0 Moon Get in-scope → Capture Snow Cheep Cheep (como Boulder).
     {"id": 35, "name": "Cheep Cheep (Snow Kingdom)", "reinos": ["snow"], "postgame": False, "special": True},
     {"id": 36, "name": "Gushen", "reinos": ["seaside"], "postgame": False},
     {"id": 37, "name": "Lava Bubble", "reinos": ["luncheon"], "postgame": False},
-    {"id": 38, "name": "Volbonan", "reinos": ["luncheon"], "postgame": False},
+    {"id": 38, "name": "Volbonan", "reinos": ["luncheon"], "postgame": False, "special": True},
     {"id": 39, "name": "Hammer Bro", "reinos": ["luncheon"], "postgame": False},
     {"id": 40, "name": "Meat", "reinos": ["luncheon"], "postgame": False, "special": True},
     # Meat: luncheon#3 Big Pot; solo Unique Captures (sin Capture Meat).
@@ -128,29 +128,17 @@ CAPTURE_LIST: list[dict] = [
     {"id": 43, "name": "Jizo", "reinos": ["bowser"], "postgame": False},
     {"id": 44, "name": "Bowser statue", "reinos": ["moon"], "postgame": False, "special": True},
     {"id": 45, "name": "Parabones", "reinos": ["moon"], "postgame": False, "special": True},
-    # Banzai Bill: #11+#13 (goal). No special: enforce_special_single_moon dejaría 1.
-    {"id": 46, "name": "Banzai Bill", "reinos": ["moon"], "postgame": False},
+    # Moon Kingdom: capturas exclusivas = special (Banzai Bill 2 lunas curated).
+    {"id": 46, "name": "Banzai Bill", "reinos": ["moon"], "postgame": False, "special": True},
     {"id": 47, "name": "Chargin' Chuck", "reinos": ["moon"], "postgame": False, "special": True},
     # Chargin' Chuck: 0 lunas → Capture Chargin' Chuck (Moon).
-    {"id": 48, "name": "Bowser", "reinos": ["moon"], "postgame": True, "special": True},
-    {"id": 49, "name": "Letter", "reinos": ["metro"], "postgame": True, "special": True},
-    {"id": 50, "name": "Puzzle Part (Metro Kingdom)", "reinos": ["metro"], "postgame": True, "special": True},
-    {"id": 51, "name": "Picture Match Part (Mario)", "reinos": ["mushroom"], "postgame": True, "special": True},
-    {"id": 52, "name": "Yoshi", "reinos": ["mushroom"], "postgame": True, "special": True},
 ]
 
 CAPTURE_BY_ID = {c["id"]: c for c in CAPTURE_LIST}
 SPECIAL_CAPTURE_IDS = {c["id"] for c in CAPTURE_LIST if c.get("special")}
-# Capturas wiki que Unique Captures cuenta como una (p. ej. Fire+Hammer Bro).
-# El JSON de capturas lista ambas filas; solo la lista Unique Captures fusiona.
-CAPTURE_MERGE_INTO: dict[int, int] = {
-    int(c["id"]): int(c["merge_into"])
-    for c in CAPTURE_LIST
-    if c.get("merge_into") is not None
-}
-CAPTURE_MERGE_DISPLAY: dict[int, str] = {
-    39: "Fire/Hammer Bro",
-}
+# Compat: ya no hay merges wiki→Unique (Fire/Hammer Bro van separados).
+CAPTURE_MERGE_INTO: dict[int, int] = {}
+CAPTURE_MERGE_DISPLAY: dict[int, str] = {}
 
 # Goal Combined dedicada por captura (CSV columna objetivo). Cerrado por ahora.
 CAPTURE_OBJECTIVE: dict[int, str] = {
@@ -307,6 +295,9 @@ EXCLUDE_PRIMARY: set[tuple[str, int]] = {
     ("metro", 43),  # Rotating Maze: Manhole = acceso
     ("metro", 44),
     ("sand", 13),  # On the Lone Pillar: sin captura
+    # BB opcional (wiki dice "capture Bullet Bill"); tag/goal = mario, no bullet_bill.
+    ("sand", 7),   # On the Leaning Pillar
+    ("sand", 11),  # On Top of the Stone Archway
     ("snow", 24),  # Rocket Flower dash (transporte/plataformas)
     ("snow", 25),
     # Cheep Cheep / Lava Bubble: lake#3 Crossing = transporte.
@@ -529,10 +520,13 @@ def attach_group_capture_moons(
     """
     if not BINGO_GROUPS_PATH.exists():
         return
-    name_to_id = {str(c["name"]): int(c["id"]) for c in CAPTURE_LIST}
-    for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
+    # Meta `capture` vive en specs; load_bingo_groups() la reinyecta.
+    name_to_id = {
+        str(c["name"]).casefold(): int(c["id"]) for c in CAPTURE_LIST
+    }
+    for group in load_bingo_groups():
         cap_name = str(group.get("capture") or "")
-        cap_id = name_to_id.get(cap_name)
+        cap_id = name_to_id.get(cap_name.casefold())
         if cap_id is None:
             continue
         existing = _existing_keys_from_labels(by_capture.get(cap_id, []))
@@ -546,7 +540,7 @@ def enforce_special_single_moon(
     _registry: dict[tuple[str, int], dict],
     moon_to_capture: dict[tuple[str, int], int],
 ) -> None:
-    """Capturas especiales: como mucho 1 luna (preferir curated)."""
+    """Capturas ``special``: ≤1 luna auto; si hay varias curated, se conservan todas."""
     by_cap: dict[int, list[tuple[str, int]]] = defaultdict(list)
     for key, cap_id in moon_to_capture.items():
         if cap_id in SPECIAL_CAPTURE_IDS:
@@ -555,9 +549,14 @@ def enforce_special_single_moon(
         if len(keys) <= 1:
             continue
         curated = [k for k in keys if CURATED_PRIMARY.get(k) == cap_id]
-        keep = curated[0] if curated else min(keys, key=lambda k: (k[0], k[1]))
+        if len(curated) > 1:
+            keep = set(curated)
+        elif curated:
+            keep = {curated[0]}
+        else:
+            keep = {min(keys, key=lambda k: (k[0], k[1]))}
         for k in keys:
-            if k != keep:
+            if k not in keep:
                 del moon_to_capture[k]
 
 
@@ -700,7 +699,7 @@ def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
         return {}
     pools: dict[str, set[tuple[str, int]]] = {}
     pool_only: dict[str, set[tuple[str, int]]] = {}
-    for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
+    for group in load_bingo_groups():
         goals = _group_goal_names(group)
         if not goals:
             continue
@@ -733,8 +732,10 @@ def goals_for_capture_row(cap_id: int, cap_name: str) -> list[str]:
         seen.add(primary)
     if not BINGO_GROUPS_PATH.exists():
         return ordered
-    for group in load_catalog(BINGO_GROUPS_PATH).get("groups", []):
-        if str(group.get("capture") or "") != cap_name:
+    # capture no se persiste en bingo_groups.json → load_bingo_groups().
+    want = cap_name.casefold()
+    for group in load_bingo_groups():
+        if str(group.get("capture") or "").casefold() != want:
             continue
         for o in group.get("objectives") or []:
             goal = str(o.get("goal") or "")
@@ -1036,20 +1037,26 @@ def _build_capture_row(
         "n_objectives": len(objectives),
         "n_moons": len(moons),
         "n_goal_moons": n_goal_moons,
-        "objectives": objectives,
-        "moons": moons,
     }
-    if kingdoms_found:
-        row["kingdom"] = kingdoms_found[0]
-    if tipo == "normal":
-        row["moon_tag"] = moon_tag_for(str(meta["name"]))
     if int(cap_id) == 8:
         from goal_list_lib import curated_list
 
         lista = curated_list("binoculars")
-        row["pool"] = "lista"
         row["n_lista"] = len(lista)
+        if kingdoms_found:
+            row["kingdom"] = kingdoms_found[0]
+        row["pool"] = "lista"
+        row["objectives"] = objectives
         row["lista"] = lista
+        row["moons"] = moons
+        return row
+
+    if kingdoms_found:
+        row["kingdom"] = kingdoms_found[0]
+    if tipo == "normal":
+        row["moon_tag"] = moon_tag_for(str(meta["name"]))
+    row["objectives"] = objectives
+    row["moons"] = moons
     return row
 
 
@@ -1061,7 +1068,7 @@ def _print_capturas_summary(
     print(f"\nExportado: {OUT_JSON.relative_to(ROOT).as_posix()}")
     print(
         f"Capturas listadas: {len(rows)} "
-        f"(wiki={len(CAPTURE_LIST)}; transporte/postgame incluidos)"
+        f"(wiki={len(CAPTURE_LIST)}; transporte incluidos)"
     )
     print(f"Lunas asignadas: {len(moon_to_capture)}")
     vacias = sum(1 for r in rows if int(r["n_moons"]) == 0)
@@ -1106,26 +1113,39 @@ def main() -> None:
 
     n_with_moons = sum(1 for r in rows if int(r["n_moons"]) > 0)
     n_with_goal = sum(1 for r in rows if int(r["n_objectives"]) > 0)
+    n_blank_moons = sum(1 for r in rows if int(r["n_moons"]) == 0)
+    n_blank_goal = sum(1 for r in rows if int(r["n_objectives"]) == 0)
+    n_blank_both = sum(
+        1
+        for r in rows
+        if int(r["n_moons"]) == 0 and int(r["n_objectives"]) == 0
+    )
     payload = {
         "_definition": (
             "Capturas in-game (wiki) con lunas in-scope asignadas. "
             "Formato alineado con bingo_groups / goals_referencia: "
-            "id (wiki), capture, tipo, kind, n_objectives, n_moons, n_goal_moons, "
-            "objectives[{goal,range,progression,…}], moons[{kingdom,moon,name,goal}], kingdom "
-            "(primer reino; el resto se ve en moons/lista), "
-            "moon_tag si tipo=normal. moons[].goal=true si la luna cuenta para "
-            "alguna goal Combined de la captura (union de pools); false si solo "
-            "es captura tematica / sin goal propia. Una captura puede listar "
-            "2+ goals (Pokio + Pokio Hole). Acceso/transporte: moons del grupo "
-            "bingo anexadas (pueden repetir en captura de contenido; "
-            "Rocket Flower no es captura). Binoculars: pool=lista + lista[] "
-            "(ubicaciones). Una captura principal por luna. "
-            "tipo=normal|especial|minoritaria|transporte|postgame."
+            "id (wiki), capture, tipo, kind, n_objectives, n_moons, n_goal_moons "
+            "[, n_lista], kingdom, moon_tag (si normal), pool (si lista), "
+            "objectives[], lista[] (Binoculars), moons[] al final "
+            "[{kingdom,moon,name,disponibilidad,goal}]. "
+            "moons[].goal=true si la luna cuenta para alguna goal Combined de la "
+            "captura (union de pools); false si solo es captura tematica / sin "
+            "goal propia. Una captura puede listar 2+ goals (Pokio + Pokio Hole). "
+            "Acceso/transporte: moons del grupo bingo anexadas (pueden repetir "
+            "en captura de contenido; Rocket Flower no es captura). "
+            "Binoculars: pool=lista + lista[] (ubicaciones) antes de moons[]. "
+            "Una captura principal por luna. "
+            "tipo=normal|especial|minoritaria|transporte|postgame. "
+            "Contadores: n_blank_moons / n_blank_goal / n_blank_both = sin moons[], "
+            "sin objectives[], o ambos vacíos."
         ),
         "_note": "Regenerar con export_capturas_lunas.py o regenerate_all.py.",
         "n_captures": len(rows),
         "n_with_moons": n_with_moons,
         "n_with_goal": n_with_goal,
+        "n_blank_moons": n_blank_moons,
+        "n_blank_goal": n_blank_goal,
+        "n_blank_both": n_blank_both,
         "captures": rows,
     }
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)

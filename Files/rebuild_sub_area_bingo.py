@@ -13,8 +13,8 @@ Deep Woods, Secret Flower Field, Snowline Circuit y zonas hielo de Sand
 NO son sub_area: deep_woods / bloom_flower / sand_ice / shiverian_racer
 (o no aplica).
 
-Los pares Level (para capturas) se escriben en catalog/goal_lists.json
-(sub_area_levels dentro de lists), no en el grupo bingo.
+Los pares Level (para capturas) se escriben en Files/sub_area_levels_data.py,
+no en goal_lists ni en el grupo bingo.
 
 Usage:
   python rebuild_sub_area_bingo.py
@@ -29,7 +29,6 @@ from html import unescape
 
 from catalog_lib import (
     BINGO_GROUPS_PATH,
-    CATALOG_DIR,
     KINGDOM_COLUMNS,
     KINGDOM_DISPLAY,
     assign_bingo_group_orden,
@@ -39,11 +38,12 @@ from catalog_lib import (
     normalize_bingo_group,
     objective_ref_from_combined,
     write_catalog_json,
+    write_sub_area_levels_data,
 )
 from export_lunas_tags import export_lunas
+from goal_list_lib import LISTS_PATH, load_goal_lists, write_goal_lists
 
 OUT_GROUPS = BINGO_GROUPS_PATH
-GOAL_LISTS_PATH = CATALOG_DIR / "goal_lists.json"
 
 SMO_PAGES: dict[str, str] = {
     "cap": "Cap_Kingdom",
@@ -345,24 +345,20 @@ def _process_kingdom_levels(
 
 
 def _write_sub_area_goal_lists(levels: list[dict]) -> None:
-    lists_data = load_catalog(GOAL_LISTS_PATH) if GOAL_LISTS_PATH.exists() else {}
+    """Persiste pares Level en sub_area_levels_data.py (no goal_lists)."""
+    write_sub_area_levels_data(levels)
+    # Por si quedó lists.sub_area_levels legado en goal_lists.json.
+    if not LISTS_PATH.exists():
+        return
+    lists_data = load_goal_lists()
     lists = dict(lists_data.get("lists") or {})
+    if "sub_area_levels" not in lists:
+        return
     lists.pop("sub_area_levels", None)
-    lists["sub_area_levels"] = levels  # al final
-    lists_data["lists"] = lists
-    lists_data["n_lists"] = len(lists)
-    lists_data["n_items"] = sum(len(v) for v in lists.values() if isinstance(v, list))
+    lists_data["lists"] = {k: lists[k] for k in sorted(lists.keys())}
     lists_data.pop("n_sub_area_levels", None)
-    lists_data.pop("sub_area_levels", None)  # no top-level
-    ordered_lists = {
-        k: lists_data[k]
-        for k in ("_note", "_definition", "n_lists", "n_items", "lists")
-        if k in lists_data
-    }
-    for k, v in lists_data.items():
-        if k not in ordered_lists:
-            ordered_lists[k] = v
-    write_catalog_json(GOAL_LISTS_PATH, ordered_lists)
+    lists_data.pop("sub_area_levels", None)
+    write_goal_lists(lists_data)
 
 
 def _sync_sub_area_groups(
@@ -385,8 +381,8 @@ def _sync_sub_area_groups(
             f"{len(levels)} zonas / {len(moon_refs)} lunas (guía bingo, pares). "
             "Ruined Roulette Tower incluido. Sin Sky Garden / Power Plant / "
             "barreras Snow / Volcano Cave. Ice Cave solo sand_ice (no Sub-Area). "
-            "Sin #28 Blowing (Ty-Foo). Pares Level en catalog/goal_lists.json "
-            "(lists.sub_area_levels)."
+            "Sin #28 Blowing (Ty-Foo). Pares Level en "
+            "Files/sub_area_levels_data.py."
         ),
         _definition=(
             "Bingo Sub-Area Moons: niveles de la guía (pares Level). "

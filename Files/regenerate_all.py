@@ -8,9 +8,13 @@ Cuándo:
   Tras cambios en Combined, progressions, ranges, grupos, tags o lunas.
   Al terminar una tarea de catálogo, lanzar esto antes de darla por cerrada.
   No asumir que un export puntual basta.
+  Si el usuario pide cambios en goals_referencia: corregir Combined /
+  goal_lists / specs y regenerar (es revisión, no fuente).
+  Si pide cambios de zone/ubicación: editar Catalog/zonas_reino.json
+  (fuente de zone; el export preserva zone al regenerar).
 
 Por qué:
-  El workflow habitual mira catalog/bingo_groups.json. Si solo se actualiza
+  El workflow habitual mira Catalog/bingo_groups.json. Si solo se actualiza
   Combined u un export suelto, los grupos se quedan desfasados.
   Combined es la fuente de verdad: el sync de grupos sobrescribe
   range/progression/etc. obsoletos del JSON de grupos.
@@ -23,13 +27,16 @@ Qué hace (en orden):
      (objectives[] siempre regeneradas desde Combined activo; al final
      ordena Combined {{X}}+alfa + campo orden 1..N)
   4. export_combined_meta.py all → bingo_lineas / goal_icons / goal_tooltips
-  5. export_capturas_lunas.py → catalog/capturas_lunas.json
-  6. export_lunas_tags.py --lunas-only → catalog/lunas-objetivos.json (+ .csv)
-  7. export_goals_referencia.py → catalog/goals_referencia.json
-  8. export_lunas_tags.py --tags-only → catalog/tags_inventario.json
+  5. export_capturas_lunas.py → Catalog/capturas_lunas.json
+  6. export_lunas_tags.py --lunas-only → Catalog/lunas-objetivos.json (+ .csv)
+  7. export_goals_referencia.py → Catalog/goals_referencia.json
+  8. export_goals_individuales.py → Catalog/goals_individuales.json
+  9. export_zonas_reino.py → Catalog/zonas_reino.json (+ zonas_inventario.json)
+ 10. export_lunas_tags.py --tags-only → Catalog/tags_inventario.json
      (goals[] por tag desde pools de goals_referencia)
-  9. Re-export lunas + goals_referencia (tags nuevas ya permitidas)
- 10. clear_runtime_caches() (catalog_lib)
+ 11. Re-export lunas + goals_referencia (tags nuevas ya permitidas)
+ 12. enrich_goals_referencia.py → individuales[] en hub
+ 13. clear_runtime_caches() (catalog_lib)
 """
 from __future__ import annotations
 
@@ -54,7 +61,7 @@ EXPORT_LUNAS_TAGS_PY = "export_lunas_tags.py"
 
 # Orden importa: sync grupos → progression/normalize (+ sort Combined) → exports.
 # capturas_lunas antes que lunas-objetivos (tags de captura leen el JSON).
-# goals_referencia antes que tags_inventario (goals[] por tag desde pools).
+# goals_referencia antes que individuales y tags_inventario.
 STEPS: list[tuple[str, list[str]]] = [
     (
         "stamp Combined filename (fecha hoy)",
@@ -83,10 +90,14 @@ STEPS: list[tuple[str, list[str]]] = [
     ("capturas_lunas", [sys.executable, "export_capturas_lunas.py"]),
     ("lunas-objetivos", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--lunas-only"]),
     ("goals_referencia", [sys.executable, "export_goals_referencia.py"]),
+    ("goals_individuales", [sys.executable, "export_goals_individuales.py"]),
+    ("zonas_reino + zonas_inventario", [sys.executable, "export_zonas_reino.py"]),
     ("tags_inventario", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--tags-only"]),
     # Segunda pasada: tags nuevas (p. ej. fire_bro) ya estan en inventario.
     ("lunas-objetivos (retag)", [sys.executable, EXPORT_LUNAS_TAGS_PY, "--lunas-only"]),
     ("goals_referencia (retag)", [sys.executable, "export_goals_referencia.py"]),
+    ("goals_individuales (retag)", [sys.executable, "export_goals_individuales.py"]),
+    ("enrich goals_referencia hub", [sys.executable, "enrich_goals_referencia.py"]),
     (
         "clear caches",
         [
@@ -107,7 +118,7 @@ def main() -> int:
             print(f"FALLO ({r.returncode}): {label}", file=sys.stderr)
             return r.returncode
 
-    print("\nRegeneracion completa (incluye catalog/bingo_groups.json).")
+    print("\nRegeneracion completa (incluye Catalog/bingo_groups.json).")
     return 0
 
 

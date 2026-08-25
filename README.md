@@ -33,8 +33,8 @@ pre-commit run --all-files
 | Ruta | Rol |
 |------|-----|
 | [`Bingos/`](Bingos/README.md) | JSONs lockout; Combined = **fuente de verdad** |
-| [`Catalog/`](Catalog/) | Datos derivados (grupos, líneas, icons, lunas, tags, referencia) |
-| [`Files/`](Files/) | Scripts Python (sync, ranges, progression, exports) |
+| [`Catalog/`](Catalog/README.md) | Datos derivados (grupos, líneas, icons, lunas, tags, referencia, zonas) |
+| [`Files/`](Files/README.md) | Scripts Python (sync, ranges, progression, exports) |
 | [`Tests/`](Tests/README.md) | Unit + integridad Combined/catálogo |
 
 ## CI

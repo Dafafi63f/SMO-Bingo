@@ -1,6 +1,8 @@
 # Tests
 
-Suite `unittest` (stdlib) para helpers y consistencia Combined ↔ `Catalog/`.
+Suite `unittest` (stdlib) para helpers y consistencia Combined ↔ `Catalog/`
+(`test_catalog_files`, `test_combined_integrity`, `test_goals_individuales`,
+rango/progression, etc.).
 
 ```bash
 pip install -r requirements-dev.txt

@@ -7,14 +7,18 @@ Orden:
   4) captures / cappy / mario → grupos en bingo_groups
   5) Availability (in_scope_moons en project.json)
   6) Untyped (diagnostico; sin archivo)
-  7) Export: tags_inventario.json, catalog/lunas-objetivos.json, bingo_lineas.json,
-     goal_icons.json, goals_referencia.json
+  7) Export parcial: tags_inventario, lunas-objetivos, bingo_lineas,
+     goal_icons, goals_referencia
 
-JSON en catalog/: project, bingo_groups, bingo_lineas, goal_icons, moon_names_wiki,
-  goals_referencia, capturas_lunas, tags_inventario, lunas-objetivos, regionales_zonas,
-  goal_lists, goal_tooltips (+ Combined en bingos/).
+Preferible tras cambios de catálogo: python Files/regenerate_all.py
+(incluye capturas, individuales, zonas_reino, enrich, etc.).
 
-Listas obtain/context/reino/tematicos/story/action viven en catalog/bingo_groups.json.
+JSON en Catalog/: project, bingo_groups, bingo_lineas, goal_icons,
+  moon_names_wiki, goals_referencia, goals_individuales, zonas_reino,
+  capturas_lunas, tags_inventario, lunas-objetivos, goal_lists,
+  goal_tooltips (+ Combined en Bingos/).
+
+Listas obtain/context/reino/tematicos/story/action viven en bingo_groups.json.
 
 Usage:
   python sync_lunas.py
@@ -29,7 +33,6 @@ from catalog_lib import (
     load_meta,
     load_wiki_moon_meta,
     rebuild_untyped_moons,
-    save_meta,
     sync_kingdom_groups,
     upsert_moon_tag_group,
     wiki_moon_in_scope,
@@ -66,12 +69,12 @@ def sync_story(wiki, rules) -> None:
             elif "story moon" in type_l:
                 story.append(ref)
     n_story = upsert_moon_tag_group(
-        "story_moon",
+        "storymoons",
         story,
         moon_tag="story_moon",
         note=(
             "XOR multi_moon. Desde tipo wiki. Multiluna de historia → solo "
-            "multi_moon. Goals Combined: ver SPECS story_moon."
+            "multi_moon. Goals Combined: cat bingo_lineas storymoons."
         ),
         objectives=None,  # conserva goals del SPECS (sync_objective_moon_groups)
     )
@@ -86,7 +89,7 @@ def sync_story(wiki, rules) -> None:
             "Sin Cascade/Lake/Bowser/Ruined (1 multi; Ruined = Defeat Dragon)."
         ),
     )
-    print(f"  story_moon: {n_story}  multi_moon: {n_multi}")
+    print(f"  storymoons: {n_story}  multi_moon: {n_multi}")
 
 
 def refresh_availability(wiki, rules) -> None:

@@ -2,7 +2,7 @@
 
 Solo expone funciones reutilizables (reasonable_range, format_step,
 list_candidates, SINGLE_VALUE_OK) que importan otros scripts del repo
-(fix_bingo_group_ranges.py, etc.). No es un CLI: no escribe nada en catalog/.
+(fix_bingo_group_ranges.py, etc.). No es un CLI: no escribe nada en Catalog/.
 
 Si en el futuro hace falta re-analizar rangos contra catalogos por reino o
 contra Combined oficial, reconstruir aqui un subcomando puntual — evitar

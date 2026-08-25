@@ -38,7 +38,7 @@ Referencia oficial: [Schema Reference](https://wiki.lockout.live/lockout/creator
 | Campo | Límites | Notas |
 |---|---|---|
 | `individual_limit` | 1–99; **≤ `len(range)`** | Cuántas veces puede salir la misma goal (cada copia usa un valor distinto de `range`). Sin `range` ⇒ efectivo 1. |
-| `progressive_ranges` | bool | Si true: umbrales bajos en posiciones tempranas, altos en tardías. Solo tiene sentido con **varios** valores en `range` (y en Combined solo lo activamos si además hay 2+ `progression`). |
+| `progressive_ranges` | bool | Si true: umbrales bajos en posiciones tempranas, altos en tardías. Solo tiene sentido con **varios** valores en `range` (y en Combined solo lo activamos si además hay 2+ `progression`). Lockout reparte umbrales↔zonas por **solape de intervalos** en `[0,1)`: zona `e` de `m` cubre `[e/m,(e+1)/m)` y umbral `r` de `n` cubre `[r/n,(r+1)/n)`; entran si se solapan. Ejemplos: `n=3,m=2` → e={0,1}, m={1,2} (el del medio en overlap); `n=4,m=2` → e={0,1}, m={2,3} (**sin** overlap). En `goals_individuales`: `progression` = avail→borde; `lockout` = este emparejado (str o lista). Sin reino → `blank_reino` (aunque `progression` vaya vacío). Con reino, overlap en `progression` → lista. Multi-reino con `max(range) <` pool → kingdom blank; `max(range)==pool` sella el último umbral blank al reino final. Warp-Painting con varias entradas → `blank_reino` + progression de entrada (lista); Metro/Mushroom conservan reino. |
 | `weighting` | 1–100 (default 100) | Probabilidad de entrar al pool de generación. |
 | `tooltip` | ≤ 120 chars; admite `{{X}}` | Texto al hover. |
 | `tag` | ≤ 20, `snake_case`, en `tag_names` | Exclusión: como máximo una goal del tag en el tablero. |
@@ -63,14 +63,36 @@ Referencia oficial: [Schema Reference](https://wiki.lockout.live/lockout/creator
 
 **`range` y `progression` son independientes.** No hace falta `len(range) == len(progression)`.
 
-En este repo, reinos frontera llevan **puente** en `progression` (Sand/Lake `e,m`; Lost/Metro `m,l`; Seaside/Luncheon `l,n`) aunque el umbral sea fijo:
+En este repo, el borde de reino usa puentes continuos
+(`e` → `e,m` → `m,l` → `l,n` → `n`). Eso **no** obliga a que cada goal
+lleve el puente completo: el tramo Mid “Lost + Cloud + Metro noche” suele
+ir solo en `m` (p. ej. Lost Moons, Metro Night, City Hall). Metro día /
+Snow/Seaside van en `l,n`; Ruined/Bowser/Moon en `n`.
+En `goals_individuales` hay dos campos: **`progression`** (avail→borde del
+catálogo) y **`lockout`** (emparejado Lockout de Combined con
+`progressive_ranges`; str o lista si overlap). Pueden diferir (Cheep
+`m`/`l`/`l` vs `m`/`["m","l"]`/`l`) o coincidir (Lake Moons todo `e`).
+Combined compacta las letras de `progression` (p. ej. Cheep → `["m","l"]`).
+Cap/Cascade `e` (2); Sand/Lake/Wooded `e,m` (3);
+Lost (+Cloud Kingdom + Metro noche hasta 1ª multi) borde `m,l` (goals del
+tramo Mid a menudo solo `m`);
+Metro día / Snow/Seaside/Luncheon(+Mushroom) `l,n`;
+Ruined/Bowser/Moon `n`.
+Techo Mid (`run_tier_ceiling.m`) = **lost** para que Rush tras Wooded
+siga en ese tramo (no salte a Metro día).
+Lake/Wooded conservan el puente `e,m` pero con **weighting 70** (Sand/Cap/Cascade a 100) para no abrir Rush Early.
+Luncheon/Mushroom en `l,n` van a **75** (Snow/Seaside/Metro día a 95): mismo rol de fork Late.
+Dentro de un mismo `progression`, el peso baja según disponibilidad del umbral mínimo del pool: **base → mid_story (−10) → world_peace (−20)** (más peso = más probable en el pool).
+`revisit` = **base del siguiente reino** (Cap/Cascade→Sand; Lost→Metro): Cap/Cascade pesan con Sand; Lost revisit usa el puente Metro (`l,n`) para el peso.
 
 | Ejemplo | `range` | `progression` | Lectura |
 |---|---|---|---|
-| Lost Butterfly Moons | `[3]` | `m,l` | Cantidad fija 3; puede ir Mid **o** Late |
-| Metro Taxi Moons | `[2]` | `m,l` | Idem, puente Mid↔Late |
-| Sand Story Moons | `[2]` | `e,m` | Idem, puente Early↔Mid |
-| Seaside Uproot Moons | `[2]` | `l,n` | Idem, puente Late↔Endgame |
+| Lost Butterfly / Metro Night Moons | fijo / `[2,4,6]` | `m` | Tramo Mid (Lost / Cloud / Metro noche) → board **lost** |
+| Metro Taxi / Moons (día) | … | `l,n` | Metro día (Late↔Endgame) |
+| Sand Story Moons | `[2]` | `e,m` | Puente Early↔Mid (weight 100) |
+| Lake / Wooded … | fijo/`{{X}}` | `e,m` | Mismo puente; weight 70 (no primer Rush) |
+| Seaside Uproot Moons | `[2]` | `l,n` | Puente Late↔Endgame (Snow/Seaside/…) |
+| Luncheon / Mushroom … | fijo/`{{X}}` | `l,n` | Mismo puente |
 | All Regional Coins… Large/Small Kingdom | `[1]` / `[1,2]` | `e,m,l,n` | Totales multi-zona |
 
 Eso **no es un error de schema**. El puente vive en `progression` (y weighting), no en la longitud de `range`.
@@ -80,10 +102,10 @@ Eso **no es un error de schema**. El puente vive en `progression` (y weighting),
 Independiente de `len(range)`:
 
 1. **Totales / agregados** (`Total Moons`, `Unique Captures`, `All … in {{X}} Kingdoms`, Large/Small Regional, …) → siempre `e,m,l,n` (weighting ~55).
-2. **Moontype** (u otros pools transversales) con reinos en las **4 zonas naturales** → `e,m,l,n` (ej. Ground Pound, Treasure Chest), **salvo** si el min del `range` no es completable en Early (Blocks / Outfit Door / Hint-Arts / Warp-Painting → `m,l,n`).
+2. **Moontype** (u otros pools transversales) con reinos en las **4 zonas naturales** → `e,m,l,n` (ej. Ground Pound, Treasure Chest, Destructible Blocks, Outfit Door), **salvo** si el min del `range` no es completable en Early (Hint-Arts / Warp-Painting → `m,l,n`).
 3. Moontype con muchos reinos pero solo 2–3 zonas naturales → progression = esas zonas (Poochy/Rocket Flower `l,n`; Rabbit Chase `m,l,n`).
-4. Prefijo de reino (`Sand Ground Pound`, …) → puente mono-reino, no global. Excepción: `Lake Hint Art Moon` → solo `m` (Hint Art no es contenido Early).
-5. Overrides narrativos/jugabilidad ganan (Tourist, Minigame, Seeds, Warp-Painting, …).
+4. Prefijo de reino (`Sand Ground Pound`, …) → puente mono-reino, no global.
+5. Overrides narrativos/jugabilidad ganan (Tourist, Minigame, Seeds, Warp-Painting, Lake Hint Art → `m`, …).
 
 **No hacer** para “arreglar” avisos/UX:
 
@@ -94,3 +116,19 @@ Independiente de `len(range)`:
 **Sí hacer:** dejar el umbral fijo si el pool no admite más escalones; meter la goal en `SINGLE_VALUE_OK` (`Files/ranges_tools.py`) para que `fix_bingo_group_ranges` no invente 4 umbrales. Solo ampliar `range` (p. ej. `[2,3]`) si el balance de juego lo justifica; entonces se puede activar `progressive_ranges`.
 
 Detalle: `Files/apply_progression_accessibility.py` (`KINGDOM_BORDER_PROGRESSION`, `PROGRESSION_OVERRIDES`).
+
+## goals_individuales.json (Catalog/)
+
+Export derivado de `goals_referencia.json` para consultar cada template con reino y zonas Rush/Lockout.
+
+| Grupo | Contenido |
+|---|---|
+| `cap`, `sand`, … | Goals mono-reino: `goal`, `progression`, `lockout` |
+| `blank_reino` | Totales/globales/multi-zona: añade `kingdom` por fila |
+| `early`, `mid`, `late`, `endgame` | Índice por zona e/m/l/n (copia goals cuya progression toca esa letra) |
+
+- **`progression`**: avail→borde del catálogo (`disponibilidad` + reglas de reino).
+- **`lockout`**: emparejado `progressive_ranges` del Combined (puede ser lista si hay overlap).
+- **`n_goals`**: templates únicas; los grupos de zona duplican filas a propósito.
+- Regenerar: `python Files/export_goals_individuales.py` o `regenerate_all.py`.
+- Índice de catálogos: `Catalog/README.md`.

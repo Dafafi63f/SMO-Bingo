@@ -1,12 +1,12 @@
-"""Inventario de tags de lunas + export de catalog/lunas-objetivos.{json,csv}.
+"""Inventario de tags de lunas + export de Catalog/lunas-objetivos.{json,csv}.
 
 Dos pasos relacionados (las lunas usan las tags permitidas del inventario):
-  1. tags  -> catalog/tags_inventario.json (unica fuente de tags permitidas)
-  2. lunas -> catalog/lunas-objetivos.json (+ CSV derivado del JSON)
+  1. tags  -> Catalog/tags_inventario.json (unica fuente de tags permitidas)
+  2. lunas -> Catalog/lunas-objetivos.json (+ CSV derivado del JSON)
 
 El CSV no es fuente de verdad: se regenera desde lunas-objetivos.json
-(mismo contenido; vista ; para Excel). Formato legado:
-luna;nombre;disponibilidad;tags  (tags=[reino,...]).
+(mismo contenido; vista ; para Excel). Formato:
+id;luna;nombre;disponibilidad;tags  (tags=[reino,...] resto alfa).
 
 Reglas de tags (incompatibles, multi-obtain, implica) viven en
 catalog_lib.py (INCOMPATIBLE_TAG_PAIRS, ALLOWED_MULTI_OBTAIN,
@@ -41,6 +41,7 @@ from catalog_lib import (
     INCOMPATIBLE_TAG_PAIRS,
     KINGDOM_COLUMNS,
     LUNAS_CATALOG_EXCLUDE,
+    LUNAS_CATALOG_SYNTHETIC,
     PRIMARY_TAGS,
     ROOT,
     TAG_ACTION,
@@ -48,6 +49,7 @@ from catalog_lib import (
     TAG_KINGDOM,
     TAG_OBTAIN,
     TAG_STORY,
+    apply_lunas_catalog_tags,
     build_matrix_moon_registry,
     collect_allowed_moon_tags,
     collect_availability_violations,
@@ -59,6 +61,7 @@ from catalog_lib import (
     load_combined_objectives_by_goal,
     load_group_context_tags,
     load_kingdom_availability,
+    lunas_catalog_ref,
     normalize_moon_tags,
     objective_goal_sort_key,
     rebuild_untyped_moons,
@@ -216,13 +219,14 @@ def _index_moons_by_tag(
     moons_by_tag: dict[str, list[dict]] = {tag: [] for tag in allowed}
     pair_counts: Counter[tuple[str, str]] = Counter()
     for (kingdom, moon), entry in catalog_reg.items():
-        tags = normalize_moon_tags(
+        tags = apply_lunas_catalog_tags(
             entry.get("tags") or [], kingdom=kingdom, moon=moon, allowed=allowed
         )
         ref = {
             "kingdom": kingdom,
             "moon": int(moon),
             "name": entry.get("name") or f"Moon {moon}",
+            "disponibilidad": str(entry.get("availability") or "base"),
         }
         for tag in tags:
             if tag in moons_by_tag:
@@ -321,10 +325,10 @@ def write_json(path: Path, rows: list[dict]) -> None:
     payload = {
         "_definition": (
             "Inventario de tags de Power Moons in-scope. "
-            "Fuente de tags permitidas para catalog/lunas-objetivos.json. "
+            "Fuente de tags permitidas para Catalog/lunas-objetivos.json. "
             "Campos: id, tag, rol, lunas, pct_lunas, n_goals, goals[] "
             "(Combined con >=1 luna de la tag en su pool), "
-            "moons[{kingdom,moon,name,goal}] "
+            "moons[{kingdom,moon,name,disponibilidad,goal}] "
             "(goal=true si cuenta para alguna de goals[]; false = solo tag), "
             "avisos (solo si aplican). "
             "Reglas incompatibles/multi/implica: catalog_lib.py. "
@@ -359,7 +363,7 @@ def print_tag_rules() -> None:
 
 
 def load_allowed_tags_from_inventario(path: Path | None = None) -> frozenset[str] | None:
-    """Lee tags permitidas desde catalog/tags_inventario.json (si existe)."""
+    """Lee tags permitidas desde Catalog/tags_inventario.json (si existe)."""
     path = path or TAGS_OUTPUT_JSON
     if not path.exists():
         return None
@@ -410,8 +414,8 @@ def export_tags() -> frozenset[str]:
 OUTPUT_LUNAS_JSON = CATALOG_DIR / "lunas-objetivos.json"
 OUTPUT_LUNAS_CSV = CATALOG_DIR / "lunas-objetivos.csv"
 
-CSV_FIELDNAMES = ["luna", "nombre", "disponibilidad", "tags"]
-CSV_PADDED_COLUMNS = {"luna", "nombre", "disponibilidad"}
+CSV_FIELDNAMES = ["id", "luna", "nombre", "disponibilidad", "tags"]
+CSV_PADDED_COLUMNS = {"id", "luna", "nombre", "disponibilidad"}
 CSV_DELIMITER = ";"
 
 
@@ -470,15 +474,16 @@ def write_lunas_csv(path: Path, rows: list[dict]) -> None:
 
 
 def moons_to_csv_rows(moons: list[dict]) -> list[dict]:
-    """JSON moons[] -> filas CSV (luna = nº; reino va en tags)."""
+    """JSON moons[] -> filas CSV (id global; luna = nº reino; reino = tags[0])."""
     rows: list[dict] = []
     for m in moons:
         tags = list(m.get("tags") or [])
-        kingdom = str(m.get("kingdom") or "")
+        kingdom = str(tags[0]) if tags else str(m.get("kingdom") or "")
         if kingdom and (not tags or tags[0] != kingdom):
             tags = ordered_tags(kingdom, tags)
         rows.append(
             {
+                "id": int(m["id"]),
                 "luna": int(m["moon"]),
                 "nombre": m.get("name") or "",
                 "disponibilidad": m.get("disponibilidad") or "",
@@ -489,7 +494,7 @@ def moons_to_csv_rows(moons: list[dict]) -> list[dict]:
 
 
 def export_lunas_csv_from_json(json_path: Path | None = None) -> int:
-    """Regenera catalog/lunas-objetivos.csv leyendo el JSON (fuente)."""
+    """Regenera Catalog/lunas-objetivos.csv leyendo el JSON (fuente)."""
     src = json_path or OUTPUT_LUNAS_JSON
     if not src.exists():
         raise FileNotFoundError(f"No existe {src}; genera el JSON antes.")
@@ -498,14 +503,14 @@ def export_lunas_csv_from_json(json_path: Path | None = None) -> int:
     rows = moons_to_csv_rows(moons)
     write_lunas_csv(OUTPUT_LUNAS_CSV, rows)
     print(
-        f"Exportado: catalog/{OUTPUT_LUNAS_CSV.name} "
+        f"Exportado: Catalog/{OUTPUT_LUNAS_CSV.name} "
         f"({len(rows)} lunas; desde {src.name})"
     )
     return len(rows)
 
 
 def resolve_allowed_tags(registry: dict) -> frozenset[str]:
-    """Prefer catalog/tags_inventario.json; si no, tags del registro."""
+    """Prefer Catalog/tags_inventario.json; si no, tags del registro."""
     from_file = load_allowed_tags_from_inventario()
     if from_file is not None:
         return from_file
@@ -537,29 +542,33 @@ def _build_lunas_moon_rows(
 ) -> tuple[list[dict], Counter[str]]:
     dropped: Counter[str] = Counter()
     moons: list[dict] = []
-    for (kingdom, moon), entry in sorted(
-        registry.items(),
-        key=lambda kv: (
-            KINGDOM_COLUMNS.index(kv[0][0]) if kv[0][0] in KINGDOM_COLUMNS else 99,
-            kv[0][1],
-        ),
-    ):
+    rows: list[tuple[str, int, str, int, dict]] = []
+    for (kingdom, moon), entry in registry.items():
         if (kingdom, int(moon)) in LUNAS_CATALOG_EXCLUDE:
             continue
+        catalog_k, catalog_m = lunas_catalog_ref(kingdom, moon)
+        rows.append((catalog_k, catalog_m, str(kingdom), int(moon), entry))
+    rows.sort(
+        key=lambda row: (
+            KINGDOM_COLUMNS.index(row[0]) if row[0] in KINGDOM_COLUMNS else 99,
+            row[1],
+        )
+    )
+    for catalog_k, catalog_m, kingdom, moon, entry in rows:
         raw = set(entry.get("tags") or []) | {kingdom}
-        normalized = normalize_moon_tags(raw, kingdom=kingdom, moon=moon)
-        filtered = normalize_moon_tags(
+        normalized = apply_lunas_catalog_tags(raw, kingdom=kingdom, moon=moon)
+        filtered = apply_lunas_catalog_tags(
             raw, kingdom=kingdom, moon=moon, allowed=allowed
         )
         for t in normalized - filtered:
             dropped[t] += 1
         moons.append(
             {
-                "kingdom": kingdom,
-                "moon": int(moon),
+                "id": len(moons) + 1,
+                "moon": int(catalog_m),
                 "name": entry["name"],
                 "disponibilidad": entry["availability"],
-                "tags": ordered_tags(kingdom, filtered),
+                "tags": ordered_tags(catalog_k, filtered),
             }
         )
     return moons, dropped
@@ -602,7 +611,7 @@ def _print_lunas_stats(
     if inv_unused:
         print(f"AVISO: tags en inventario sin lunas: {sorted(inv_unused)}")
 
-    print(f"Exportado: catalog/{OUTPUT_LUNAS_JSON.name} ({len(moons)} lunas)")
+    print(f"Exportado: Catalog/{OUTPUT_LUNAS_JSON.name} ({len(moons)} lunas)")
     print("Alcance: base/mid_story/revisit/world_peace")
     print(f"Con 2+ tags: {multi}")
     summary = kingdom_availability_summary(registry)
@@ -634,13 +643,17 @@ def export_lunas() -> None:
             "_definition": (
                 "Lunas in-scope con disponibilidad y tags filtradas "
                 "(inventario en tags_inventario.json). "
-                "moons[]: {kingdom,moon,name,disponibilidad,tags[]}. "
-                "Orden: historia de reinos, luego nº de luna. "
-                "CSV hermano (lunas-objetivos.csv) se deriva de este JSON."
+                "moons[]: {id,moon,name,disponibilidad,tags[]}. "
+                "id = 1..n_moons global (historia + nº luna); moon = nº reino. "
+                "Sin campo kingdom: tags[0] = reino, resto alfa. "
+                "CSV hermano (lunas-objetivos.csv) se deriva de este JSON. "
+                "mushroom#39 (Secret Path) → luncheon#50 sintético "
+                "(LUNAS_CATALOG_SYNTHETIC; evita choque con luncheon#39)."
             ),
             "_note": (
                 "Regenerar con export_lunas_tags.py o regenerate_all.py. "
-                "CSV: python export_lunas_tags.py --csv-only (desde este JSON)."
+                "CSV: python export_lunas_tags.py --csv-only (desde este JSON). "
+                f"Sintéticos: {dict((f'{a}#{b}', f'{c}#{d}') for (a, b), (c, d) in LUNAS_CATALOG_SYNTHETIC.items())}."
             ),
             "n_moons": len(moons),
             "moons": moons,
