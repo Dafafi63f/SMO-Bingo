@@ -3557,4 +3557,3 @@ def tier_max_for_kingdom(kingdom: str, meta: dict) -> dict[str, int]:
         zone: total if idx <= story_order.index(ceilings[zone]) else 0
         for zone in ZONE_ORDER
     }
-
