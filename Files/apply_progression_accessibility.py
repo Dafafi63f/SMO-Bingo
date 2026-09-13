@@ -552,7 +552,7 @@ def progression_from_kingdom_availability(
     av = (availability or "base").strip().lower()
     if av == "revisit":
         av = "base"
-    if av in {"mid_story", "world_peace"}:
+    if av in {"mid_story", "world_peace"} and len(zones) >= 2:
         return zones[1]
     return zones[0]
 

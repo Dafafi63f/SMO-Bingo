@@ -94,10 +94,10 @@ def _parse_mariowiki_row(cells: list[str]) -> tuple[int, dict[str, str]] | None:
         prerequisite = strip_tags(cells[4])
         description = strip_tags(cells[5])
     elif len(cells) >= 5:
-        name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
+        name = strip_tags(cells[2])
         moon_type = strip_tags(cells[3])
         prerequisite = ""
-        description = strip_tags(cells[4] if len(cells) >= 5 else cells[3])
+        description = strip_tags(cells[4])
     else:
         name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
         moon_type = ""

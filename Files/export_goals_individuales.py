@@ -719,11 +719,7 @@ def group_id_for(kingdom: str, progression: str | list[str]) -> str:
     índices sobre las goals ya emitidas.
     """
     has_k = bool(kingdom)
-    has_p = (
-        bool(progression)
-        if not isinstance(progression, list)
-        else bool(progression)
-    )
+    has_p = bool(progression)
     if has_k and has_p:
         return kingdom
     if not has_k:
