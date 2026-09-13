@@ -303,9 +303,8 @@ def _accumulate_goal_ratios(
     empty_pool: list[str],
 ) -> None:
     name, pool, moons, lista = _goal_pool_rows(g)
-    if pool == "moons" and not moons:
-        empty_pool.append(name)
-    elif pool == "lista" and not lista:
+    empty = (pool == "moons" and not moons) or (pool == "lista" and not lista)
+    if empty:
         empty_pool.append(name)
     if len(moons) < 4:
         return
