@@ -26,7 +26,7 @@ Referencia oficial: [Schema Reference](https://wiki.lockout.live/lockout/creator
 
 | Campo | Límites | Notas |
 |---|---|---|
-| `goal` | ≤ 60 chars; como máximo un `{{X}}` | Texto en el tablero. Sin `{{X}}` = goal binaria (sin `range`). |
+| `goal` | ≤ 60 chars; como máximo un `{{X}}` | Texto en el tablero. Sin `{{X}}` = goal binaria (sin `range`). `Moon[[s]]` solo si `1` está en `range`; si el mínimo es ≥2 (p. ej. solo `[2]`), usar `Moons` fijo (sin `[[s]]`). |
 | `range` | 1–12 enteros positivos, **ascendentes** | Obligatorio **si y solo si** el texto lleva `{{X}}` (y viceversa). |
 | `board_categories` | ≤ 4; keys en `limits.board` | Cupos a nivel de tablero. |
 | `line_categories` | ≤ 4; keys en `limits.line` | Cupos por línea de bingo. |
@@ -132,3 +132,5 @@ Export derivado de `goals_referencia.json` para consultar cada template con rein
 - **`n_goals`**: templates únicas; los grupos de zona duplican filas a propósito.
 - Regenerar: `python Files/export_goals_individuales.py` o `regenerate_all.py`.
 - Índice de catálogos: `Catalog/README.md`.
+
+Cambios y pendientes del repo: [`README.md`](../README.md#cambios-recientes-2026-09).

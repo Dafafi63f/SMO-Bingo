@@ -13,6 +13,9 @@ Deep Woods, Secret Flower Field, Snowline Circuit y zonas hielo de Sand
 NO son sub_area: deep_woods / bloom_flower / sand_ice / shiverian_racer
 (o no aplica).
 
+Outfit door (Wire Neighborhood, Cold Room, Simmering Room, Folding Screen)
+tampoco: solo grupo outfit_door.
+
 Los pares Level (para capturas) se escriben en Files/sub_area_levels_data.py,
 no en goal_lists ni en el grupo bingo.
 
@@ -175,7 +178,6 @@ SUB_AREA_GOALS = (
     "{{X}} T-Rex Moons",
     "{{X}} Wooded Flower Road Moons",
     "{{X}} Wooded Pipe Moons",
-    "{{X}} Wooded Uproot Moons",
 )
 
 
@@ -234,8 +236,23 @@ def _collect_sand_ice_refs(
     return refs
 
 
+# Levels con puerta de outfit: pool solo outfit_door (no Sub-Area).
+OUTFIT_DOOR_LEVELS: frozenset[str] = frozenset(
+    {
+        "wire neighborhood",
+        "cold room",
+        "simmering room",
+        "folding screen",
+    }
+)
+
+
 def _should_skip_sand_ice_as_sub_area(level_l: str, moons: list[int]) -> bool:
     return level_l in SAND_ICE_LEVELS_NOT_SUB_AREA or len(moons) != 2
+
+
+def _should_skip_outfit_door_as_sub_area(level_l: str) -> bool:
+    return level_l in OUTFIT_DOOR_LEVELS
 
 
 def _append_level_pair(
@@ -288,6 +305,9 @@ def _handle_level_bucket(
         sand_ice_refs.extend(_collect_sand_ice_refs(registry, kingdom, moons))
         if _should_skip_sand_ice_as_sub_area(level_l, moons):
             return
+
+    if _should_skip_outfit_door_as_sub_area(level_l):
+        return
 
     if len(moons) != 2:
         return
@@ -403,7 +423,7 @@ def _sync_sub_area_groups(
     )
     sync_bingo_group(
         bingo,
-        "sand_ice",
+        "ice",
         sand_ice_refs,
         goal="{{X}} Sand Ice Moon[[s]]",
         kingdom="sand",

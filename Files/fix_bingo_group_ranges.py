@@ -19,6 +19,7 @@ from catalog_lib import (
     KINGDOM_COLUMNS,
     KINGDOM_DISPLAY,
     ZONE_ORDER,
+    _resolve_bingo_group_moons_raw,
     build_matrix_moon_registry,
     kingdom_index,
     load_catalog,
@@ -496,12 +497,12 @@ PAINTING_CHECKPOINT_KINGDOMS: frozenset[str] = frozenset(
 )
 
 # Destino (isla inbound) → zona del reino de ENTRADA (como Warp-Painting Moon).
-# Sand→Metro(e); Lake/Wooded→Sand|Luncheon(m); Snow/Seaside→Cascade(l);
+# Sand→Metro(e); Lake(None/base)→Sand|Luncheon(e); Snow/Seaside→Cascade(l);
 # Metro|Snow/Seaside→Lake|Wooded(l); Luncheon→Mushroom(n).
 PAINTING_CHECKPOINT_PROGRESSION: dict[str, str] = {
     "metro": "e",
-    "sand": "m",
-    "luncheon": "m",
+    "sand": "e",
+    "luncheon": "e",
     "cascade": "l",
     "lake": "l",
     "wooded": "l",
@@ -723,13 +724,15 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Snow Shiveria Moons": [4, 8, 12],  # pool 18; mismo patrón que Overworld
     "{{X}} Snow Overworld Moons": [4, 8, 12],  # pool 15 (sin Secret Path #33; Hint Art → shiveria)
     "{{X}} Snow Overworld Regional Coins": [4, 8, 13],
-    "{{X}} Sand Ruins Regional Coins": [5, 10, 15],  # 16 purple; sin Ice Cave (solo sand_ice)
+    "{{X}} Sand Ruins Regional Coins": [4, 8, 12, 16],  # 16 purple; sin Ice Cave (solo sand_ice)
     "{{X}} Sand Ice Regional Coins": [4, 8, 11],
     "{{X}} Sand Jaxi Regional Coins": [4, 8, 12],
     "{{X}} Sand Tostarena Regional Coins": [8, 16, 24, 29],
     "{{X}} Sand Ruins Moons": [4, 6, 8, 10],  # pool 10
+    "{{X}} Sand Ice Moon[[s]]": [1, 2, 3, 4],  # pool 4 (#47–#50)
     "{{X}} Sand Oasis Moons": [3, 6],
     "{{X}} Sand Pyramid Moons": [2, 4, 6],
+    "{{X}} Luncheon Volcano Cave Moons": [2],  # #4+#29
     "{{X}} Sub-Area Regional Coins": [12, 24, 36, 48],
     "{{X}} Total Story Moons": [4, 8, 12, 16],
     "{{X}} Unique Life Up Hearts": [3, 6, 9, 12],
@@ -752,18 +755,18 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Sand Tostarena Moons": [3, 6, 9, 12],
     "{{X}} Spark Pylon Moons": [2, 4],
     "{{X}} Moon Banzai Bill Moon[[s]]": [1, 2],
-    "{{X}} Sub-Area Moons": [20, 24, 28, 32],  # guía bingo 84 lunas / 42 pares
+    "{{X}} Sub-Area Moons": [18, 22, 26, 30],  # guía bingo 76 lunas / 38 pares
     # Reino >4 pares: min 4 lunas (2 subáreas), nunca el total
     "{{X}} Cap Sub-Area Moons": [2, 4, 6],
     "{{X}} Cascade Sub-Area Moons": [2, 4, 6],
     "{{X}} Sand Sub-Area Moons": [4, 6, 8],  # 4 pares (sin Ice Cave #49+#50)
     "{{X}} Lake Sub-Area Moons": [2, 4],
     "{{X}} Wooded Sub-Area Moons": [4, 6, 8],
-    "{{X}} Metro Sub-Area Moons": [4, 6, 8, 10],
-    "{{X}} Snow Sub-Area Moons": [2, 4, 6, 8],
+    "{{X}} Metro Sub-Area Moons": [4, 6, 8, 10],  # 6 pares (sin Wire outfit)
+    "{{X}} Snow Sub-Area Moons": [2, 4, 6],  # 3 pares (sin Cold Room outfit)
     "{{X}} Seaside Sub-Area Moons": [2, 4, 6],
-    "{{X}} Luncheon Sub-Area Moons": [4, 6, 8, 10],
-    "{{X}} Bowser's Sub-Area Moons": [2, 4, 6, 8],
+    "{{X}} Luncheon Sub-Area Moons": [4, 6, 8, 10],  # 5 pares (sin Simmering)
+    "{{X}} Bowser's Sub-Area Moons": [2, 4, 6],  # 3 pares (sin Folding outfit)
     "{{X}} Souvenirs": [6, 8, 10, 12],
     "{{X}} Stickers": [5, 7, 9],
     "Purchase {{X}} Costume Sets": [3, 6, 9, 12],
@@ -777,7 +780,6 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Fire Bro Moon[[s]]": [1, 2],
     "{{X}} Hammer Bro Moons": [2, 3],
     "{{X}} Luncheon Fire Piranha Plant Moons": [2, 3],
-    "{{X}} Hybrid 2D Sub-Area Moons": [2, 4, 6],
     "{{X}} Bullet Bill Moons": [2, 4],
     "{{X}} Critter Moon[[s]]": [1, 2, 3],
     "{{X}} Dorrie Moon[[s]]": [1, 2, 3],
@@ -786,7 +788,6 @@ TRIVIAL_GOAL_RANGE_OVERRIDES: dict[str, list[int]] = {
     "{{X}} Sand Bird Moons": [2, 3],
     "{{X}} Cascade Chasm Lifts Moons": [2],
     "{{X}} Cascade Chain Chomp Moons": [2],
-    "{{X}} Wooded Uproot Moons": [4, 6, 8],
     "{{X}} Seaside Uproot Moons": [2],
     "{{X}} Lurker/Rumble Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Seaside Komboo Moons": [2, 4],
@@ -964,7 +965,7 @@ def _moons_for_goal(
 ) -> list[dict]:
     """Lunas del grupo temático; en reinos, las del grupo temático con el mismo goal."""
     if not is_kingdom:
-        return list(group.get("moons") or [])
+        return list(_resolve_bingo_group_moons_raw(group))
     return list(moons_by_goal.get(goal) or [])
 
 
@@ -1283,16 +1284,13 @@ def suggest_for_objective(
 def _merge_moons_into_index(
     out: dict[str, list[dict]], goal: str, moons: list[dict]
 ) -> None:
-    prev = out.get(goal)
-    if prev is None:
-        out[goal] = list(moons)
+    """Guarda el pool más específico (menor). Evita unir dumps (p. ej. sub_area
+    line_category) con el grupo temático real (outfit_door, beanstalk, …)."""
+    if not moons:
         return
-    seen = {(m.get("kingdom"), m.get("moon")) for m in prev}
-    for m in moons:
-        key = (m.get("kingdom"), m.get("moon"))
-        if key not in seen:
-            prev.append(m)
-            seen.add(key)
+    prev = out.get(goal)
+    if prev is None or len(moons) < len(prev):
+        out[goal] = list(moons)
 
 
 def _index_group_moons_by_goal(
@@ -1301,13 +1299,22 @@ def _index_group_moons_by_goal(
     gid = str(group.get("id") or "")
     if gid in KINGDOM_COLUMNS:
         return
-    moons = group.get("moons") or []
+    # Incluye pools con moons[] omitido en JSON (sub_area, captures).
+    moons = _resolve_bingo_group_moons_raw(group)
     if not moons:
         return
+    from apply_progression_accessibility import filter_moons_for_goal
+
+    story_like = list(KINGDOM_COLUMNS) + ["ruined"]
     for obj in group.get("objectives") or []:
         goal = str((obj or {}).get("goal") or "")
-        if goal:
-            _merge_moons_into_index(out, goal, moons)
+        if not goal:
+            continue
+        # Misma regla que progression: sub_area solo alimenta goals Sub-Area.
+        if gid == "sub_area" and "sub-area" not in goal.lower():
+            continue
+        selected = filter_moons_for_goal(goal, moons, story_like)
+        _merge_moons_into_index(out, goal, selected)
 
 
 def _index_moons_by_goal(bingo: dict) -> dict[str, list[dict]]:

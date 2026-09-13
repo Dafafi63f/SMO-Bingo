@@ -14,6 +14,9 @@ Thumbs.db
 .vscode/
 .mypy_cache/
 .pytest_cache/
+pytest-cache-files-*/
+.regenerate_state.json
+Files/.regenerate_state.json
 .coverage
 coverage.xml
 htmlcov/

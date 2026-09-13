@@ -1,6 +1,6 @@
 {
-  "_definition": "Inventario de tags de Power Moons in-scope. Fuente de tags permitidas para catalog/lunas-objetivos.json. Campos: id, tag, rol, lunas, pct_lunas, n_goals, goals[] (Combined con >=1 luna de la tag en su pool), moons[{kingdom,moon,name,disponibilidad,goal}] (goal=true si cuenta para alguna de goals[]; false = solo tag), avisos (solo si aplican). Reglas incompatibles/multi/implica: catalog_lib.py. Concurrencia: consola al regenerar.",
-  "n_tags": 98,
+  "_definition": "Inventario de tags de Power Moons in-scope. Fuente de tags permitidas para Catalog/lunas-objetivos.json. Campos: id, tag, rol, lunas, pct_lunas, n_goals, goals[] (Combined con >=1 luna de la tag en su pool), moons[{kingdom,moon,name,disponibilidad,goal}] (goal=true si cuenta para alguna de goals[]; false = solo tag), avisos (solo si aplican). Reglas incompatibles/multi/implica: catalog_lib.py. Concurrencia: consola al regenerar.",
+  "n_tags": 99,
   "tags": [
     {
       "id": 1,
@@ -33,46 +33,6 @@
     },
     {
       "id": 2,
-      "tag": "artistic",
-      "rol": "context",
-      "lunas": 13,
-      "pct_lunas": 3.0,
-      "n_goals": 15,
-      "goals": [
-        "{{X}} Warp-Painting Moons",
-        "Cascade Warp-Painting Moon",
-        "Lake Hint Art Moon",
-        "Lake Warp-Painting Moon",
-        "Look at {{X}} Hint-Arts",
-        "Luncheon Hint Art Moon",
-        "Luncheon Warp-Painting Moon",
-        "Metro Hint Art Moon",
-        "Metro Warp-Painting Moon",
-        "Mushroom Warp-Painting Moon",
-        "Sand Warp-Painting Moon",
-        "Seaside Hint Art Moon",
-        "Snow Hint Art Moon",
-        "Wooded Hint Art Moon",
-        "Wooded Warp-Painting Moon"
-      ],
-      "moons": [
-        {"kingdom": "cascade", "moon": 18, "name": "Secret Path to Fossil Falls!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 62, "name": "Secret Path to Tostarena!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "lake", "moon": 26, "name": "Secret Path to Lake Lamode!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "lake", "moon": 27, "name": "Found with Lake Kingdom Art", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "wooded", "moon": 49, "name": "Secret Path to the Steam Gardens!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 50, "name": "Found with Wooded Kingdom Art", "disponibilidad": "base", "goal": true},
-        {"kingdom": "metro", "moon": 51, "name": "Secret Path to New Donk City!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 53, "name": "Found with Metro Kingdom Art", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "snow", "moon": 34, "name": "Found with Snow Kingdom Art", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 50, "name": "Found with Seaside Kingdom Art", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 47, "name": "Secret Path to Mount Volbono!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "luncheon", "moon": 49, "name": "Found with Luncheon Kingdom Art", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "mushroom", "moon": 39, "name": "Secret Path to Peach's Castle!", "disponibilidad": "base", "goal": true}
-      ]
-    },
-    {
-      "id": 3,
       "tag": "beanstalk",
       "rol": "context",
       "lunas": 6,
@@ -89,7 +49,7 @@
       ]
     },
     {
-      "id": 4,
+      "id": 3,
       "tag": "birds",
       "rol": "context",
       "lunas": 3,
@@ -104,13 +64,13 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 5,
+      "id": 4,
       "tag": "blocks",
       "rol": "context",
       "lunas": 6,
       "pct_lunas": 1.4,
       "n_goals": 1,
-      "goals": ["{{X}} Destructible Block Moons"],
+      "goals": ["{{X}} Destructible Block Moon[[s]]"],
       "moons": [
         {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "disponibilidad": "base", "goal": true},
         {"kingdom": "wooded", "moon": 5, "name": "Behind the Rock Wall", "disponibilidad": "mid_story", "goal": true},
@@ -118,6 +78,31 @@
         {"kingdom": "wooded", "moon": 46, "name": "Elevator Blind Spot", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "lost", "moon": 11, "name": "Wrecked Rock Block", "disponibilidad": "base", "goal": true},
         {"kingdom": "bowser", "moon": 14, "name": "Inside a Block in the Castle", "disponibilidad": "base", "goal": true}
+      ]
+    },
+    {
+      "id": 5,
+      "tag": "boss",
+      "rol": "story",
+      "lunas": 14,
+      "pct_lunas": 3.2,
+      "n_goals": 0,
+      "goals": [],
+      "moons": [
+        {"kingdom": "cascade", "moon": 2, "name": "Multi Moon Atop the Falls", "disponibilidad": "base", "goal": false},
+        {"kingdom": "sand", "moon": 3, "name": "Showdown on the Inverted Pyramid", "disponibilidad": "base", "goal": false},
+        {"kingdom": "sand", "moon": 4, "name": "The Hole in the Desert", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "lake", "moon": 1, "name": "Broodals Over the Lake", "disponibilidad": "base", "goal": false},
+        {"kingdom": "wooded", "moon": 2, "name": "Flower Thieves of Sky Garden", "disponibilidad": "base", "goal": false},
+        {"kingdom": "wooded", "moon": 4, "name": "Defend the Secret Flower Field!", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "metro", "moon": 1, "name": "New Donk City's Pest Problem", "disponibilidad": "base", "goal": false},
+        {"kingdom": "snow", "moon": 4, "name": "The Snowy Mountain Barrier", "disponibilidad": "base", "goal": false},
+        {"kingdom": "seaside", "moon": 5, "name": "The Glass Is Half Full!", "disponibilidad": "base", "goal": false},
+        {"kingdom": "luncheon", "moon": 1, "name": "The Broodals Are After Some Cookin'", "disponibilidad": "base", "goal": false},
+        {"kingdom": "luncheon", "moon": 5, "name": "Cookatiel Showdown!", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "ruined", "moon": 1, "name": "Battle with the Lord of Lightning!", "disponibilidad": "base", "goal": false},
+        {"kingdom": "bowser", "moon": 3, "name": "Big Broodal Battle", "disponibilidad": "base", "goal": false},
+        {"kingdom": "bowser", "moon": 4, "name": "Showdown at Bowser's Castle", "disponibilidad": "base", "goal": false}
       ]
     },
     {
@@ -189,9 +174,9 @@
       "n_goals": 1,
       "goals": ["{{X}} Bullet Bill Moons"],
       "moons": [
-        {"kingdom": "sand", "moon": 19, "name": "Bullet Bill Breakthrough", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "disponibilidad": "base", "goal": false},
-        {"kingdom": "sand", "moon": 47, "name": "Underground Treasure Chest", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "sand", "moon": 19, "name": "Bullet Bill Breakthrough", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "disponibilidad": "base", "goal": true},
+        {"kingdom": "sand", "moon": 47, "name": "Underground Treasure Chest", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "sand", "moon": 56, "name": "The Bullet Bill Maze: Break Through!", "disponibilidad": "base", "goal": true},
         {"kingdom": "sand", "moon": 57, "name": "The Bullet Bill Maze: Side Path", "disponibilidad": "base", "goal": true},
         {"kingdom": "metro", "moon": 47, "name": "Bullet Billding", "disponibilidad": "mid_story", "goal": true},
@@ -277,12 +262,13 @@
       "rol": "action",
       "lunas": 18,
       "pct_lunas": 4.1,
-      "n_goals": 5,
+      "n_goals": 6,
       "goals": [
         "{{X}} Bloom Flower Moon[[s]]",
         "{{X}} Cappy Moons",
-        "{{X}} Lost Trapeetle Moon[[s]]",
+        "{{X}} Lost Trapeetle Moons",
         "{{X}} Slots Moon[[s]]",
+        "{{X}} Wedding Moons",
         "Lake Outfit Door Moon"
       ],
       "moons": [
@@ -345,201 +331,24 @@
       "id": 14,
       "tag": "captures",
       "rol": "context",
-      "lunas": 151,
-      "pct_lunas": 34.8,
-      "n_goals": 36,
+      "lunas": 7,
+      "pct_lunas": 1.6,
+      "n_goals": 4,
       "goals": [
-        "{{X}} Bowser's Jizo Moons",
-        "{{X}} Bowser's Pokio Moons",
-        "{{X}} Bullet Bill Moons",
-        "{{X}} Cactus/Tree Moons",
-        "{{X}} Cap Frog Moons",
-        "{{X}} Cascade Chain Chomp Moons",
-        "{{X}} Cheep Cheep Moons",
-        "{{X}} Fire Bro Moon[[s]]",
-        "{{X}} Glydon Moon[[s]]",
-        "{{X}} Goomba Moon[[s]]",
-        "{{X}} Hammer Bro Moons",
-        "{{X}} Lake Zipper Moons",
-        "{{X}} Lakitu-Fishing Moon[[s]]",
-        "{{X}} Lost Tropical Wiggler Moons",
-        "{{X}} Luncheon Lava Bubble Moons",
         "{{X}} Luncheon Volbonan Moons",
         "{{X}} Metro RC Car Moons",
-        "{{X}} Metro Taxi Moons",
-        "{{X}} Mini Rocket Moons",
-        "{{X}} Moon Banzai Bill Moon[[s]]",
-        "{{X}} Paragoomba Moons",
-        "{{X}} Pokio Hole Moons",
         "{{X}} Puzzle Moon[[s]]",
-        "{{X}} Sand Moe-Eye Moons",
-        "{{X}} Seaside Gushen Moons",
-        "{{X}} Seaside Uproot Moons",
-        "{{X}} Sherm Moons",
-        "{{X}} Snow Goomba Moons",
-        "{{X}} Snow Shiverian Racer Moon[[s]]",
-        "{{X}} Snow Ty-Foo Moons",
-        "{{X}} Spark Pylon Moons",
-        "{{X}} Special Seed Moon[[s]]",
-        "{{X}} T-Rex Moons",
-        "{{X}} Wooded Uproot Moons",
-        "Bowser Statue Moon",
-        "Moon Parabones Moon"
+        "{{X}} Snow Ty-Foo Moons"
       ],
       "moons": [
-        {"kingdom": "cap", "moon": 1, "name": "Frog-Jumping Above the Fog", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 2, "name": "Frog-Jumping from the Top Deck", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 6, "name": "Skimming the Poison Tide", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 7, "name": "Slipping Through the Poison Tide", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 8, "name": "Push-Block Peril", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 9, "name": "Hidden Among the Push-Blocks", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 10, "name": "Searching the Frog Pond", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cap", "moon": 11, "name": "Secrets of the Frog Pond", "disponibilidad": "revisit", "goal": true},
-        {"kingdom": "cascade", "moon": 1, "name": "Our First Power Moon", "disponibilidad": "base", "goal": false},
-        {"kingdom": "cascade", "moon": 2, "name": "Multi Moon Atop the Falls", "disponibilidad": "base", "goal": false},
-        {"kingdom": "cascade", "moon": 3, "name": "Chomp Through the Rocks", "disponibilidad": "base", "goal": false},
-        {"kingdom": "cascade", "moon": 7, "name": "Above a High Cliff", "disponibilidad": "world_peace", "goal": false},
-        {"kingdom": "cascade", "moon": 12, "name": "Dinosaur Nest: Big Cleanup!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "cascade", "moon": 13, "name": "Dinosaur Nest: Running Wild!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "cascade", "moon": 14, "name": "Nice Shot with the Chain Chomp!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "cascade", "moon": 15, "name": "Very Nice Shot with the Chain Chomp!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "disponibilidad": "base", "goal": false},
-        {"kingdom": "sand", "moon": 4, "name": "The Hole in the Desert", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "sand", "moon": 19, "name": "Bullet Bill Breakthrough", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "sand", "moon": 20, "name": "Inside a Block Is a Hard Place", "disponibilidad": "base", "goal": false},
-        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 34, "name": "Fishing in the Oasis", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 35, "name": "Love in the Heart of the Desert", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 36, "name": "Among the Five Cactuses", "disponibilidad": "base", "goal": true},
-        {"kingdom": "sand", "moon": 37, "name": "You're Quite a Catch, Captain Toad!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 40, "name": "Wandering Cactus", "disponibilidad": "base", "goal": true},
-        {"kingdom": "sand", "moon": 47, "name": "Underground Treasure Chest", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "sand", "moon": 48, "name": "Goomba Tower Assembly", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "disponibilidad": "base", "goal": true},
-        {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "disponibilidad": "base", "goal": true},
-        {"kingdom": "sand", "moon": 56, "name": "The Bullet Bill Maze: Break Through!", "disponibilidad": "base", "goal": true},
-        {"kingdom": "sand", "moon": 57, "name": "The Bullet Bill Maze: Side Path", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lake", "moon": 4, "name": "End of the Hidden Passage", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lake", "moon": 15, "name": "Lake Fishing", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "lake", "moon": 16, "name": "I Met a Lake Cheep Cheep!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "lake", "moon": 18, "name": "Let's Go Swimming, Captain Toad!", "disponibilidad": "base", "goal": true},
         {"kingdom": "lake", "moon": 20, "name": "A Successful Repair Job", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "lake", "moon": 22, "name": "Unzip the Chasm", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lake", "moon": 23, "name": "Super-Secret Zipper", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 3, "name": "Path to the Secret Flower Field", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "wooded", "moon": 4, "name": "Defend the Secret Flower Field!", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "wooded", "moon": 5, "name": "Behind the Rock Wall", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 10, "name": "Atop the Tall Tree", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 11, "name": "Tucked Away Inside the Tunnel", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 13, "name": "The Nut 'Round the Corner", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 14, "name": "Climb the Cliff to Get the Nut", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 15, "name": "The Nut in the Red Maze", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 16, "name": "The Nut at the Dead End", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 19, "name": "Fire in the Cave", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 20, "name": "Hey Out There, Captain Toad!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "wooded", "moon": 21, "name": "Love in the Forest Ruins", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 22, "name": "Inside a Rock in the Forest", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "wooded", "moon": 24, "name": "Nut Planted in the Tower", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 25, "name": "Stretching Your Legs", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 31, "name": "By the Babbling Brook in Deep Woods", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 32, "name": "The Hard Rock in Deep Woods", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 33, "name": "A Treasure Made from Coins", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 34, "name": "Beneath the Roots of the Moving Tree", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 41, "name": "Wandering in the Fog", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 42, "name": "Nut Hidden in the Fog", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 44, "name": "Flower Road Reach", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 45, "name": "Elevator Escalation", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 46, "name": "Elevator Blind Spot", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "wooded", "moon": 47, "name": "Walking on Clouds", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "wooded", "moon": 48, "name": "Above the Clouds", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "lost", "moon": 4, "name": "On a Tree in the Swamp", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 5, "name": "Over the Fuzzies, Above the Swamp", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 15, "name": "Moon Shards in the Jungle", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 16, "name": "Peeking Out from Under the Bridge", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 17, "name": "Twist 'n' Turn-Up Treasure", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 18, "name": "Soaring Over Forgotten Isle!", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 20, "name": "Get Some Rest, Captain Toad", "disponibilidad": "base", "goal": true},
-        {"kingdom": "metro", "moon": 1, "name": "New Donk City's Pest Problem", "disponibilidad": "base", "goal": false},
         {"kingdom": "metro", "moon": 31, "name": "Remotely Captured Car", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 32, "name": "RC Car Pro!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 39, "name": "Rewiring the Neighborhood", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 40, "name": "Off the Beaten Wire", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 41, "name": "Moon Shards Under Siege", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 42, "name": "Sharpshooting Under Siege", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 47, "name": "Bullet Billding", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 48, "name": "One Man's Trash...", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 49, "name": "Motor Scooter: Escape!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 50, "name": "Big Jump: Escape!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "snow", "moon": 1, "name": "The Icicle Barrier", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 3, "name": "The Gusty Barrier", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 5, "name": "The Bound Bowl Grand Prix", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 9, "name": "Atop a Blustery Arch", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 17, "name": "Fishing in the Glacier!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "snow", "moon": 18, "name": "Ice-Dodging Goomba Stack", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 23, "name": "Snowline Circuit Class S", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "snow", "moon": 28, "name": "Blowing and Sliding", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "seaside", "moon": 1, "name": "The Stone Pillar Seal", "disponibilidad": "base", "goal": false},
-        {"kingdom": "seaside", "moon": 3, "name": "The Hot Spring Seal", "disponibilidad": "base", "goal": false},
-        {"kingdom": "seaside", "moon": 5, "name": "The Glass Is Half Full!", "disponibilidad": "base", "goal": false},
-        {"kingdom": "seaside", "moon": 6, "name": "On the Cliff Overlooking the Beach", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 7, "name": "Ride the Jetstream", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 10, "name": "Underwater Highway Tunnel", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 11, "name": "Shh! It's a Shortcut!", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 12, "name": "Gap in the Ocean Trench", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 13, "name": "Slip Through the Nesting Spot", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 26, "name": "Sea Gardening: Ocean Trench Seed", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 32, "name": "Love by the Seaside", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 33, "name": "Lighthouse Leaper", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "seaside", "moon": 34, "name": "Good Job, Captain Toad!", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 39, "name": "Looking Back in the Dark Waterway", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 45, "name": "Fly Through the Narrow Valley", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 46, "name": "Treasure Chest in the Narrow Valley", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 47, "name": "Hurry and Stretch", "disponibilidad": "base", "goal": true},
-        {"kingdom": "seaside", "moon": 48, "name": "Stretch on the Side Path", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 2, "name": "Under the Cheese Rocks", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 3, "name": "Big Pot on the Volcano: Dive In!", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 4, "name": "Climb Up the Cascading Magma", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "luncheon", "moon": 5, "name": "Cookatiel Showdown!", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "luncheon", "moon": 8, "name": "Atop the Jutting Crag", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 14, "name": "Light the Lantern on the Small Island", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 17, "name": "Golden Turnip Recipe 3", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 23, "name": "Taking Notes: Swimming in Magma", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 24, "name": "Love Above the Lava", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 27, "name": "A Strong Simmer", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 28, "name": "An Extreme Simmer", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 30, "name": "Treasure Beneath the Cheese Rocks", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "luncheon", "moon": 31, "name": "Light the Two Flames", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 36, "name": "Taking Notes: Big Pot Swim", "disponibilidad": "world_peace", "goal": false},
-        {"kingdom": "luncheon", "moon": 39, "name": "Magma Narrow Path", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 40, "name": "Crossing to the Magma", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 41, "name": "Fork Flickin' to the Summit", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 42, "name": "Fork Flickin' Detour", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 43, "name": "Excavate 'n' Search the Cheese Rocks", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 44, "name": "Climb the Cheese Rocks", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 2, "name": "Smart Bombing", "disponibilidad": "base", "goal": false},
-        {"kingdom": "bowser", "moon": 4, "name": "Showdown at Bowser's Castle", "disponibilidad": "base", "goal": false},
-        {"kingdom": "bowser", "moon": 5, "name": "Behind the Big Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 6, "name": "Treasure Inside the Turret", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 9, "name": "Past the Moving Wall", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "bowser", "moon": 10, "name": "Above the Poison Swamp", "disponibilidad": "world_peace", "goal": false},
-        {"kingdom": "bowser", "moon": 19, "name": "Stack Up Above the Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 22, "name": "Poking the Turret Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 23, "name": "Poking Your Nose by the Great Gate", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 24, "name": "Jizo All in a Row", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 25, "name": "Underground Jizo", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 26, "name": "Found Behind Bars!", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 27, "name": "Fishing(?) in Bowser's Castle", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "bowser", "moon": 33, "name": "On Top of the Spinning Tower", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "bowser", "moon": 34, "name": "Down and Up the Spinning Tower", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "bowser", "moon": 35, "name": "Jizo's Big Adventure", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "bowser", "moon": 36, "name": "Jizo and the Hidden Room", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "moon", "moon": 9, "name": "Under the Bowser Statue", "disponibilidad": "base", "goal": true},
-        {"kingdom": "moon", "moon": 10, "name": "In a Hole in the Magma", "disponibilidad": "base", "goal": true},
-        {"kingdom": "moon", "moon": 11, "name": "Around the Barrier Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "moon", "moon": 13, "name": "Fly to the Treasure Chest and Back", "disponibilidad": "base", "goal": true}
-      ],
-      "avisos": ["muy_comun(>=15%)"]
+        {"kingdom": "bowser", "moon": 10, "name": "Above the Poison Swamp", "disponibilidad": "world_peace", "goal": false}
+      ]
     },
     {
       "id": 15,
@@ -601,13 +410,14 @@
       "id": 17,
       "tag": "chain_chomp",
       "rol": "context",
-      "lunas": 4,
-      "pct_lunas": 0.9,
+      "lunas": 5,
+      "pct_lunas": 1.2,
       "n_goals": 1,
       "goals": ["{{X}} Cascade Chain Chomp Moons"],
       "moons": [
-        {"kingdom": "cascade", "moon": 3, "name": "Chomp Through the Rocks", "disponibilidad": "base", "goal": false},
-        {"kingdom": "cascade", "moon": 7, "name": "Above a High Cliff", "disponibilidad": "world_peace", "goal": false},
+        {"kingdom": "cascade", "moon": 1, "name": "Our First Power Moon", "disponibilidad": "base", "goal": true},
+        {"kingdom": "cascade", "moon": 3, "name": "Chomp Through the Rocks", "disponibilidad": "base", "goal": true},
+        {"kingdom": "cascade", "moon": 7, "name": "Above a High Cliff", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "cascade", "moon": 14, "name": "Nice Shot with the Chain Chomp!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "cascade", "moon": 15, "name": "Very Nice Shot with the Chain Chomp!", "disponibilidad": "world_peace", "goal": true}
       ]
@@ -621,7 +431,7 @@
       "n_goals": 1,
       "goals": ["{{X}} Cheep Cheep Moons"],
       "moons": [
-        {"kingdom": "lake", "moon": 3, "name": "Cheep Cheep Crossing", "disponibilidad": "base", "goal": false},
+        {"kingdom": "lake", "moon": 3, "name": "Cheep Cheep Crossing", "disponibilidad": "base", "goal": true},
         {"kingdom": "lake", "moon": 16, "name": "I Met a Lake Cheep Cheep!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "lake", "moon": 18, "name": "Let's Go Swimming, Captain Toad!", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 10, "name": "Underwater Highway Tunnel", "disponibilidad": "base", "goal": true},
@@ -633,6 +443,21 @@
     },
     {
       "id": 19,
+      "tag": "critter",
+      "rol": "context",
+      "lunas": 4,
+      "pct_lunas": 0.9,
+      "n_goals": 1,
+      "goals": ["{{X}} Critter Moon[[s]]"],
+      "moons": [
+        {"kingdom": "cascade", "moon": 12, "name": "Dinosaur Nest: Big Cleanup!", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "sand", "moon": 49, "name": "Under the Mummy's Curse", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "lost", "moon": 5, "name": "Over the Fuzzies, Above the Swamp", "disponibilidad": "base", "goal": true},
+        {"kingdom": "lost", "moon": 6, "name": "Avoiding Fuzzies Inside the Wall", "disponibilidad": "base", "goal": true}
+      ]
+    },
+    {
+      "id": 20,
       "tag": "deep_woods",
       "rol": "context",
       "lunas": 9,
@@ -652,7 +477,7 @@
       ]
     },
     {
-      "id": 20,
+      "id": 21,
       "tag": "dorrie",
       "rol": "context",
       "lunas": 3,
@@ -667,16 +492,15 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 21,
+      "id": 22,
       "tag": "fauna",
       "rol": "context",
       "lunas": 3,
       "pct_lunas": 0.7,
-      "n_goals": 3,
+      "n_goals": 2,
       "goals": [
         "{{X}} Dog Moon[[s]]",
-        "{{X}} Fauna Moons",
-        "Sand Sheep Moon"
+        "{{X}} Fauna Moons"
       ],
       "moons": [
         {"kingdom": "sand", "moon": 31, "name": "Found in the Sand! Good Dog!", "disponibilidad": "world_peace", "goal": true},
@@ -686,7 +510,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 22,
+      "id": 23,
       "tag": "fire_piranha_plant",
       "rol": "context",
       "lunas": 3,
@@ -701,7 +525,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 23,
+      "id": 24,
       "tag": "flora",
       "rol": "context",
       "lunas": 4,
@@ -720,7 +544,7 @@
       ]
     },
     {
-      "id": 24,
+      "id": 25,
       "tag": "frog",
       "rol": "context",
       "lunas": 4,
@@ -735,7 +559,7 @@
       ]
     },
     {
-      "id": 25,
+      "id": 26,
       "tag": "girder",
       "rol": "context",
       "lunas": 4,
@@ -750,7 +574,7 @@
       ]
     },
     {
-      "id": 26,
+      "id": 27,
       "tag": "glydon",
       "rol": "context",
       "lunas": 3,
@@ -765,7 +589,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 27,
+      "id": 28,
       "tag": "goomba",
       "rol": "context",
       "lunas": 9,
@@ -788,7 +612,7 @@
       ]
     },
     {
-      "id": 28,
+      "id": 29,
       "tag": "ground_pound",
       "rol": "obtain",
       "lunas": 41,
@@ -846,14 +670,17 @@
       ]
     },
     {
-      "id": 29,
+      "id": 30,
       "tag": "gushen",
       "rol": "context",
-      "lunas": 6,
-      "pct_lunas": 1.4,
+      "lunas": 9,
+      "pct_lunas": 2.1,
       "n_goals": 1,
       "goals": ["{{X}} Seaside Gushen Moons"],
       "moons": [
+        {"kingdom": "seaside", "moon": 1, "name": "The Stone Pillar Seal", "disponibilidad": "base", "goal": true},
+        {"kingdom": "seaside", "moon": 3, "name": "The Hot Spring Seal", "disponibilidad": "base", "goal": true},
+        {"kingdom": "seaside", "moon": 5, "name": "The Glass Is Half Full!", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 6, "name": "On the Cliff Overlooking the Beach", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 7, "name": "Ride the Jetstream", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 26, "name": "Sea Gardening: Ocean Trench Seed", "disponibilidad": "base", "goal": true},
@@ -863,7 +690,7 @@
       ]
     },
     {
-      "id": 30,
+      "id": 31,
       "tag": "hammer_bro",
       "rol": "context",
       "lunas": 4,
@@ -878,7 +705,7 @@
       ]
     },
     {
-      "id": 31,
+      "id": 32,
       "tag": "hidden_timer",
       "rol": "context",
       "lunas": 3,
@@ -893,7 +720,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 32,
+      "id": 33,
       "tag": "hint_art",
       "rol": "context",
       "lunas": 6,
@@ -915,23 +742,6 @@
         {"kingdom": "snow", "moon": 34, "name": "Found with Snow Kingdom Art", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 50, "name": "Found with Seaside Kingdom Art", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 49, "name": "Found with Luncheon Kingdom Art", "disponibilidad": "mid_story", "goal": true}
-      ]
-    },
-    {
-      "id": 33,
-      "tag": "hybrid_2d",
-      "rol": "context",
-      "lunas": 6,
-      "pct_lunas": 1.4,
-      "n_goals": 1,
-      "goals": ["{{X}} Hybrid 2D Sub-Area Moons"],
-      "moons": [
-        {"kingdom": "cascade", "moon": 16, "name": "Past the Chasm Lifts", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "cascade", "moon": 17, "name": "Hidden Chasm Passage", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "snow", "moon": 29, "name": "Moon Shards in the Cold Room", "disponibilidad": "base", "goal": true},
-        {"kingdom": "snow", "moon": 30, "name": "Slip Behind the Ice", "disponibilidad": "base", "goal": true},
-        {"kingdom": "ruined", "moon": 3, "name": "Roulette Tower: Climbed", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "ruined", "moon": 4, "name": "Roulette Tower: Stopped", "disponibilidad": "world_peace", "goal": true}
       ]
     },
     {
@@ -1103,11 +913,11 @@
       "goals": ["{{X}} Luncheon Lava Bubble Moons"],
       "moons": [
         {"kingdom": "luncheon", "moon": 8, "name": "Atop the Jutting Crag", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 14, "name": "Light the Lantern on the Small Island", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 23, "name": "Taking Notes: Swimming in Magma", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 27, "name": "A Strong Simmer", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 28, "name": "An Extreme Simmer", "disponibilidad": "base", "goal": false},
-        {"kingdom": "luncheon", "moon": 36, "name": "Taking Notes: Big Pot Swim", "disponibilidad": "world_peace", "goal": false},
+        {"kingdom": "luncheon", "moon": 14, "name": "Light the Lantern on the Small Island", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 23, "name": "Taking Notes: Swimming in Magma", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 27, "name": "A Strong Simmer", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 28, "name": "An Extreme Simmer", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 36, "name": "Taking Notes: Big Pot Swim", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "luncheon", "moon": 39, "name": "Magma Narrow Path", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 40, "name": "Crossing to the Magma", "disponibilidad": "base", "goal": true}
       ]
@@ -1137,7 +947,7 @@
       "goals": [
         "{{X}} Lost Butterfly Moons",
         "{{X}} Lost Moons",
-        "{{X}} Lost Trapeetle Moon[[s]]",
+        "{{X}} Lost Trapeetle Moons",
         "{{X}} Lost Tropical Wiggler Moons",
         "Lost Captain Toad Moon",
         "Lost Shop Moon"
@@ -1172,7 +982,7 @@
       "rol": "kingdom",
       "lunas": 50,
       "pct_lunas": 11.5,
-      "n_goals": 17,
+      "n_goals": 18,
       "goals": [
         "{{X}} Hammer Bro Moons",
         "{{X}} Luncheon Fire Piranha Plant Moons",
@@ -1186,6 +996,7 @@
         "{{X}} Luncheon Story Moons",
         "{{X}} Luncheon Sub-Area Moons",
         "{{X}} Luncheon Volbonan Moons",
+        "{{X}} Luncheon Volcano Cave Moons",
         "Luncheon Captain Toad Moon",
         "Luncheon Hint Art Moon",
         "Luncheon Shop Moon",
@@ -1193,7 +1004,7 @@
         "Mushroom Warp-Painting Moon"
       ],
       "moons": [
-        {"kingdom": "luncheon", "moon": 1, "name": "The Broodals Are After Some Cookin", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 1, "name": "The Broodals Are After Some Cookin'", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 2, "name": "Under the Cheese Rocks", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 3, "name": "Big Pot on the Volcano: Dive In!", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 4, "name": "Climb Up the Cascading Magma", "disponibilidad": "mid_story", "goal": true},
@@ -1239,7 +1050,7 @@
         {"kingdom": "luncheon", "moon": 44, "name": "Climb the Cheese Rocks", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 45, "name": "Spinning Athletics End Goal", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 46, "name": "Taking Notes: Spinning Athletics", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 47, "name": "Secret Path to Mount Volbono!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "luncheon", "moon": 47, "name": "Secret Path to Mount Volbono!", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 48, "name": "A Tourist in the Luncheon Kingdom!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "luncheon", "moon": 49, "name": "Found with Luncheon Kingdom Art", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "mushroom", "moon": 39, "name": "Secret Path to Peach's Castle!", "disponibilidad": "base", "goal": true}
@@ -1264,16 +1075,16 @@
       "id": 47,
       "tag": "manhole",
       "rol": "context",
-      "lunas": 3,
-      "pct_lunas": 0.7,
+      "lunas": 4,
+      "pct_lunas": 0.9,
       "n_goals": 1,
       "goals": ["{{X}} Metro Manhole Moons"],
       "moons": [
+        {"kingdom": "metro", "moon": 6, "name": "Powering Up the Station", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 35, "name": "Sewer Treasure", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 43, "name": "Inside the Rotating Maze", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 44, "name": "Outside the Rotating Maze", "disponibilidad": "mid_story", "goal": true}
-      ],
-      "avisos": ["rara_luna(<=3)"]
+      ]
     },
     {
       "id": 48,
@@ -1292,19 +1103,19 @@
         {"kingdom": "sand", "moon": 13, "name": "On the Lone Pillar", "disponibilidad": "base", "goal": true},
         {"kingdom": "lost", "moon": 1, "name": "Atop a Propeller Pillar", "disponibilidad": "base", "goal": true},
         {"kingdom": "lost", "moon": 2, "name": "Below the Cliff's Edge", "disponibilidad": "base", "goal": true},
-        {"kingdom": "lost", "moon": 3, "name": "Inside the Stone Cage", "disponibilidad": "base", "goal": false},
-        {"kingdom": "lost", "moon": 7, "name": "Inside the Rising Stone Pillar", "disponibilidad": "base", "goal": false},
+        {"kingdom": "lost", "moon": 3, "name": "Inside the Stone Cage", "disponibilidad": "base", "goal": true},
+        {"kingdom": "lost", "moon": 7, "name": "Inside the Rising Stone Pillar", "disponibilidad": "base", "goal": true},
         {"kingdom": "lost", "moon": 8, "name": "Enjoying the View of Forgotten Isle", "disponibilidad": "base", "goal": true},
         {"kingdom": "metro", "moon": 11, "name": "Glittering Above the Pool", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 12, "name": "Dizzying Heights", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 25, "name": "Free Parking: Rooftop Hop", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "metro", "moon": 25, "name": "Free Parking: Rooftop Hop", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "luncheon", "moon": 6, "name": "Piled on the Salt", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 7, "name": "Lurking in the Pillar's Shadow", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 29, "name": "Alcove Behind the Pillars of Magma", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "luncheon", "moon": 29, "name": "Alcove Behind the Pillars of Magma", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "bowser", "moon": 7, "name": "From the Side Above the Castle Gate", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 8, "name": "Sunken Treasure in the Moat", "disponibilidad": "base", "goal": false},
-        {"kingdom": "bowser", "moon": 16, "name": "Exterminate the Ogres!", "disponibilidad": "base", "goal": false},
-        {"kingdom": "bowser", "moon": 20, "name": "Hidden Corridor Under the Floor", "disponibilidad": "base", "goal": false},
+        {"kingdom": "bowser", "moon": 8, "name": "Sunken Treasure in the Moat", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 16, "name": "Exterminate the Ogres!", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 20, "name": "Hidden Corridor Under the Floor", "disponibilidad": "base", "goal": true},
         {"kingdom": "moon", "moon": 1, "name": "Shining Above the Moon", "disponibilidad": "base", "goal": true},
         {"kingdom": "moon", "moon": 14, "name": "Up in the Rafters", "disponibilidad": "base", "goal": true}
       ]
@@ -1398,7 +1209,7 @@
         {"kingdom": "metro", "moon": 43, "name": "Inside the Rotating Maze", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 44, "name": "Outside the Rotating Maze", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 45, "name": "Hanging from a High-Rise", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 46, "name": "Vaulting Up a High-Rise", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 46, "name": "Vaulting up a High-Rise", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 47, "name": "Bullet Billding", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 48, "name": "One Man's Trash...", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 49, "name": "Motor Scooter: Escape!", "disponibilidad": "mid_story", "goal": true},
@@ -1422,7 +1233,7 @@
         {"kingdom": "wooded", "moon": 41, "name": "Wandering in the Fog", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "wooded", "moon": 42, "name": "Nut Hidden in the Fog", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 45, "name": "Hanging from a High-Rise", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 46, "name": "Vaulting Up a High-Rise", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 46, "name": "Vaulting up a High-Rise", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "seaside", "moon": 43, "name": "Wading in the Cloud Sea", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 44, "name": "Sunken Treasure in the Cloud Sea", "disponibilidad": "base", "goal": true}
       ]
@@ -1458,6 +1269,21 @@
     },
     {
       "id": 53,
+      "tag": "moe_eye",
+      "rol": "context",
+      "lunas": 4,
+      "pct_lunas": 0.9,
+      "n_goals": 1,
+      "goals": ["{{X}} Sand Moe-Eye Moons"],
+      "moons": [
+        {"kingdom": "sand", "moon": 2, "name": "Moon Shards in the Sand", "disponibilidad": "base", "goal": true},
+        {"kingdom": "sand", "moon": 29, "name": "Sand Kingdom Timer Challenge 2", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "sand", "moon": 54, "name": "The Invisible Maze", "disponibilidad": "base", "goal": true},
+        {"kingdom": "sand", "moon": 55, "name": "Skull Sign in the Transparent Maze", "disponibilidad": "base", "goal": true}
+      ]
+    },
+    {
+      "id": 54,
       "tag": "moon",
       "rol": "kingdom",
       "lunas": 15,
@@ -1489,7 +1315,7 @@
       ]
     },
     {
-      "id": 54,
+      "id": 55,
       "tag": "moon_shard",
       "rol": "obtain",
       "lunas": 16,
@@ -1516,7 +1342,7 @@
       ]
     },
     {
-      "id": 55,
+      "id": 56,
       "tag": "multi_moon",
       "rol": "story",
       "lunas": 14,
@@ -1549,7 +1375,7 @@
       ]
     },
     {
-      "id": 56,
+      "id": 57,
       "tag": "music_note",
       "rol": "obtain",
       "lunas": 13,
@@ -1573,7 +1399,7 @@
       ]
     },
     {
-      "id": 57,
+      "id": 58,
       "tag": "night",
       "rol": "context",
       "lunas": 6,
@@ -1596,35 +1422,36 @@
       ]
     },
     {
-      "id": 58,
+      "id": 59,
       "tag": "npc",
       "rol": "context",
       "lunas": 14,
       "pct_lunas": 3.2,
-      "n_goals": 2,
+      "n_goals": 3,
       "goals": [
         "{{X}} NPC Moons",
+        "{{X}} Tourist Moon[[s]]",
         "Snow Boxer Shorts Moon"
       ],
       "moons": [
-        {"kingdom": "cascade", "moon": 19, "name": "A Tourist in the Cascade Kingdom", "disponibilidad": "world_peace", "goal": false},
+        {"kingdom": "cascade", "moon": 19, "name": "A Tourist in the Cascade Kingdom", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "sand", "moon": 45, "name": "Walking the Desert!", "disponibilidad": "base", "goal": false},
         {"kingdom": "lake", "moon": 16, "name": "I Met a Lake Cheep Cheep!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "lake", "moon": 17, "name": "Our Secret Little Room", "disponibilidad": "base", "goal": true},
-        {"kingdom": "metro", "moon": 2, "name": "Drummer on Board!", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "metro", "moon": 3, "name": "Guitarist on Board!", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "metro", "moon": 4, "name": "Bassist on Board!", "disponibilidad": "mid_story", "goal": false},
-        {"kingdom": "metro", "moon": 5, "name": "Trumpeter on Board!", "disponibilidad": "mid_story", "goal": false},
+        {"kingdom": "metro", "moon": 2, "name": "Drummer on Board!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 3, "name": "Guitarist on Board!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 4, "name": "Bassist on Board!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 5, "name": "Trumpeter on Board!", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 26, "name": "Bench Friends", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 52, "name": "A Tourist in the Metro Kingdom!", "disponibilidad": "world_peace", "goal": false},
+        {"kingdom": "metro", "moon": 52, "name": "A Tourist in the Metro Kingdom!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "snow", "moon": 20, "name": "I'm Not Cold!", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "snow", "moon": 22, "name": "Walking on Ice!", "disponibilidad": "world_peace", "goal": false},
-        {"kingdom": "luncheon", "moon": 48, "name": "A Tourist in the Luncheon Kingdom!", "disponibilidad": "world_peace", "goal": false},
-        {"kingdom": "moon", "moon": 25, "name": "A Tourist in the Moon Kingdom!", "disponibilidad": "base", "goal": false}
+        {"kingdom": "luncheon", "moon": 48, "name": "A Tourist in the Luncheon Kingdom!", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "moon", "moon": 25, "name": "A Tourist in the Moon Kingdom!", "disponibilidad": "base", "goal": true}
       ]
     },
     {
-      "id": 59,
+      "id": 60,
       "tag": "nut",
       "rol": "context",
       "lunas": 12,
@@ -1647,7 +1474,7 @@
       ]
     },
     {
-      "id": 60,
+      "id": 61,
       "tag": "oasis",
       "rol": "context",
       "lunas": 6,
@@ -1664,7 +1491,7 @@
       ]
     },
     {
-      "id": 61,
+      "id": 62,
       "tag": "outfit_door",
       "rol": "context",
       "lunas": 12,
@@ -1697,7 +1524,7 @@
       ]
     },
     {
-      "id": 62,
+      "id": 63,
       "tag": "overworld",
       "rol": "context",
       "lunas": 15,
@@ -1723,7 +1550,7 @@
       ]
     },
     {
-      "id": 63,
+      "id": 64,
       "tag": "painting",
       "rol": "context",
       "lunas": 7,
@@ -1741,16 +1568,16 @@
       ],
       "moons": [
         {"kingdom": "cascade", "moon": 18, "name": "Secret Path to Fossil Falls!", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 62, "name": "Secret Path to Tostarena!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "sand", "moon": 62, "name": "Secret Path to Tostarena!", "disponibilidad": "base", "goal": true},
         {"kingdom": "lake", "moon": 26, "name": "Secret Path to Lake Lamode!", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "wooded", "moon": 49, "name": "Secret Path to the Steam Gardens!", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 51, "name": "Secret Path to New Donk City!", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "luncheon", "moon": 47, "name": "Secret Path to Mount Volbono!", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "luncheon", "moon": 47, "name": "Secret Path to Mount Volbono!", "disponibilidad": "base", "goal": true},
         {"kingdom": "mushroom", "moon": 39, "name": "Secret Path to Peach's Castle!", "disponibilidad": "base", "goal": true}
       ]
     },
     {
-      "id": 64,
+      "id": 65,
       "tag": "paragoomba",
       "rol": "context",
       "lunas": 4,
@@ -1765,7 +1592,7 @@
       ]
     },
     {
-      "id": 65,
+      "id": 66,
       "tag": "pipe",
       "rol": "context",
       "lunas": 3,
@@ -1780,35 +1607,26 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 66,
+      "id": 67,
       "tag": "pokio",
       "rol": "context",
-      "lunas": 5,
-      "pct_lunas": 1.2,
-      "n_goals": 1,
-      "goals": ["{{X}} Bowser's Pokio Moons"],
+      "lunas": 8,
+      "pct_lunas": 1.8,
+      "n_goals": 2,
+      "goals": [
+        "{{X}} Bowser's Pokio Moons",
+        "{{X}} Pokio Hole Moons"
+      ],
       "moons": [
         {"kingdom": "bowser", "moon": 5, "name": "Behind the Big Wall", "disponibilidad": "base", "goal": true},
         {"kingdom": "bowser", "moon": 6, "name": "Treasure Inside the Turret", "disponibilidad": "base", "goal": true},
         {"kingdom": "bowser", "moon": 9, "name": "Past the Moving Wall", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 22, "name": "Poking the Turret Wall", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 23, "name": "Poking Your Nose by the Great Gate", "disponibilidad": "base", "goal": true},
         {"kingdom": "bowser", "moon": 33, "name": "On Top of the Spinning Tower", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "bowser", "moon": 34, "name": "Down and Up the Spinning Tower", "disponibilidad": "world_peace", "goal": true}
       ]
-    },
-    {
-      "id": 67,
-      "tag": "pokio_hole",
-      "rol": "context",
-      "lunas": 3,
-      "pct_lunas": 0.7,
-      "n_goals": 1,
-      "goals": ["{{X}} Pokio Hole Moons"],
-      "moons": [
-        {"kingdom": "bowser", "moon": 21, "name": "Poking Your Nose in the Plaster Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 22, "name": "Poking the Turret Wall", "disponibilidad": "base", "goal": true},
-        {"kingdom": "bowser", "moon": 23, "name": "Poking Your Nose by the Great Gate", "disponibilidad": "base", "goal": true}
-      ],
-      "avisos": ["rara_luna(<=3)"]
     },
     {
       "id": 68,
@@ -2002,7 +1820,7 @@
         {"kingdom": "sand", "moon": 59, "name": "Jaxi Stunt Driving", "disponibilidad": "base", "goal": true},
         {"kingdom": "sand", "moon": 60, "name": "Strange Neighborhood", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "sand", "moon": 61, "name": "Above a Strange Neighborhood", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "sand", "moon": 62, "name": "Secret Path to Tostarena!", "disponibilidad": "mid_story", "goal": true}
+        {"kingdom": "sand", "moon": 62, "name": "Secret Path to Tostarena!", "disponibilidad": "base", "goal": true}
       ]
     },
     {
@@ -2114,15 +1932,17 @@
       "id": 77,
       "tag": "sherm",
       "rol": "context",
-      "lunas": 6,
-      "pct_lunas": 1.4,
+      "lunas": 8,
+      "pct_lunas": 1.8,
       "n_goals": 1,
       "goals": ["{{X}} Sherm Moons"],
       "moons": [
+        {"kingdom": "wooded", "moon": 3, "name": "Path to the Secret Flower Field", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "wooded", "moon": 5, "name": "Behind the Rock Wall", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "wooded", "moon": 22, "name": "Inside a Rock in the Forest", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "wooded", "moon": 45, "name": "Elevator Escalation", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "wooded", "moon": 46, "name": "Elevator Blind Spot", "disponibilidad": "mid_story", "goal": true},
+        {"kingdom": "metro", "moon": 1, "name": "New Donk City's Pest Problem", "disponibilidad": "base", "goal": true},
         {"kingdom": "metro", "moon": 41, "name": "Moon Shards Under Siege", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 42, "name": "Sharpshooting Under Siege", "disponibilidad": "mid_story", "goal": true}
       ]
@@ -2148,14 +1968,13 @@
       "rol": "context",
       "lunas": 18,
       "pct_lunas": 4.1,
-      "n_goals": 10,
+      "n_goals": 9,
       "goals": [
         "{{X}} Snow Bitefrost Moons",
         "{{X}} Snow Goomba Moons",
         "{{X}} Snow Outfit Door Moons",
         "{{X}} Snow Shiveria Moons",
         "{{X}} Snow Shiverian Racer Moon[[s]]",
-        "{{X}} Snow Story Moons",
         "Snow Boxer Shorts Moon",
         "Snow Hint Art Moon",
         "Snow Multi-Moon",
@@ -2313,6 +2132,21 @@
     },
     {
       "id": 84,
+      "tag": "stairface_ogre",
+      "rol": "context",
+      "lunas": 3,
+      "pct_lunas": 0.7,
+      "n_goals": 1,
+      "goals": ["{{X}} Bowser's Stairface Ogre Moon[[s]]"],
+      "moons": [
+        {"kingdom": "bowser", "moon": 1, "name": "Infiltrate Bowser's Castle!", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 14, "name": "Inside a Block in the Castle", "disponibilidad": "base", "goal": true},
+        {"kingdom": "bowser", "moon": 16, "name": "Exterminate the Ogres!", "disponibilidad": "base", "goal": true}
+      ],
+      "avisos": ["rara_luna(<=3)"]
+    },
+    {
+      "id": 85,
       "tag": "story_moon",
       "rol": "story",
       "lunas": 24,
@@ -2347,7 +2181,7 @@
         {"kingdom": "seaside", "moon": 2, "name": "The Lighthouse Seal", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 3, "name": "The Hot Spring Seal", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 4, "name": "The Seal Above the Canyon", "disponibilidad": "base", "goal": true},
-        {"kingdom": "luncheon", "moon": 1, "name": "The Broodals Are After Some Cookin", "disponibilidad": "base", "goal": true},
+        {"kingdom": "luncheon", "moon": 1, "name": "The Broodals Are After Some Cookin'", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 2, "name": "Under the Cheese Rocks", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 4, "name": "Climb Up the Cascading Magma", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "bowser", "moon": 1, "name": "Infiltrate Bowser's Castle!", "disponibilidad": "base", "goal": true},
@@ -2356,12 +2190,12 @@
       ]
     },
     {
-      "id": 85,
+      "id": 86,
       "tag": "sub_area",
       "rol": "context",
       "lunas": 62,
       "pct_lunas": 14.3,
-      "n_goals": 36,
+      "n_goals": 35,
       "goals": [
         "{{X}} Bowser's Jizo Moons",
         "{{X}} Bowser's Pokio Moons",
@@ -2373,7 +2207,6 @@
         "{{X}} Cascade Chasm Lifts Moons",
         "{{X}} Cascade Sub-Area Moons",
         "{{X}} Hidden Timer Moon[[s]]",
-        "{{X}} Hybrid 2D Sub-Area Moons",
         "{{X}} Lake Sub-Area Moons",
         "{{X}} Lake Zipper Moons",
         "{{X}} Ledge Grab Moons",
@@ -2466,7 +2299,7 @@
       ]
     },
     {
-      "id": 86,
+      "id": 87,
       "tag": "swinging_pole",
       "rol": "context",
       "lunas": 3,
@@ -2476,12 +2309,12 @@
       "moons": [
         {"kingdom": "wooded", "moon": 37, "name": "Wooded Kingdom Timer Challenge 1", "disponibilidad": "world_peace", "goal": true},
         {"kingdom": "metro", "moon": 45, "name": "Hanging from a High-Rise", "disponibilidad": "mid_story", "goal": true},
-        {"kingdom": "metro", "moon": 46, "name": "Vaulting Up a High-Rise", "disponibilidad": "mid_story", "goal": true}
+        {"kingdom": "metro", "moon": 46, "name": "Vaulting up a High-Rise", "disponibilidad": "mid_story", "goal": true}
       ],
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 87,
+      "id": 88,
       "tag": "switch",
       "rol": "context",
       "lunas": 3,
@@ -2496,7 +2329,7 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 88,
+      "id": 89,
       "tag": "t_rex",
       "rol": "context",
       "lunas": 6,
@@ -2513,7 +2346,7 @@
       ]
     },
     {
-      "id": 89,
+      "id": 90,
       "tag": "timer_challenge",
       "rol": "obtain",
       "lunas": 23,
@@ -2547,7 +2380,7 @@
       ]
     },
     {
-      "id": 90,
+      "id": 91,
       "tag": "tostarena",
       "rol": "context",
       "lunas": 14,
@@ -2572,7 +2405,7 @@
       ]
     },
     {
-      "id": 91,
+      "id": 92,
       "tag": "trash",
       "rol": "context",
       "lunas": 4,
@@ -2587,7 +2420,7 @@
       ]
     },
     {
-      "id": 92,
+      "id": 93,
       "tag": "treasure_chest",
       "rol": "obtain",
       "lunas": 23,
@@ -2625,7 +2458,7 @@
       ]
     },
     {
-      "id": 93,
+      "id": 94,
       "tag": "tropical_wiggler",
       "rol": "context",
       "lunas": 6,
@@ -2642,7 +2475,7 @@
       ]
     },
     {
-      "id": 94,
+      "id": 95,
       "tag": "ty_foo",
       "rol": "context",
       "lunas": 3,
@@ -2657,38 +2490,27 @@
       "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 95,
+      "id": 96,
       "tag": "uproot",
       "rol": "context",
-      "lunas": 12,
-      "pct_lunas": 2.8,
-      "n_goals": 2,
-      "goals": [
-        "{{X}} Seaside Uproot Moons",
-        "{{X}} Wooded Uproot Moons"
-      ],
+      "lunas": 3,
+      "pct_lunas": 0.7,
+      "n_goals": 1,
+      "goals": ["{{X}} Seaside Uproot Moons"],
       "moons": [
-        {"kingdom": "wooded", "moon": 10, "name": "Atop the Tall Tree", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 11, "name": "Tucked Away Inside the Tunnel", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 13, "name": "The Nut 'Round the Corner", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 14, "name": "Climb the Cliff to Get the Nut", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 15, "name": "The Nut in the Red Maze", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 16, "name": "The Nut at the Dead End", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 24, "name": "Nut Planted in the Tower", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 25, "name": "Stretching Your Legs", "disponibilidad": "base", "goal": true},
-        {"kingdom": "wooded", "moon": 47, "name": "Walking on Clouds", "disponibilidad": "world_peace", "goal": true},
-        {"kingdom": "wooded", "moon": 48, "name": "Above the Clouds", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "wooded", "moon": 25, "name": "Stretching Your Legs", "disponibilidad": "base", "goal": false},
         {"kingdom": "seaside", "moon": 47, "name": "Hurry and Stretch", "disponibilidad": "base", "goal": true},
         {"kingdom": "seaside", "moon": 48, "name": "Stretch on the Side Path", "disponibilidad": "base", "goal": true}
-      ]
+      ],
+      "avisos": ["rara_luna(<=3)"]
     },
     {
-      "id": 96,
+      "id": 97,
       "tag": "wooded",
       "rol": "kingdom",
       "lunas": 50,
       "pct_lunas": 11.5,
-      "n_goals": 15,
+      "n_goals": 14,
       "goals": [
         "{{X}} Deep Woods Moons",
         "{{X}} Wooded Flower Road Moons",
@@ -2699,7 +2521,6 @@
         "{{X}} Wooded Pipe Moons",
         "{{X}} Wooded Story Moons",
         "{{X}} Wooded Sub-Area Moons",
-        "{{X}} Wooded Uproot Moons",
         "Wooded Captain Toad Moon",
         "Wooded Hint Art Moon",
         "Wooded Outfit Door Moon",
@@ -2760,7 +2581,7 @@
       ]
     },
     {
-      "id": 97,
+      "id": 98,
       "tag": "wooden_crates",
       "rol": "context",
       "lunas": 4,
@@ -2775,7 +2596,7 @@
       ]
     },
     {
-      "id": 98,
+      "id": 99,
       "tag": "zipper",
       "rol": "context",
       "lunas": 3,

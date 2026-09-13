@@ -20,7 +20,7 @@ Regla de producto (totales / moontype multi-reino):
   → siempre e,m,l,n.
   Moontype (u otros pools) con reinos en las 4 zonas naturales → e,m,l,n,
   independiente de len(range), salvo si el min(range) no cabe en Early
-  (Blocks / Hint-Arts / Warp-Painting → m,l,n). Si solo cubren
+  (Blocks / Hint-Arts / contador Warp-Painting → m,l,n). Si solo cubren
   2–3 zonas, progression = esas.
   Prefijo de reino / puente frontera → 1–2 zonas (no forzar emln).
   Overrides puntuales (Tourist, Minigame, Seeds, Warp-Painting, Lake Hint Art, …) ganan.
@@ -55,8 +55,6 @@ from catalog_lib import (
     ZONE_ORDER,
     _CLOUD_KINGDOM,
     clear_runtime_caches,
-    group_moons,
-    load_bingo_groups,
     load_combined_objectives_by_goal,
     load_meta,
     normalize_bingo_groups_file,
@@ -154,30 +152,29 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     "{{X}} Lurker/Rumble Moon[[s]]": [1, 2, 3, 4],
     "{{X}} Sand Ground Pound Moons": [2, 4, 6],
     "{{X}} Sherm Moons": [2, 4, 6],
-    "{{X}} Wooded Uproot Moons": [4, 6, 8],
     "{{X}} Snow Shiveria Moons": [4, 8, 12],
     "{{X}} Snow Overworld Moons": [4, 8, 12],
     "{{X}} Metro Night Moons": [2, 4, 6],  # 5 noche base + #51 pintura
 }
 
 PROGRESSION_OVERRIDES: dict[str, list[str]] = {
-    # Estaciones: cap1 cascade1 sand3 lake1 wooded2 lost1 metro1 snow0
-    # seaside≥3 luncheon1 bowser1 moon1 → techos 5/9/13/16 → rango [3,5,7,9]
+    # Estaciones: cap0+cascade0 (postgame) sand3 lake1 wooded2 lost1 metro1 snow0
+    # seaside≥3 luncheon1 bowser1 moon1 → techos 4/8/12/14 → rango [3,6,9,12]
     "Capture {{X}} Binoculars": ["e", "m", "l", "n"],
     # Warp paintings: progression = reino de ENTRADA (outbound), no destino.
     # Cadena fija: Sand→Metro, Lake/Wooded→Sand|Luncheon, Snow/Seaside→Cascade,
     # Metro|Snow/Seaside→Lake|Wooded, Luncheon→Mushroom.
-    # Sin m/l sueltos: puente adyacente (m,l o l,n).
+    # Sin m/l sueltos: puente adyacente (e,m / m,l / l,n).
     # Metro WP: cuenta en Night → individuales lost/m (entrada Sand = Mid).
     "Metro Warp-Painting Moon": ["m"],
-    "Sand Warp-Painting Moon": ["m", "l"],  # entra desde Lake/Wooded (1º fork)
-    "Luncheon Warp-Painting Moon": ["m", "l"],  # entra desde Lake/Wooded (2º)
+    # Lake None→base (e) o Wooded Flower Thieves→mid (m); puente e,m.
+    "Sand Warp-Painting Moon": ["e", "m"],  # entra desde Lake/Wooded (1º fork)
+    "Luncheon Warp-Painting Moon": ["e", "m"],  # entra desde Lake/Wooded (2º)
     "Cascade Warp-Painting Moon": ["l", "n"],  # entra desde Snow/Seaside
     "Lake Warp-Painting Moon": ["m", "l"],  # entra desde Metro (m,l) o Snow/Seaside
     "Wooded Warp-Painting Moon": ["m", "l"],  # entra desde Metro o Snow/Seaside
     "Mushroom Warp-Painting Moon": ["l"],  # entra desde Luncheon; luna base → l
-    # Techos por entrada: e=1 m=3 l=6 n=7 → rango [2,3,4] desde Mid (sin Early:
-    # primer warp usable en cadena Lake/Wooded → Sand|Luncheon).
+    # Techos: e=1 (solo Lake base) m=3 l=6 n=7 → rango [2,3,4] desde Mid.
     "{{X}} Warp-Painting Moons": ["m", "l", "n"],
     # Multireino a pie: todas las zonas aunque falten lunas en alguna (puente Rush).
     GOAL_MARIO_MOONS: ["e", "m", "l", "n"],
@@ -227,7 +224,7 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "{{X}} Cactus/Tree Moons": ["e"],
     "{{X}} Cage Moon[[s]]": ["m"],
     "{{X}} Cheep Cheep Moons": ["m", "l"],
-    "{{X}} Destructible Block Moons": ["e", "m"],
+    "{{X}} Destructible Block Moon[[s]]": ["e", "m"],
     "{{X}} Dog Moon[[s]]": ["m", "n"],
     "{{X}} Dorrie Moon[[s]]": ["e", "l", "n"],
     "{{X}} Fire Bro Moon[[s]]": ["e", "l"],
@@ -239,8 +236,6 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "{{X}} Wooded Checkpoints": ["e", "m"],
     # Checkpoints Luncheon: 2–4 base→l; 6–8 Peak Climb mid→n.
     "{{X}} Luncheon Checkpoints": ["l", "n"],
-    # Hybrid 2D: cascade/wp→e, snow/base→l, ruined/wp→n (umbrales 2/4/6).
-    "{{X}} Hybrid 2D Sub-Area Moons": ["e", "l", "n"],
     "{{X}} Koopa Trace-Walking Moon[[s]]": ["e", "n"],
     "{{X}} Lurker/Rumble Moon[[s]]": ["e", "m", "l"],
     "{{X}} Mini Rocket Moons": ["m", "l"],
@@ -414,10 +409,10 @@ def expand_zones_forward(
 
 
 def narrow_moons_for_fixed_goal(goal: str, moons: list[dict]) -> list[dict]:
-    """Si el pool es el dump del reino, quedarse con la luna de la fija.
+    """Red de seguridad si el pool aún es un dump de reino (p. ej. Shop/Toad).
 
-    build_goal_moons a menudo asigna todas las lunas del reino a Shop/Toad/
-    Festival/…; para mid_story vs base hace falta la luna concreta.
+    La fuente principal es pick_moons_for_goal (goals_referencia); esto solo
+    estrecha si llega un pool grande a una fija.
     """
     if not moons or len(moons) <= 1:
         return moons
@@ -683,86 +678,40 @@ def filter_moons_for_goal(goal: str, moons: list[dict], story_order: list[str]) 
     return list(moons)
 
 
-_NON_POWER_MOON_GOALS = frozenset(
-    {
-        "lake seed planted",
-        "wooded seed moon",
-        "correct wooded sphynx question",
-        "defeat bowser in cloud kingdom",
-    }
-)
-
-
-def _is_non_power_moon_goal(goal: str) -> bool:
-    gl = goal.lower()
-    if "pixel" in gl or gl.startswith("look at ") or "klepto" in gl:
-        return True
-    if gl.startswith(("wear ", "purchase ", "activate ")):
-        return True
-    return gl in _NON_POWER_MOON_GOALS
-
-
-def _pool_only_score(group: dict, n_goals: int) -> int:
-    # Solo pools dedicados (1 goal), no umbrellas flora/nature/…
-    return 0 if group.get("apply_moon_tag") is False and n_goals == 1 else 1
-
-
-def _consider_goal_moons(
-    best: dict[str, list[dict]],
-    best_key: dict[str, tuple[int, int, int]],
-    *,
-    goal: str,
-    selected: list[dict],
-    pool_only: int,
-) -> None:
-    kingdoms = {m["kingdom"] for m in selected if m.get("kingdom")}
-    if not kingdoms:
-        return
-    key = (pool_only, len(kingdoms), len(selected))
-    prev = best_key.get(goal)
-    if prev is None or key < prev:
-        best[goal] = selected
-        best_key[goal] = key
-
-
-def _process_group_goal_moons(
-    best: dict[str, list[dict]],
-    best_key: dict[str, tuple[int, int, int]],
-    group: dict,
-    story_like: list[str],
-) -> None:
-    raw_moons = group_moons(group)
-    if not raw_moons:
-        return
-    n_goals = sum(
-        1
-        for o in group.get("objectives") or []
-        if isinstance(o, dict) and o.get("goal")
-    )
-    pool_only = _pool_only_score(group, n_goals)
-    for obj in group.get("objectives") or []:
-        goal = obj.get("goal") if isinstance(obj, dict) else None
-        if not goal:
-            continue
-        g = str(goal)
-        if _is_non_power_moon_goal(g):
-            continue
-        selected = filter_moons_for_goal(g, raw_moons, story_like)
-        _consider_goal_moons(
-            best, best_key, goal=g, selected=selected, pool_only=pool_only
-        )
-
-
 def build_goal_moons() -> dict[str, list[dict]]:
-    """goal → lunas del grupo pool (apply_moon_tag=False) o el mas especifico."""
-    best: dict[str, list[dict]] = {}
-    # (pool_only? 0:1, n_kingdoms, n_moons) — menor gana
-    best_key: dict[str, tuple[int, int, int]] = {}
-    story_like = list(KINGDOM_COLUMNS) + ["ruined"]
+    """goal → lunas (mismo criterio que goals_referencia.pick_moons_for_goal)."""
+    from export_goals_referencia import collect_membership, pick_moons_for_goal
+    from catalog_lib import build_matrix_moon_registry
 
-    for group in load_bingo_groups():
-        _process_group_goal_moons(best, best_key, group, story_like)
-    return best
+    membership = collect_membership()
+    registry = build_matrix_moon_registry()
+    combined = load_combined_objectives_by_goal(include_disabled=True)
+    out: dict[str, list[dict]] = {}
+    for goal, obj in combined.items():
+        entries = membership.get(str(goal)) or []
+        if not entries:
+            continue
+        board = list(obj.get("board_categories") or [])
+        _used, moons, _note = pick_moons_for_goal(
+            str(goal), entries, board, registry
+        )
+        if not moons:
+            continue
+        normalized: list[dict] = []
+        for raw in moons:
+            if raw.get("kingdom") is None or raw.get("moon") is None:
+                continue
+            row = {
+                "kingdom": str(raw["kingdom"]),
+                "moon": int(raw["moon"]),
+                "name": str(raw.get("name") or ""),
+            }
+            if raw.get("disponibilidad"):
+                row["disponibilidad"] = str(raw["disponibilidad"])
+            normalized.append(row)
+        if normalized:
+            out[str(goal)] = normalized
+    return out
 
 
 def progression_from_moons(
@@ -1052,8 +1001,9 @@ def goal_availability_rank(
     # Ubicacion: Moon Rock al llegar. Talkatoo: avail real de la lista.
     if "Moon Rock" in gl:
         return AVAILABILITY_RANK["base"]
-    # Warp-Painting: entrada (no destino); Hint Art usa avail real de la luna.
-    if "Warp-Painting" in gl:
+    # Warp-Painting contador: e max=1 (Lake base), rango desde 2 → Mid.
+    # Singles: avail real de la luna (Sand/Luncheon base; Metro mid; …).
+    if gl.startswith("{{X}}") and "Warp-Painting" in gl:
         return AVAILABILITY_RANK["mid_story"]
     limiting = _limiting_moons(obj, moons, registry)
     if not limiting:

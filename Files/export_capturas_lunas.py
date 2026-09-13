@@ -3,18 +3,18 @@
 Reglas:
   - Cada luna tiene como mucho UNA captura principal (forma normal / tematica).
   - Capturas multi-reino: se listan todas las lunas de todos los reinos.
-  - Incluye lunas donde la captura es requisito O solo tematica (p. ej. Frog Pond,
-    Love/Goombette, Fishing con Lakitu).
+  - moons[] = captura real (asignacion primaria / curated) + tematica del pool
+    bingo_groups de las goals de la fila (transporte, tag_only, multiluna…).
+    goal=true si cuenta en alguna goal Combined de la fila; goal=false lleva
+    tag=true (tematica sin contar en la goal).
   - Subarea: la captura/tematica aplica a ambas lunas del par cuando es
     la misma. Si cada luna pide captura distinta (p. ej. BB + Goomba en
     Underground Temple), no se unifican. Tipos (8bit, chest, shards…) no
     se copian entre el par.
   - Lista las capturas in-game in-scope (sin Picture Match / postgame Bowser,
-    Letter, Puzzle Metro, Yoshi). Acceso/transporte (Mini Rocket,
-    Taxi, Manhole, Pole): moons del grupo bingo se anexan aqui aunque el
-    contenido tematico sea otra captura (p. ej. Fog = Paragoomba + Mini
-    Rocket; High-Rise = Mini Rocket + Pole). Rocket Flower no es captura
-    wiki. goal=true solo si cuentan para la goal Combined de esa fila.
+    Letter, Puzzle Metro, Yoshi). Acceso/transporte (Mini Rocket, Taxi,
+    Manhole, Pole): moons del grupo bingo en la fila de captura wiki. Rocket
+    Flower no es captura wiki.
   - Fire Bro + Hammer Bro: filas y goals Combined distintas; Unique Captures
     también las cuenta por separado.
   - Capturas especiales (``special``): ≤2 lunas asignadas (Meat, Boulder,
@@ -24,13 +24,8 @@ Reglas:
   - Normales con ≥ CAPTURE_TAG_MIN: tipo=normal (tag concreta / moon_tag).
   - CAPTURE_NO_CONCRETE_TAGS (p. ej. Moe-Eye n=3): tipo=minoritaria pese al
     umbral; grupo con apply_moon_tag=False.
-  - objectives[]: goal(s) Combined dedicada(s) si existen (Capture X / Moon Get /
-    {{X}} Total Moons). Varios grupos con el mismo `capture` aportan goals extra
-    (Pokio = Bowser's Pokio + Pokio Hole). Vacio = sin goal propia
-    (sigue en Unique Captures si aplica).
-  - En cada luna, goal=true|false: si cuenta para alguna goal Combined de la
-    fila (union de pools bingo_groups). Sin goal propia → todas false
-    (p. ej. Meat, Broode's).
+  - objectives[]: goal(s) Combined de bingo_groups con el mismo `capture`
+    (Pokio = Bowser's Pokio + Pokio Hole). Vacio = sin goal propia.
 
 Salida: Catalog/capturas_lunas.json (formato tipo bingo_groups / goals_referencia).
 
@@ -40,7 +35,6 @@ Usage:
 from __future__ import annotations
 
 import re
-import time
 from collections import defaultdict
 
 from catalog_lib import (
@@ -50,8 +44,8 @@ from catalog_lib import (
     CAPTURE_TAG_MIN,
     CATALOG_DIR,
     KINGDOM_COLUMNS,
-    KINGDOM_DISPLAY,
     ROOT,
+    _resolve_bingo_group_moons_raw,
     build_matrix_moon_registry,
     enrich_moon_ref_odyssey,
     group_moons,
@@ -61,7 +55,7 @@ from catalog_lib import (
     objective_ref_from_combined,
     write_catalog_json,
 )
-from fill_captures_cappy import MARIOWIKI_URLS, fetch, parse_mariowiki_table
+from mariowiki_guides import load_capture_guides
 
 OUT_JSON = CATALOG_DIR / "capturas_lunas.json"
 
@@ -77,13 +71,15 @@ CAPTURE_LIST: list[dict] = [
     {"id": 6, "name": "Broode's Chain Chomp", "reinos": ["cascade"], "postgame": False, "special": True},
     {"id": 7, "name": "T-Rex", "reinos": ["cascade", "wooded", "metro"], "postgame": False},
     {"id": 8, "name": "Binoculars", "reinos": [
-        "sand", "cap", "cascade", "lake", "wooded", "lost",
+        "sand", "cascade", "lake", "wooded", "lost",
         "metro", "seaside", "luncheon", "bowser", "moon",
     ], "postgame": False},
-    # Binoculars: excepción a special pese a 0 lunas (muchas ubicaciones; lista binoculars).
+    # Binoculars: excepción a special pese a 0 lunas (ubicaciones en
+    # BINOCULARS_LISTA → capturas_lunas.lista[]; no lists.binoculars).
     # Primer reino = sand (3 ubicaciones). Conteos:
-    # cap1 cascade1 sand3 | lake1 wooded2 lost1 | metro1 snow0 seaside≥3
-    # | luncheon1 bowser1 moon1 → techos e/m/l/n=5/9/13/16 → rango [3,5,7,9].
+    # cap0+cascade0 (postgame) sand3 | lake1 wooded2 lost1 | metro1
+    # snow0 seaside≥3 | luncheon1 bowser1 moon1 → techos e/m/l/n=4/8/12/14
+    # → rango [3,6,9,12].
     {"id": 9, "name": "Bullet Bill", "reinos": ["sand", "metro"], "postgame": False},
     {"id": 10, "name": "Moe-Eye", "reinos": ["sand"], "postgame": False},
     # Cactus = Tree (goal Cactus/Tree); ≤2 lunas → special.
@@ -121,7 +117,7 @@ CAPTURE_LIST: list[dict] = [
     {"id": 38, "name": "Volbonan", "reinos": ["luncheon"], "postgame": False, "special": True},
     {"id": 39, "name": "Hammer Bro", "reinos": ["luncheon"], "postgame": False},
     {"id": 40, "name": "Meat", "reinos": ["luncheon"], "postgame": False, "special": True},
-    # Meat: luncheon#3 Big Pot; solo Unique Captures (sin Capture Meat).
+    # Meat: luncheon#3 Big Pot (1ª multiluna); goal Luncheon Multi-Moon[[s]].
     {"id": 41, "name": "Fire Piranha Plant", "reinos": ["luncheon"], "postgame": False},
     # Fire Piranha: #32 linternas + Magma Swamp #37+#38.
     {"id": 42, "name": "Pokio", "reinos": ["bowser"], "postgame": False},
@@ -140,6 +136,170 @@ SPECIAL_CAPTURE_IDS = {c["id"] for c in CAPTURE_LIST if c.get("special")}
 CAPTURE_MERGE_INTO: dict[int, int] = {}
 CAPTURE_MERGE_DISPLAY: dict[int, str] = {}
 
+# Ubicaciones Binoculars (fuente Catalog/capturas_lunas.json; no goal_lists).
+# Cap + Cascade fuera (postgame); mismo criterio que stickers Moon/Mushroom.
+BINOCULARS_LISTA: list[dict] = [
+    {"kingdom": "sand", "id": 1, "id_list": 1, "name": "Sand binocular 1", "disponibilidad": "base"},
+    {"kingdom": "sand", "id": 2, "id_list": 2, "name": "Sand binocular 2", "disponibilidad": "base"},
+    {"kingdom": "sand", "id": 3, "id_list": 3, "name": "Sand binocular 3", "disponibilidad": "base"},
+    {"kingdom": "lake", "id": 4, "id_list": 4, "name": "Lake binocular", "disponibilidad": "base"},
+    {"kingdom": "wooded", "id": 5, "id_list": 5, "name": "Wooded binocular 1", "disponibilidad": "base"},
+    {"kingdom": "wooded", "id": 6, "id_list": 6, "name": "Wooded binocular 2", "disponibilidad": "mid_story"},
+    {"kingdom": "lost", "id": 7, "id_list": 7, "name": "Lost binocular", "disponibilidad": "base"},
+    {"kingdom": "metro", "id": 8, "id_list": 8, "name": "Metro binocular", "disponibilidad": "mid_story"},
+    {"kingdom": "seaside", "id": 9, "id_list": 9, "name": "Seaside binocular 1", "disponibilidad": "base"},
+    {"kingdom": "seaside", "id": 10, "id_list": 10, "name": "Seaside binocular 2", "disponibilidad": "base"},
+    {"kingdom": "seaside", "id": 11, "id_list": 11, "name": "Seaside binocular 3", "disponibilidad": "base"},
+    {"kingdom": "luncheon", "id": 12, "id_list": 12, "name": "Luncheon binocular", "disponibilidad": "base"},
+    {"kingdom": "bowser", "id": 13, "id_list": 13, "name": "Bowser's binocular", "disponibilidad": "base"},
+    {"kingdom": "moon", "id": 14, "id_list": 14, "name": "Moon binocular", "disponibilidad": "base"},
+]
+
+# Peleas de jefe con captura (goal_lists bosses; enlace moon = multiluna pareada).
+CAPTURE_BOSSES_LISTA: list[dict] = [
+    {
+        "capture_id": 6,
+        "kingdom": "cascade",
+        "id": 2,
+        "id_list": 2,
+        "name": "Madame Broode (Broodal)",
+        "disponibilidad": "base",
+        "moon": 2,
+    },
+    {
+        "capture_id": 6,
+        "kingdom": "moon",
+        "id": 19,
+        "id_list": 19,
+        "name": "Madame Broode (Broodal, rematch)",
+        "disponibilidad": "base",
+    },
+    {
+        "capture_id": 13,
+        "kingdom": "sand",
+        "id": 4,
+        "id_list": 4,
+        "name": "Knucklotec (Boss)",
+        "disponibilidad": "mid_story",
+        "moon": 4,
+    },
+    {
+        "capture_id": 21,
+        "kingdom": "wooded",
+        "id": 7,
+        "id_list": 7,
+        "name": "Torkdrift (Boss)",
+        "disponibilidad": "mid_story",
+        "moon": 4,
+    },
+    {
+        "capture_id": 23,
+        "kingdom": "metro",
+        "id": 10,
+        "id_list": 10,
+        "name": "Mecha Wiggler (Boss)",
+        "disponibilidad": "base",
+        "moon": 1,
+    },
+    {
+        "capture_id": 36,
+        "kingdom": "seaside",
+        "id": 12,
+        "id_list": 12,
+        "name": "Mollusque-Lanceur (Boss)",
+        "disponibilidad": "base",
+        "moon": 5,
+    },
+    {
+        "capture_id": 37,
+        "kingdom": "luncheon",
+        "id": 14,
+        "id_list": 14,
+        "name": "Cookatiel (Boss)",
+        "disponibilidad": "mid_story",
+        "moon": 5,
+    },
+    {
+        "capture_id": 42,
+        "kingdom": "bowser",
+        "id": 18,
+        "id_list": 18,
+        "name": "RoboBrood (Broodal)",
+        "disponibilidad": "base",
+        "moon": 4,
+    },
+]
+
+
+def _lista_item(raw: dict, source: str) -> dict:
+    out = {k: v for k, v in raw.items() if k != "capture_id"}
+    out["source"] = source
+    return out
+
+
+def _lista_for_capture(cap_id: int) -> list[dict]:
+    if int(cap_id) == 8:
+        return [_lista_item(x, "binoculars") for x in BINOCULARS_LISTA]
+    out: list[dict] = []
+    for raw in CAPTURE_BOSSES_LISTA:
+        if int(raw["capture_id"]) != int(cap_id):
+            continue
+        out.append(_lista_item(raw, "bosses"))
+    return out
+
+
+def _attach_row_arrays(
+    row: dict[str, object],
+    *,
+    objectives: list[dict],
+    lista: list[dict],
+    moons: list[dict],
+) -> None:
+    """En capturas_lunas omitir claves cuyo valor sería []. Orden: objectives → moons → lista."""
+    if objectives:
+        row["objectives"] = objectives
+    if moons:
+        row["moons"] = moons
+    if lista:
+        row["n_lista"] = len(lista)
+        row["lista"] = lista
+        if int(row["n_moons"]) == 0:
+            row["pool"] = "lista"
+
+
+def _capturas_global_stats(rows: list[dict[str, object]]) -> dict[str, int]:
+    """Totales de cabecera (objectives, lista, moons[] listados/únicos/goal)."""
+    n_objectives_total = 0
+    n_lista_total = 0
+    n_goal_moons = 0
+    n_goal_false = 0
+    n_moons_listed = 0
+    unique_keys: set[tuple[str, int]] = set()
+    unique_goal_true: set[tuple[str, int]] = set()
+    for row in rows:
+        n_objectives_total += int(row.get("n_objectives") or 0)
+        lista = row.get("lista") or []
+        n_lista_total += len(lista)
+        for moon in row.get("moons") or []:
+            n_moons_listed += 1
+            key = (str(moon["kingdom"]), int(moon["moon"]))
+            unique_keys.add(key)
+            if moon.get("goal") is True:
+                n_goal_moons += 1
+                unique_goal_true.add(key)
+            else:
+                n_goal_false += 1
+    return {
+        "n_objectives_total": n_objectives_total,
+        "n_lista_total": n_lista_total,
+        "n_moons_listed": n_moons_listed,
+        "n_moons_unique": len(unique_keys),
+        "n_goal_moons": n_goal_moons,
+        "n_goal_moons_unique": len(unique_goal_true),
+        "n_goal_false": n_goal_false,
+    }
+
+
 # Goal Combined dedicada por captura (CSV columna objetivo). Cerrado por ahora.
 CAPTURE_OBJECTIVE: dict[int, str] = {
     1: "{{X}} Cap Frog Moons",
@@ -147,12 +307,14 @@ CAPTURE_OBJECTIVE: dict[int, str] = {
     3: "{{X}} Paragoomba Moons",
     4: "{{X}} Cascade Chain Chomp Moons",
     5: "Capture Big Chain Chomp",
+    6: "Defeat Madame Broode in Moon Kingdom",
     7: "{{X}} T-Rex Moons",
     8: "Capture {{X}} Binoculars",
     9: "{{X}} Bullet Bill Moons",
     10: "{{X}} Sand Moe-Eye Moons",
     11: "{{X}} Cactus/Tree Moons",
     12: "{{X}} Goomba Moon[[s]]",
+    13: "{{X}} Sand Multi-Moon[[s]]",
     14: "{{X}} Mini Rocket Moons",
     15: "{{X}} Glydon Moon[[s]]",
     16: "{{X}} Lakitu-Fishing Moon[[s]]",
@@ -160,7 +322,7 @@ CAPTURE_OBJECTIVE: dict[int, str] = {
     18: "{{X}} Cheep Cheep Moons",
     19: "{{X}} Puzzle Moon[[s]]",
     20: "Capture Poison Piranha Plant",
-    21: "{{X}} Wooded Uproot Moons",
+    21: "{{X}} Seaside Uproot Moons",
     22: "{{X}} Fire Bro Moon[[s]]",
     23: "{{X}} Sherm Moons",
     24: "{{X}} Special Seed Moon[[s]]",
@@ -178,6 +340,7 @@ CAPTURE_OBJECTIVE: dict[int, str] = {
     37: "{{X}} Luncheon Lava Bubble Moons",
     38: "{{X}} Luncheon Volbonan Moons",
     39: "{{X}} Hammer Bro Moons",
+    40: "{{X}} Luncheon Multi-Moon[[s]]",
     41: "{{X}} Luncheon Fire Piranha Plant Moons",
     # Pokio: primary + Pokio Hole (mismo capture en bingo_groups → 2 objectives).
     42: "{{X}} Bowser's Pokio Moons",
@@ -215,8 +378,7 @@ CURATED_PRIMARY: dict[tuple[str, int], int] = {
     ("sand", 36): 11,  # Among the Five Cactuses
     ("sand", 40): 11,  # Wandering Cactus
     ("snow", 23): 34,  # Snowline Circuit Class S
-    ("wooded", 47): 21,  # Walking on Clouds: Uproot (beanstalk = acceso)
-    ("wooded", 48): 21,  # Above the Clouds: Uproot (beanstalk = acceso)
+    # wooded#47/#48 Cloud Walking: beanstalk (sin fila Uproot)
     ("luncheon", 3): 40,  # Big Pot (1ª multiluna): unica luna Meat
     ("luncheon", 4): 37,  # Cascading Magma: linterna con LB
     ("luncheon", 5): 37,  # Cookatiel (2ª): pelea en Lava Bubble, no Meat
@@ -231,13 +393,14 @@ CURATED_PRIMARY: dict[tuple[str, int], int] = {
     ("snow", 5): 34,
     ("wooded", 31): 7,
     ("wooded", 32): 7,
-    ("wooded", 10): 21,
-    ("wooded", 11): 21,  # Tucked Away: Uproot stretch
-    ("wooded", 13): 21,  # Nut 'Round the Corner
-    ("wooded", 14): 21,  # Climb the Cliff to Get the Nut
-    ("wooded", 15): 21,  # Nut in the Red Maze
-    ("wooded", 16): 21,  # Nut at the Dead End
-    ("wooded", 24): 21,  # Nut Planted in the Tower (par #25)
+    ("wooded", 10): 21,  # nuts: captura Uproot, goal:false (pool = Seaside)
+    ("wooded", 11): 21,
+    ("wooded", 13): 21,
+    ("wooded", 14): 21,
+    ("wooded", 15): 21,
+    ("wooded", 16): 21,
+    ("wooded", 24): 21,
+    ("wooded", 25): 21,  # Stretching Your Legs: sin goal de momento
     ("moon", 9): 44,
     ("moon", 11): 46,  # Around the Barrier Wall
     ("moon", 13): 46,  # Fly to the Treasure Chest and Back
@@ -254,8 +417,11 @@ CURATED_PRIMARY: dict[tuple[str, int], int] = {
     ("cap", 9): 2,  # Hidden Among the Push-Blocks
     ("metro", 39): 2,  # Rewiring — Wire Neighborhood
     ("metro", 40): 2,  # Off the Beaten Wire
+    ("metro", 6): 30,  # Powering Up the Station: manhole story (no goal)
     ("wooded", 41): 3,  # Fog subarea: Paragoomba (cohete solo transporte)
     ("wooded", 42): 3,  # Nut Hidden in the Fog
+    ("wooded", 33): 24,  # Coin Coffer: Special Seed moon
+    ("luncheon", 2): 39,  # Under the Cheese Rocks: Hammer Bro
     ("metro", 49): 7,  # T-Rex Chase (scooter = transporte; tematica T-Rex)
     ("metro", 50): 7,  # Big Jump: Escape!
     ("luncheon", 14): 37,  # linterna: Lava Bubble (forma normal)
@@ -536,6 +702,33 @@ def attach_group_capture_moons(
             by_capture[cap_id].sort(key=_moon_label_sort_key)
 
 
+def attach_capture_goal_pool_moons(
+    by_capture: dict[int, list[str]],
+    registry: dict[tuple[str, int], dict],
+    goal_pools: dict[str, set[tuple[str, int]]],
+) -> None:
+    """Anexa lunas del pool tematico de cada goal Combined de la fila capture."""
+    for meta in CAPTURE_LIST:
+        cap_id = int(meta["id"])
+        goals = goals_for_capture_row(cap_id, str(meta["name"]))
+        existing = _existing_keys_from_labels(by_capture.get(cap_id, []))
+        for goal in goals:
+            for key in goal_pools.get(goal, set()):
+                if key in existing:
+                    continue
+                if cap_id in CAPTURE_GOAL_POOL_CURATED_ONLY:
+                    if CURATED_PRIMARY.get(key) != cap_id:
+                        continue
+                entry = registry.get(key)
+                name = (entry or {}).get("name") or f"Moon {key[1]}"
+                by_capture.setdefault(cap_id, []).append(
+                    moon_label(key[0], key[1], str(name))
+                )
+                existing.add(key)
+        if cap_id in by_capture:
+            by_capture[cap_id].sort(key=_moon_label_sort_key)
+
+
 def enforce_special_single_moon(
     _registry: dict[tuple[str, int], dict],
     moon_to_capture: dict[tuple[str, int], int],
@@ -673,6 +866,15 @@ def _group_moon_keys(group: dict) -> set[tuple[str, int]]:
     }
 
 
+def _group_goal_pool_moon_keys(group: dict) -> set[tuple[str, int]]:
+    """Lunas que cuentan para goals Combined (excluye tag_only goal=false)."""
+    return {
+        (str(m["kingdom"]), int(m["moon"]))
+        for m in group_moons(group)
+        if "kingdom" in m and "moon" in m and m.get("goal") is not False
+    }
+
+
 def _merge_group_into_pools(
     goals: list[str],
     moons: set[tuple[str, int]],
@@ -684,6 +886,46 @@ def _merge_group_into_pools(
         if is_pool:
             pool_only.setdefault(goal, set()).update(moons)
         pools.setdefault(goal, set()).update(moons)
+
+
+# multilunas por reino → goal Combined dedicada (grupo multi_moon; ver sync SPEC).
+_MULTI_MOON_GOAL_BY_KINGDOM: dict[str, str] = {
+    "sand": "{{X}} Sand Multi-Moon[[s]]",
+    "wooded": "{{X}} Wooded Multi-Moon[[s]]",
+    "metro": "{{X}} Metro Multi-Moon[[s]]",
+    "luncheon": "{{X}} Luncheon Multi-Moon[[s]]",
+    "snow": "Snow Multi-Moon",
+    "seaside": "Seaside Multi-Moon",
+}
+
+# Curated en pool captures que siguen tag-only (multiluna/story sin goal Combined de fila).
+CURATED_GOAL_FALSE_KEYS: frozenset[tuple[str, int]] = frozenset({
+    ("cascade", 2),   # Broode multiluna
+    ("luncheon", 4),  # Cascading Magma (story; LB de acceso)
+    ("luncheon", 5),  # Cookatiel (boss multiluna; lista)
+    ("wooded", 4),    # Torkdrift multiluna (sin uproot#4 en grupo)
+    ("wooded", 10),   # nuts wooded: captura Uproot, no Seaside Uproot Moons
+    ("wooded", 11),
+    ("wooded", 13),
+    ("wooded", 14),
+    ("wooded", 15),
+    ("wooded", 16),
+    ("wooded", 24),
+    ("wooded", 25),   # Stretching Your Legs: sin goal de momento
+    ("bowser", 2),    # Smart Bombing (story Pokio)
+    ("bowser", 4),    # RoboBrood multiluna (sin pokio#2/#4 en grupo)
+    ("luncheon", 2),  # Under the Cheese Rocks (story; sin hammer_bro#2)
+    ("metro", 6),     # Powering Up the Station (story; manhole acceso)
+})
+
+# Pool Combined compartido entre capturas: solo anexar lunas curated de la fila.
+CAPTURE_GOAL_POOL_CURATED_ONLY: frozenset[int] = frozenset({19})  # Puzzle Part Lake
+
+# Misma goal Combined, capturas distintas: la luna del otro tipo = goal:false.
+CAPTURE_PEER_GOAL_FALSE_KEYS: dict[int, frozenset[tuple[str, int]]] = {
+    11: frozenset({("wooded", 34)}),  # Cactus: tree moon tag-only
+    25: frozenset({("sand", 36), ("sand", 40)}),  # Tree: cactus moons tag-only
+}
 
 
 def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
@@ -703,7 +945,7 @@ def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
         goals = _group_goal_names(group)
         if not goals:
             continue
-        moons = _group_moon_keys(group)
+        moons = _group_goal_pool_moon_keys(group)
         is_pool = group.get("apply_moon_tag") is False and len(goals) == 1
         if len(goals) == 1:
             g0 = goals[0]
@@ -716,6 +958,40 @@ def load_capture_goal_moon_pools() -> dict[str, set[tuple[str, int]]]:
     for goal, moons in pool_only.items():
         pools[goal] = moons
     return pools
+
+
+def compute_real_capture_moon_keys(
+    *,
+    registry: dict | None = None,
+    fetch_guides: bool = True,
+) -> frozenset[tuple[str, int]]:
+    """Lunas con captura real (requisito), no solo tematica o transporte.
+
+    Criterio: asignacion primaria + la luna esta en el pool de alguna goal
+    Combined de esa captura (bingo_groups). El resto vive en otros grupos.
+    """
+    registry = registry or build_matrix_moon_registry()
+    guides = load_capture_guides() if fetch_guides else {k: {} for k in KINGDOM_COLUMNS}
+    subarea_groups = load_subarea_groups()
+    excludes = expand_excludes(EXCLUDE_PRIMARY, subarea_groups)
+    excludes -= set(CURATED_PRIMARY)
+    moon_to_capture, _ = _assign_primary_captures(registry, guides, excludes)
+    apply_subarea_capture_groups(
+        registry, moon_to_capture, excludes, subarea_groups
+    )
+    enforce_special_single_moon(registry, moon_to_capture)
+    goal_pools = load_capture_goal_moon_pools()
+    name_by_id = {int(c["id"]): str(c["name"]) for c in CAPTURE_LIST}
+    real: set[tuple[str, int]] = set()
+    for key, cap_id in moon_to_capture.items():
+        cap_name = name_by_id.get(int(cap_id), "")
+        goals = goals_for_capture_row(int(cap_id), cap_name)
+        pool: set[tuple[str, int]] = set()
+        for goal in goals:
+            pool |= goal_pools.get(goal, set())
+        if key in pool:
+            real.add(key)
+    return frozenset(real)
 
 
 def goals_for_capture_row(cap_id: int, cap_name: str) -> list[str]:
@@ -862,23 +1138,6 @@ def pick_primary(
     return best_id
 
 
-def load_guides() -> dict[str, dict[int, dict[str, str]]]:
-    guides: dict[str, dict[int, dict[str, str]]] = {}
-    for kingdom in KINGDOM_COLUMNS:
-        url = MARIOWIKI_URLS.get(kingdom)
-        if not url:
-            guides[kingdom] = {}
-            continue
-        print(f"  Mario Wiki: {KINGDOM_DISPLAY.get(kingdom, kingdom)}...")
-        try:
-            guides[kingdom] = parse_mariowiki_table(fetch(url))
-        except Exception as exc:  # noqa: BLE001
-            print(f"    AVISO: {exc}")
-            guides[kingdom] = {}
-        time.sleep(0.3)
-    return guides
-
-
 def _kingdom_sort_key(kv: tuple[tuple[str, int], dict]) -> tuple[int, int]:
     kingdom, moon = kv[0]
     try:
@@ -926,6 +1185,8 @@ def parse_moon_label(
             "name": m.group(3),
             "goal": counts_for_goal,
         }
+        if not counts_for_goal:
+            ref["tag"] = True
         return enrich_moon_ref_odyssey(ref, registry)
     return {"label": label, "goal": counts_for_goal}
 
@@ -991,21 +1252,107 @@ def _capture_tipo(meta: dict, n_for_tipo: int) -> str:
     return "minoritaria"
 
 
+def _capture_tag_only_keys(cap_name: str) -> set[tuple[str, int]]:
+    """tag_only_moons de grupos bingo con el mismo capture (goal=false)."""
+    if not BINGO_GROUPS_PATH.exists():
+        return set()
+    want = cap_name.casefold()
+    keys: set[tuple[str, int]] = set()
+    for group in load_bingo_groups():
+        if str(group.get("capture") or "").casefold() != want:
+            continue
+        for raw in group.get("tag_only_moons") or []:
+            if not isinstance(raw, dict):
+                continue
+            try:
+                keys.add((str(raw["kingdom"]), int(raw["moon"])))
+            except (KeyError, TypeError, ValueError):
+                continue
+        for m in group_moons(group):
+            if m.get("goal") is False and "kingdom" in m and "moon" in m:
+                keys.add((str(m["kingdom"]), int(m["moon"])))
+    return keys
+
+
+_CURATED_MOON_CAPTURES = frozenset(
+    {
+        "meat",
+        "bowser statue",
+        "broode's chain chomp",
+    }
+)
+
+_CURATED_MOON_CAPTURE_IDS = frozenset(
+    int(c["id"])
+    for c in CAPTURE_LIST
+    if str(c["name"]).casefold() in _CURATED_MOON_CAPTURES
+)
+
+
+def curated_capture_pool_moon_keys() -> frozenset[tuple[str, int]]:
+    """Lunas curated en capturas_lunas (multiluna/tag) que cuentan en pool captures."""
+    return frozenset(
+        key
+        for key, cap_id in CURATED_PRIMARY.items()
+        if int(cap_id) in _CURATED_MOON_CAPTURE_IDS
+    )
+
+
+def _curated_keys_for_capture(cap_id: int) -> set[tuple[str, int]]:
+    return {key for key, cid in CURATED_PRIMARY.items() if int(cid) == int(cap_id)}
+
+
 def _build_capture_moons(
     moon_labels: list[str],
     goals: list[str],
     goal_pools: dict[str, set[tuple[str, int]]],
     registry: dict[tuple[str, int], dict],
+    *,
+    real_keys: frozenset[tuple[str, int]],
+    cap_name: str,
+    cap_id: int | None = None,
 ) -> list[dict[str, object]]:
     pool: set[tuple[str, int]] = set()
     for goal in goals:
         pool |= goal_pools.get(goal, set())
+    tag_only = _capture_tag_only_keys(cap_name)
+    curated = _curated_keys_for_capture(int(cap_id)) if cap_id is not None else set()
     moons: list[dict[str, object]] = []
     for label in moon_labels:
         m = re.match(r"^(\w+)#(\d+)\s+", label.strip())
-        key = (m.group(1), int(m.group(2))) if m else ("", 0)
+        if not m:
+            continue
+        key = (m.group(1), int(m.group(2)))
+        if (
+            key not in real_keys
+            and key not in tag_only
+            and key not in curated
+            and key not in pool
+        ):
+            continue
+        primary_goal = goals[0] if goals else ""
+        kingdom_multi_goal = _MULTI_MOON_GOAL_BY_KINGDOM.get(key[0])
+        capture_goal = (
+            CAPTURE_OBJECTIVE.get(int(cap_id), "") if cap_id is not None else ""
+        )
+        if key in tag_only:
+            counts_for_goal = False
+        else:
+            counts_for_goal = key in pool or (
+                key in curated
+                and key not in CURATED_GOAL_FALSE_KEYS
+                and bool(primary_goal)
+                and (
+                    kingdom_multi_goal == primary_goal
+                    or capture_goal == primary_goal
+                )
+            )
+        if cap_id is not None:
+            peer_false = CAPTURE_PEER_GOAL_FALSE_KEYS.get(int(cap_id))
+            if peer_false and key in peer_false:
+                counts_for_goal = False
         moons.append(
-            parse_moon_label(label, registry, counts_for_goal=key in pool)
+            parse_moon_label(label, registry, counts_for_goal=counts_for_goal)
         )
     return moons
 
@@ -1016,6 +1363,8 @@ def _build_capture_row(
     goal_pools: dict[str, set[tuple[str, int]]],
     combined: dict,
     registry: dict[tuple[str, int], dict],
+    *,
+    real_keys: frozenset[tuple[str, int]],
 ) -> dict[str, object]:
     cap_id = meta["id"]
     moon_labels = by_capture.get(cap_id, [])
@@ -1024,11 +1373,20 @@ def _build_capture_row(
     primary_goal = goals[0] if goals else ""
     n_for_tipo = _n_moons_for_tipo(meta, moon_labels, primary_goal, by_capture)
     tipo = _capture_tipo(meta, n_for_tipo)
-    moons = _build_capture_moons(moon_labels, goals, goal_pools, registry)
+    moons = _build_capture_moons(
+        moon_labels,
+        goals,
+        goal_pools,
+        registry,
+        real_keys=real_keys,
+        cap_name=str(meta["name"]),
+        cap_id=int(cap_id),
+    )
     n_goal_moons = sum(1 for moon in moons if moon.get("goal") is True)
     objectives: list[dict] = [
         objective_ref_from_combined(goal, combined.get(goal)) for goal in goals
     ]
+    lista = _lista_for_capture(int(cap_id))
     row: dict[str, object] = {
         "id": int(cap_id),
         "capture": meta["name"],
@@ -1038,39 +1396,175 @@ def _build_capture_row(
         "n_moons": len(moons),
         "n_goal_moons": n_goal_moons,
     }
-    if int(cap_id) == 8:
-        from goal_list_lib import curated_list
-
-        lista = curated_list("binoculars")
-        row["n_lista"] = len(lista)
-        if kingdoms_found:
-            row["kingdom"] = kingdoms_found[0]
-        row["pool"] = "lista"
-        row["objectives"] = objectives
-        row["lista"] = lista
-        row["moons"] = moons
-        return row
-
     if kingdoms_found:
         row["kingdom"] = kingdoms_found[0]
     if tipo == "normal":
         row["moon_tag"] = moon_tag_for(str(meta["name"]))
-    row["objectives"] = objectives
-    row["moons"] = moons
+    _attach_row_arrays(row, objectives=objectives, lista=lista, moons=moons)
     return row
+
+
+def build_capturas_export_rows(
+    *,
+    registry: dict | None = None,
+    refresh_wiki: bool = False,
+    fetch_guides: bool = True,
+) -> tuple[
+    list[dict[str, object]],
+    dict[tuple[str, int], int],
+    int,
+    frozenset[tuple[str, int]],
+]:
+    """Filas capturas_lunas + asignación primaria + lunas reales (pool wiki)."""
+    registry = registry or build_matrix_moon_registry()
+    guides = load_capture_guides(refresh=refresh_wiki, quiet=not refresh_wiki)
+    subarea_groups = load_subarea_groups()
+    excludes = expand_excludes(EXCLUDE_PRIMARY, subarea_groups)
+    excludes -= set(CURATED_PRIMARY)
+
+    moon_to_capture, skipped = _assign_primary_captures(registry, guides, excludes)
+    apply_subarea_capture_groups(
+        registry, moon_to_capture, excludes, subarea_groups
+    )
+    enforce_special_single_moon(registry, moon_to_capture)
+    real_keys = compute_real_capture_moon_keys(
+        registry=registry, fetch_guides=fetch_guides
+    )
+    by_capture = rebuild_by_capture(registry, moon_to_capture)
+    goal_pools = load_capture_goal_moon_pools()
+    attach_group_capture_moons(by_capture, registry)
+    attach_capture_goal_pool_moons(by_capture, registry, goal_pools)
+    combined = load_combined_objectives_by_goal(include_disabled=True)
+
+    rows: list[dict[str, object]] = [
+        _build_capture_row(
+            meta, by_capture, goal_pools, combined, registry, real_keys=real_keys
+        )
+        for meta in CAPTURE_LIST
+    ]
+    return rows, moon_to_capture, skipped, real_keys
+
+
+def resolve_capturas_hub_moon_keys(
+    *,
+    registry: dict | None = None,
+    refresh_wiki: bool = False,
+    fetch_guides: bool = True,
+) -> frozenset[tuple[str, int]]:
+    """Claves únicas en moons[] del hub capturas (= n.moons del grupo captures)."""
+    rows, _, _, _ = build_capturas_export_rows(
+        registry=registry,
+        refresh_wiki=refresh_wiki,
+        fetch_guides=fetch_guides,
+    )
+    keys: set[tuple[str, int]] = set()
+    for row in rows:
+        for moon in row.get("moons") or []:
+            keys.add((str(moon["kingdom"]), int(moon["moon"])))
+    return frozenset(keys)
+
+
+def resolve_capturas_hub_moons(
+    *,
+    registry: dict | None = None,
+    refresh_wiki: bool = False,
+    fetch_guides: bool = True,
+) -> list[dict]:
+    """Pool hub capturas (164): pool wiki + temáticas listadas en capturas_lunas."""
+    registry = registry or build_matrix_moon_registry()
+    keys = resolve_capturas_hub_moon_keys(
+        registry=registry,
+        refresh_wiki=refresh_wiki,
+        fetch_guides=fetch_guides,
+    )
+    return [
+        {
+            "kingdom": kingdom,
+            "moon": moon,
+            "name": str(
+                (registry.get((kingdom, moon)) or {}).get("name") or f"Moon {moon}"
+            ),
+        }
+        for kingdom, moon in sorted(keys, key=lambda k: (k[0], k[1]))
+    ]
+
+
+def _captures_bingo_group() -> dict | None:
+    return next(
+        (g for g in load_bingo_groups() if g.get("id") == "captures"),
+        None,
+    )
+
+
+def _captures_group_n_block() -> dict[str, int]:
+    """Bloque n del grupo captures en bingo_groups (fuente de verdad del pool)."""
+    group = _captures_bingo_group()
+    if not group:
+        return {}
+    raw = group.get("n")
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, int] = {}
+    for key in ("objectives", "moons", "goal", "tag", "odyssey_units", "lista"):
+        if raw.get(key) is not None:
+            out[key] = int(raw[key])
+    return out
+
+
+def _captures_pool_n_moons() -> int:
+    """Lunas del pool wiki/tag captures (~133; subset del hub de 164)."""
+    from fill_captures_cappy import resolve_captures_pool_moon_keys
+
+    return len(resolve_captures_pool_moon_keys())
+
+
+def _validate_capturas_group_alignment(
+    *,
+    n_objectives_total: int,
+    n_moons_total: int,
+    n_lista_total: int,
+    group_n: dict[str, int],
+) -> None:
+    """Alinea contadores con bingo_groups captures; falla si el grupo está obsoleto."""
+    if not group_n:
+        return
+    checks = (
+        ("objectives", n_objectives_total, int(group_n.get("objectives") or 0)),
+        ("moons", n_moons_total, int(group_n.get("moons") or 0)),
+        ("lista", n_lista_total, int(group_n.get("lista") or 0)),
+    )
+    bad = [
+        f"{field}: capturas={got} vs grupo={want}"
+        for field, got, want in checks
+        if want and got != want
+    ]
+    if bad:
+        raise SystemExit(
+            "capturas_lunas desincronizado con bingo_groups captures "
+            f"({'; '.join(bad)}). Ejecuta normalize_bingo_groups_file() "
+            "o regenerate_all.py (paso progression) antes de exportar."
+        )
 
 
 def _print_capturas_summary(
     rows: list[dict[str, object]],
     moon_to_capture: dict[tuple[str, int], int],
     skipped: int,
+    *,
+    n_moons_pool: int,
 ) -> None:
     print(f"\nExportado: {OUT_JSON.relative_to(ROOT).as_posix()}")
     print(
         f"Capturas listadas: {len(rows)} "
         f"(wiki={len(CAPTURE_LIST)}; transporte incluidos)"
     )
-    print(f"Lunas asignadas: {len(moon_to_capture)}")
+    n_assigned = len(moon_to_capture)
+    print(f"Lunas asignadas (captura principal): {n_assigned}")
+    print(f"Pool wiki captures (n_moons_pool): {n_moons_pool}")
+    if n_assigned != n_moons_pool:
+        print(
+            f"AVISO: asignadas ({n_assigned}) != pool wiki ({n_moons_pool})"
+        )
     vacias = sum(1 for r in rows if int(r["n_moons"]) == 0)
     if vacias:
         print(f"Capturas sin lunas: {vacias}")
@@ -1088,28 +1582,11 @@ def _print_capturas_summary(
         print(f"AVISO: lunas con varias capturas: {len(multi)}")
 
 
-def main() -> None:
+def main(*, refresh_wiki: bool = False) -> None:
     print("Cargando lunas y guias...")
-    registry = build_matrix_moon_registry()
-    guides = load_guides()
-    subarea_groups = load_subarea_groups()
-    excludes = expand_excludes(EXCLUDE_PRIMARY, subarea_groups)
-    excludes -= set(CURATED_PRIMARY)
-
-    moon_to_capture, skipped = _assign_primary_captures(registry, guides, excludes)
-    apply_subarea_capture_groups(
-        registry, moon_to_capture, excludes, subarea_groups
+    rows, moon_to_capture, skipped, _real_keys = build_capturas_export_rows(
+        refresh_wiki=refresh_wiki,
     )
-    enforce_special_single_moon(registry, moon_to_capture)
-    by_capture = rebuild_by_capture(registry, moon_to_capture)
-    attach_group_capture_moons(by_capture, registry)
-    goal_pools = load_capture_goal_moon_pools()
-    combined = load_combined_objectives_by_goal(include_disabled=True)
-
-    rows: list[dict[str, object]] = [
-        _build_capture_row(meta, by_capture, goal_pools, combined, registry)
-        for meta in CAPTURE_LIST
-    ]
 
     n_with_moons = sum(1 for r in rows if int(r["n_moons"]) > 0)
     n_with_goal = sum(1 for r in rows if int(r["n_objectives"]) > 0)
@@ -1120,27 +1597,48 @@ def main() -> None:
         for r in rows
         if int(r["n_moons"]) == 0 and int(r["n_objectives"]) == 0
     )
+    n_moons_pool = _captures_pool_n_moons()
+    group_n = _captures_group_n_block()
+    global_stats = _capturas_global_stats(rows)
+    n_moons_total = int(global_stats["n_moons_unique"])
+    _validate_capturas_group_alignment(
+        n_objectives_total=int(global_stats["n_objectives_total"]),
+        n_moons_total=n_moons_total,
+        n_lista_total=int(global_stats["n_lista_total"]),
+        group_n=group_n,
+    )
     payload = {
         "_definition": (
             "Capturas in-game (wiki) con lunas in-scope asignadas. "
             "Formato alineado con bingo_groups / goals_referencia: "
             "id (wiki), capture, tipo, kind, n_objectives, n_moons, n_goal_moons "
             "[, n_lista], kingdom, moon_tag (si normal), pool (si lista), "
-            "objectives[], lista[] (Binoculars), moons[] al final "
-            "[{kingdom,moon,name,disponibilidad,goal}]. "
-            "moons[].goal=true si la luna cuenta para alguna goal Combined de la "
-            "captura (union de pools); false si solo es captura tematica / sin "
-            "goal propia. Una captura puede listar 2+ goals (Pokio + Pokio Hole). "
-            "Acceso/transporte: moons del grupo bingo anexadas (pueden repetir "
-            "en captura de contenido; Rocket Flower no es captura). "
-            "Binoculars: pool=lista + lista[] (ubicaciones) antes de moons[]. "
+            "objectives[], moons[] (si hay lunas), "
+            "lista[] (source=binoculars|bosses). Orden de arrays: objectives → moons → lista. "
+            "Campos array vacíos se omiten (solo en capturas_lunas). "
+            "Cabecera: n (= bingo_groups captures.n: objectives/moons/lista/goal/tag), "
+            "n_moons_pool (subset wiki/tag captures, ~133), "
+            "n_moons_listed (Σ entradas moons[]; incluye duplicados entre filas), "
+            "n_goal_moons / n_goal_moons_unique / n_goal_false (desglose moons[]). "
+            "moons[]: captura real + tematica de goals bingo_groups de la fila; "
+            "goal=true cuenta en goal Combined; goal=false lleva tag=true. "
+            "y transporte viven en bingo_groups. Una captura puede listar 2+ "
+            "goals (Pokio + Pokio Hole). "
+            "lista[]: ubicaciones Binoculars o peleas jefe+captura (ids goal_lists; "
+            "moon = multiluna cuando aplica). pool=lista si solo hay lista (sin moons). "
             "Una captura principal por luna. "
             "tipo=normal|especial|minoritaria|transporte|postgame. "
-            "Contadores: n_blank_moons / n_blank_goal / n_blank_both = sin moons[], "
+            "n_blank_moons / n_blank_goal / n_blank_both = filas sin moons[], "
             "sin objectives[], o ambos vacíos."
         ),
         "_note": "Regenerar con export_capturas_lunas.py o regenerate_all.py.",
+        "n": group_n,
         "n_captures": len(rows),
+        "n_moons_pool": n_moons_pool,
+        "n_moons_listed": global_stats["n_moons_listed"],
+        "n_goal_moons": global_stats["n_goal_moons"],
+        "n_goal_moons_unique": global_stats["n_goal_moons_unique"],
+        "n_goal_false": global_stats["n_goal_false"],
         "n_with_moons": n_with_moons,
         "n_with_goal": n_with_goal,
         "n_blank_moons": n_blank_moons,
@@ -1156,8 +1654,19 @@ def main() -> None:
         legacy_csv.unlink()
         print(f"Eliminado: {legacy_csv.name}")
 
-    _print_capturas_summary(rows, moon_to_capture, skipped)
+    _print_capturas_summary(
+        rows, moon_to_capture, skipped, n_moons_pool=n_moons_pool
+    )
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--refresh-wiki",
+        action="store_true",
+        help="Descargar Mario Wiki y actualizar mariowiki_capture_guides.json.",
+    )
+    args = parser.parse_args()
+    main(refresh_wiki=args.refresh_wiki)

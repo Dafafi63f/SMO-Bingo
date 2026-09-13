@@ -51,4 +51,28 @@ Ficheros: `.github/workflows/tests.yml`, `sonarcloud.yml`, `release-combined.yml
 
 **SonarCloud (una vez):** en [SonarCloud](https://sonarcloud.io) importa `SMO-Bingo` → confirma `sonar.organization` / `sonar.projectKey` en `sonar-project.properties` → crea token → secreto `SONAR_TOKEN` en GitHub.
 
-Detalle de cada set lockout, restricciones de goals y puentes `range`/`progression`: [`Bingos/README.md`](Bingos/README.md).
+Detalle de sets lockout, schema de goals y puentes `range`/`progression`: [`Bingos/README.md`](Bingos/README.md).
+
+## Cambios recientes (2026-09)
+
+Fuente única de changelog del repo (no repetir en otros README).
+
+- Combined `2026-09-13`: **`{{X}} Wedding Moons`** — `range: [2]`, Lake `#21` + Wooded `#27`, `moontype`, prog `m`, icon `heartflowerbloom`; en grupo `cappy`.
+- **`{{X}} Lost Trapeetle Moons`**: `[1,2]` → `[2]`, sin `[[s]]` (cada luna ya cuenta en Cage / Blocks).
+- Naming: `Moon[[s]]` solo si `1 ∈ range`; mínimo ≥2 → `Moons` fijo (detalle en Bingos README). Ambas en `SINGLE_VALUE_OK`.
+- Zone: solo **`zonas_inventario.json`** (eliminado `zonas_reino.json`); tests/docs alineados. Script sigue llamándose `export_zonas_reino.py`.
+- Lake Warp-Painting / pintura Sand→Lake: availability **base**.
+- Icons: `purpletotal` / rotación Sub-Area Regional.
+- Catálogo activo: `items_goals`, `zonas_revision`, `palabras_inventario`, `mariowiki_capture_guides`. Fuera: `moon_names_wiki.json`, `sync_lunas.py`.
+
+## Pendiente / futuro
+
+Fuente única de pendientes (no repetir en otros README).
+
+- Simulador del **modo Rush** de lockout.live.
+- Curar cola **`zonas_revision.json`** (muchos `pendiente`).
+- Avisos de regen: tags multi-obtain, capturas ≠ pool wiki, ~15 icons Combined fuera del manifest `smo/`.
+- Valorar renombrar `export_zonas_reino.py` → nombre alineado a `zonas_inventario`.
+- Revisar weighting Wedding (`80`) vs Bloom (`100`) con partidas reales.
+- Tema boda: no ampliar sin criterio nuevo (retornos postgame fuera de alcance).
+- Tours / paraguas (Captain Toad, transport, fauna/flora…): dejar salvo rediseño explícito.

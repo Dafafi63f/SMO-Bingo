@@ -18,16 +18,12 @@ Usage:
 from __future__ import annotations
 
 import re
-import time
-import urllib.request
 from collections import Counter
-from html import unescape
 
 from catalog_lib import (
     ALLOW_CAPTURES_AND_CAPPY,
     FORCE_IN_SCOPE_MOONS,
     KINGDOM_COLUMNS,
-    KINGDOM_DISPLAY,
     MARIO_MOONS,
     ROCKET_FLOWER_MOONS,
     TAG_ACTION,
@@ -40,23 +36,7 @@ from catalog_lib import (
     wiki_moon_in_scope,
 )
 from export_lunas_tags import export_lunas, export_tags
-
-USER_AGENT = "BingoMoonTagger/1.1 (captures/cappy; +https://www.mariowiki.com)"
-
-MARIOWIKI_URLS: dict[str, str] = {
-    "cap": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Cap_Kingdom",
-    "cascade": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Cascade_Kingdom",
-    "sand": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Sand_Kingdom",
-    "lake": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Lake_Kingdom",
-    "wooded": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Wooded_Kingdom",
-    "lost": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Lost_Kingdom",
-    "metro": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Metro_Kingdom",
-    "snow": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Snow_Kingdom",
-    "seaside": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Seaside_Kingdom",
-    "luncheon": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Luncheon_Kingdom",
-    "bowser": "https://www.mariowiki.com/List_of_Power_Moons_in_Bowser%27s_Kingdom",
-    "moon": "https://www.mariowiki.com/List_of_Power_Moons_in_the_Moon_Kingdom",
-}
+from mariowiki_guides import MARIOWIKI_URLS, load_capture_guides
 
 # Captura tiene prioridad sobre cappy si ambos aparecen.
 CAPTURE_PATTERNS = [
@@ -231,8 +211,8 @@ FORCE_ACTION: dict[tuple[str, int], str | None] = {
     ("metro", 37): "cappy",  # Pushing Through the Crowd: palanca → TC corto
     # Palanca/hold + captura de contenido → ALLOW_CAPTURES_AND_CAPPY (ambas tags).
     ("luncheon", 2): "both",  # Lever + Hammer Bro
-    ("sand", 55): "both",  # hold Cappy + Moe-Eye
-    ("sand", 29): "captures",  # TC2: P-Switch/llave + Moe-Eye (pool Moe-Eye sin tag)
+    ("sand", 55): "cappy",  # hold Cappy + Moe-Eye (tag moe_eye; sin captures)
+    ("sand", 29): None,  # TC2: tag moe_eye (pool Moe-Eye; sin captures)
     ("metro", 20): None,  # TC2: scooter + P-Switch/llave; scooter ≠ captura de lista (como #25)
     ("wooded", 14): "captures",  # Uproot/nut; palanca cueva = solo Activate Levers (lista)
     ("wooded", 19): "both",  # Cappy + Fire Bro
@@ -293,8 +273,9 @@ FORCE_ACTION: dict[tuple[str, int], str | None] = {
     ("wooded", 45): "captures",  # Sherm: Elevator Escalation
     ("wooded", 47): "captures",  # Cloud Walking: Uproot (+ beanstalk acceso)
     ("wooded", 48): "captures",  # Above the Clouds: Uproot (+ beanstalk acceso)
-    # Meat: captura sí, sin goal concreta (solo Unique Captures; no Capture Meat).
-    ("luncheon", 3): "captures",  # Big Pot multiluna
+    # Meat / Broode multiluna: captura curated (pool captures + capturas_lunas).
+    ("cascade", 2): "captures",  # Multi Moon Atop the Falls → Broode's Chain Chomp
+    ("luncheon", 3): "captures",  # Big Pot multiluna → Meat
     # Transporte (nadar/lava) o GP alt.:
     ("seaside", 10): "captures",  # Cheep Cheep: Underwater Highway Tunnel
     ("seaside", 11): "captures",  # Cheep Cheep: Shh! It's a Shortcut!
@@ -319,71 +300,6 @@ NAME_NO_CAPPY = [
         r"traveling[- ]bird",
     )
 ]
-
-
-def fetch(url: str) -> str:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        return resp.read().decode("utf-8", "replace")
-
-
-def strip_tags(html: str) -> str:
-    text = re.sub(r"<br\s*/?>", " ", html, flags=re.I)
-    text = re.sub(r"<[^>]+>", " ", text)
-    return unescape(re.sub(r"\s+", " ", text)).strip()
-
-
-def _extract_wikitable_body(html: str) -> str | None:
-    lower = html.lower()
-    pos = 0
-    while True:
-        marker = lower.find("wikitable", pos)
-        if marker < 0:
-            return None
-        table_open = lower.rfind("<table", 0, marker)
-        if table_open < 0:
-            pos = marker + 1
-            continue
-        gt = lower.find(">", table_open)
-        if gt < 0 or "wikitable" not in lower[table_open:gt]:
-            pos = marker + 1
-            continue
-        end = lower.find("</table>", gt)
-        if end < 0:
-            return None
-        return html[gt + 1 : end]
-
-
-def _parse_mariowiki_row(cells: list[str]) -> tuple[int, dict[str, str]] | None:
-    if len(cells) < 3:
-        return None
-    num_match = re.match(r"(\d+)", strip_tags(cells[0]))
-    if not num_match:
-        return None
-    moon = int(num_match.group(1))
-    name = strip_tags(cells[2] if len(cells) >= 4 else cells[1])
-    name = name.rstrip("❸②①").strip()
-    desc_idx = 3 if len(cells) >= 5 else 2
-    # Tras el guard len(cells) < 3, siempre hay celda en desc_idx.
-    description = strip_tags(cells[desc_idx])
-    return moon, {"name": name, "description": description}
-
-
-def parse_mariowiki_table(html: str) -> dict[int, dict[str, str]]:
-    table_html = _extract_wikitable_body(html)
-    if table_html is None:
-        return {}
-
-    rows = re.findall(r"<tr\b[^>]*>(.*?)</tr>", table_html, flags=re.S | re.I)
-    result: dict[int, dict[str, str]] = {}
-    for row in rows[1:]:
-        cells = re.findall(r"<t[dh]\b[^>]*>(.*?)</t[dh]>", row, flags=re.S | re.I)
-        parsed = _parse_mariowiki_row(cells)
-        if parsed is None:
-            continue
-        moon, data = parsed
-        result[moon] = data
-    return result
 
 
 def _capture_hit(name: str, blob: str, *, no_capture: bool) -> bool:
@@ -457,6 +373,15 @@ def classify_action(name: str, description: str, existing_tags: set[str]) -> str
     return None
 
 
+def _moon_ref_sort_key(ref: tuple[str, int]) -> tuple:
+    kingdom, moon = ref
+    try:
+        idx = KINGDOM_COLUMNS.index(kingdom)
+    except ValueError:
+        idx = 99
+    return (idx, moon)
+
+
 def _kingdom_sort_key(kv: tuple) -> tuple:
     kingdom, moon = kv[0]
     try:
@@ -464,19 +389,6 @@ def _kingdom_sort_key(kv: tuple) -> tuple:
     except ValueError:
         idx = 99  # mushroom u otros fuera de columnas bingo
     return (idx, moon)
-
-
-def _fetch_guides() -> dict[str, dict[int, dict[str, str]]]:
-    guides: dict[str, dict[int, dict[str, str]]] = {}
-    for kingdom in KINGDOM_COLUMNS:
-        print(f"  Mario Wiki: {KINGDOM_DISPLAY.get(kingdom, kingdom)}...")
-        try:
-            guides[kingdom] = parse_mariowiki_table(fetch(MARIOWIKI_URLS[kingdom]))
-        except Exception as exc:  # noqa: BLE001
-            print(f"    AVISO: {exc}")
-            guides[kingdom] = {}
-        time.sleep(0.35)
-    return guides
 
 
 def _resolve_moon_action(
@@ -570,7 +482,7 @@ def _classify_registry_moons(
 def _upsert_action_groups(
     items: list[dict], mario_items: list[dict]
 ) -> tuple[int, int, int]:
-    captures = [i for i in items if "captures" in i["tags"]]
+    captures = resolve_captures_pool_moons(fetch_guides=True)
     cappy = [i for i in items if "cappy" in i["tags"]]
     n_cap = upsert_moon_tag_group(
         "captures",
@@ -631,11 +543,63 @@ def _report_captures_cappy_overlap(reg2: dict) -> None:
         print("OK: ninguna luna con captures+cappy a la vez.")
 
 
-def main(*, export: bool = True) -> None:
+def resolve_captures_pool_moon_keys(
+    *,
+    registry: dict | None = None,
+    fetch_guides: bool = True,
+) -> frozenset[tuple[str, int]]:
+    """Pool del grupo captures: captura real + tag_only en clasificación wiki."""
+    registry = registry or build_matrix_moon_registry()
+    from export_capturas_lunas import (
+        CAPTURE_LIST,
+        _capture_tag_only_keys,
+        compute_real_capture_moon_keys,
+        curated_capture_pool_moon_keys,
+    )
+    from mariowiki_guides import load_capture_guides
+
+    real = set(
+        compute_real_capture_moon_keys(registry=registry, fetch_guides=fetch_guides)
+    )
+    wiki = load_wiki_moon_meta()
+    rules = load_kingdom_availability()
+    guides = load_capture_guides() if fetch_guides else {}
+    items, _, _, _ = _classify_registry_moons(registry, guides, wiki, rules)
+    wiki_cap = {
+        (i["kingdom"], i["moon"]) for i in items if "captures" in i["tags"]
+    }
+    tag_only: set[tuple[str, int]] = set()
+    for cap in CAPTURE_LIST:
+        tag_only |= _capture_tag_only_keys(str(cap["name"]))
+    return frozenset(real | (tag_only & wiki_cap) | curated_capture_pool_moon_keys())
+
+
+def resolve_captures_pool_moons(
+    *,
+    registry: dict | None = None,
+    fetch_guides: bool = True,
+) -> list[dict]:
+    """Pool del grupo captures: solo lunas con captura real (no tematica)."""
+    registry = registry or build_matrix_moon_registry()
+
+    keys = resolve_captures_pool_moon_keys(
+        registry=registry, fetch_guides=fetch_guides
+    )
+    return [
+        {
+            "kingdom": str(kingdom),
+            "moon": int(moon),
+            "name": str((registry.get((kingdom, moon)) or {}).get("name") or f"Moon {moon}"),
+        }
+        for kingdom, moon in sorted(keys, key=_moon_ref_sort_key)
+    ]
+
+
+def main(*, export: bool = True, refresh_wiki: bool = False) -> None:
     wiki = load_wiki_moon_meta()
     rules = load_kingdom_availability()
     registry = build_matrix_moon_registry()
-    guides = _fetch_guides()
+    guides = load_capture_guides(refresh=refresh_wiki, quiet=False)
 
     items, mario_items, counts, neither = _classify_registry_moons(
         registry, guides, wiki, rules
@@ -666,4 +630,13 @@ def main(*, export: bool = True) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--refresh-wiki",
+        action="store_true",
+        help="Descargar Mario Wiki y actualizar mariowiki_capture_guides.json.",
+    )
+    args = parser.parse_args()
+    main(refresh_wiki=args.refresh_wiki)

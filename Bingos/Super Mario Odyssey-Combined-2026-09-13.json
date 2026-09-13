@@ -351,8 +351,7 @@
       "range": [
         2,
         4,
-        6,
-        8
+        6
       ],
       "individual_limit": 2,
       "board_categories": [
@@ -670,8 +669,7 @@
       "progression": [
         "e"
       ],
-      "orden": 26,
-      "weighting": 80
+      "orden": 26
     },
     {
       "goal": "{{X}} Cascade Chasm Lifts Moons",
@@ -902,7 +900,7 @@
       "orden": 35
     },
     {
-      "goal": "{{X}} Destructible Block Moons",
+      "goal": "{{X}} Destructible Block Moon[[s]]",
       "range": [
         1,
         3,
@@ -1189,36 +1187,6 @@
       "weighting": 75
     },
     {
-      "goal": "{{X}} Hybrid 2D Sub-Area Moons",
-      "range": [
-        2,
-        4,
-        6
-      ],
-      "individual_limit": 2,
-      "board_categories": [
-        "moontype",
-        "subarea"
-      ],
-      "line_categories": [
-        "moontype",
-        "subarea"
-      ],
-      "tooltip": "Completed upon Moon Get Text.",
-      "icons": [
-        "smo/moon8bit.webp",
-        "smo/moontotal.webp"
-      ],
-      "progression": [
-        "e",
-        "l",
-        "n"
-      ],
-      "progressive_ranges": true,
-      "orden": 47,
-      "weighting": 75
-    },
-    {
       "goal": "{{X}} Key Moon[[s]]",
       "range": [
         1,
@@ -1244,7 +1212,7 @@
         "n"
       ],
       "progressive_ranges": true,
-      "orden": 48,
+      "orden": 47,
       "weighting": 55
     },
     {
@@ -1273,7 +1241,7 @@
         "n"
       ],
       "progressive_ranges": true,
-      "orden": 49,
+      "orden": 48,
       "weighting": 55
     },
     {
@@ -1290,14 +1258,14 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "mkwo/koopa.webp"
+        "smo/moonwalking.webp"
       ],
       "progression": [
         "e",
         "n"
       ],
       "progressive_ranges": true,
-      "orden": 50,
+      "orden": 49,
       "weighting": 70
     },
     {
@@ -1323,7 +1291,7 @@
       "progression": [
         "e"
       ],
-      "orden": 51,
+      "orden": 50,
       "individual_limit": 2
     },
     {
@@ -1349,7 +1317,7 @@
       "progression": [
         "e"
       ],
-      "orden": 52,
+      "orden": 51,
       "individual_limit": 2
     },
     {
@@ -1375,7 +1343,7 @@
       "progression": [
         "e"
       ],
-      "orden": 53,
+      "orden": 52,
       "weighting": 80,
       "individual_limit": 2
     },
@@ -1400,7 +1368,7 @@
       "progression": [
         "e"
       ],
-      "orden": 54
+      "orden": 53
     },
     {
       "goal": "{{X}} Lake Zipper Moons",
@@ -1423,7 +1391,7 @@
       "progression": [
         "e"
       ],
-      "orden": 55
+      "orden": 54
     },
     {
       "goal": "{{X}} Lakitu-Fishing Moon[[s]]",
@@ -1450,7 +1418,7 @@
         "n"
       ],
       "progressive_ranges": true,
-      "orden": 56,
+      "orden": 55,
       "weighting": 55,
       "individual_limit": 2
     },
@@ -1477,7 +1445,7 @@
         "l"
       ],
       "progressive_ranges": true,
-      "orden": 57,
+      "orden": 56,
       "weighting": 75
     },
     {
@@ -1495,12 +1463,12 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/souvenir12.webp"
+        "smo/sticker6.webp"
       ],
       "progression": [
         "m"
       ],
-      "orden": 58
+      "orden": 57
     },
     {
       "goal": "{{X}} Lost Checkpoints",
@@ -1523,7 +1491,7 @@
       "progression": [
         "m"
       ],
-      "orden": 59
+      "orden": 58
     },
     {
       "goal": "{{X}} Lost Moons",
@@ -1548,7 +1516,7 @@
       "progression": [
         "m"
       ],
-      "orden": 60,
+      "orden": 59,
       "individual_limit": 2
     },
     {
@@ -1574,13 +1542,12 @@
       "progression": [
         "m"
       ],
-      "orden": 61,
+      "orden": 60,
       "individual_limit": 2
     },
     {
-      "goal": "{{X}} Lost Trapeetle Moon[[s]]",
+      "goal": "{{X}} Lost Trapeetle Moons",
       "range": [
-        1,
         2
       ],
       "board_categories": [
@@ -1598,7 +1565,7 @@
       "progression": [
         "m"
       ],
-      "orden": 62
+      "orden": 61
     },
     {
       "goal": "{{X}} Lost Tropical Wiggler Moons",
@@ -1623,7 +1590,7 @@
       "progression": [
         "m"
       ],
-      "orden": 63,
+      "orden": 62,
       "individual_limit": 2
     },
     {
@@ -1651,7 +1618,7 @@
         "l",
         "n"
       ],
-      "orden": 64,
+      "orden": 63,
       "progressive_ranges": true,
       "weighting": 75
     },
@@ -1673,7 +1640,7 @@
         "l",
         "n"
       ],
-      "orden": 65,
+      "orden": 64,
       "weighting": 75,
       "range": [
         2,
@@ -1703,7 +1670,7 @@
       "progression": [
         "l"
       ],
-      "orden": 66,
+      "orden": 65,
       "individual_limit": 2
     },
     {
@@ -1730,7 +1697,7 @@
         "l",
         "n"
       ],
-      "orden": 67,
+      "orden": 66,
       "weighting": 75,
       "progressive_ranges": true
     },
@@ -1757,7 +1724,7 @@
         "l",
         "n"
       ],
-      "orden": 68,
+      "orden": 67,
       "weighting": 75,
       "progressive_ranges": true,
       "individual_limit": 2
@@ -1783,7 +1750,7 @@
       "progression": [
         "l"
       ],
-      "orden": 69
+      "orden": 68
     },
     {
       "goal": "{{X}} Luncheon Moons",
@@ -1808,7 +1775,7 @@
       "progression": [
         "l"
       ],
-      "orden": 70,
+      "orden": 69,
       "individual_limit": 2
     },
     {
@@ -1830,9 +1797,12 @@
         "smo/multiluncheon.webp"
       ],
       "progression": [
-        "l"
+        "l",
+        "n"
       ],
-      "orden": 71
+      "orden": 70,
+      "progressive_ranges": true,
+      "weighting": 75
     },
     {
       "goal": "{{X}} Luncheon Outfit Door Moons",
@@ -1854,7 +1824,7 @@
       "progression": [
         "l"
       ],
-      "orden": 72
+      "orden": 71
     },
     {
       "goal": "{{X}} Luncheon Regional Coins",
@@ -1879,7 +1849,7 @@
       "progression": [
         "l"
       ],
-      "orden": 73,
+      "orden": 72,
       "individual_limit": 2
     },
     {
@@ -1904,7 +1874,7 @@
         "l",
         "n"
       ],
-      "orden": 74,
+      "orden": 73,
       "weighting": 75,
       "progressive_ranges": true
     },
@@ -1932,7 +1902,7 @@
       "progression": [
         "l"
       ],
-      "orden": 75
+      "orden": 74
     },
     {
       "goal": "{{X}} Luncheon Volbonan Moons",
@@ -1954,6 +1924,29 @@
       "progression": [
         "l"
       ],
+      "orden": 75
+    },
+    {
+      "goal": "{{X}} Luncheon Volcano Cave Moons",
+      "range": [
+        2
+      ],
+      "board_categories": [
+        "luncheon",
+        "moontype"
+      ],
+      "line_categories": [
+        "luncheon",
+        "moontype"
+      ],
+      "tooltip": "Completed upon Moon Get Text.",
+      "icons": [
+        "smo/subareamoonluncheon.webp"
+      ],
+      "progression": [
+        "n"
+      ],
+      "weighting": 50,
       "orden": 76
     },
     {
@@ -2715,7 +2708,7 @@
       ],
       "progressive_ranges": true,
       "orden": 105,
-      "weighting": 75,
+      "weighting": 85,
       "individual_limit": 2
     },
     {
@@ -2845,7 +2838,7 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/moonpokio.webp"
+        "smo/sticker11.webp"
       ],
       "progression": [
         "n"
@@ -3086,7 +3079,9 @@
       "goal": "{{X}} Sand Ice Moon[[s]]",
       "range": [
         1,
-        3
+        2,
+        3,
+        4
       ],
       "board_categories": [
         "sand",
@@ -3105,7 +3100,8 @@
         "m"
       ],
       "orden": 120,
-      "progressive_ranges": true
+      "progressive_ranges": true,
+      "individual_limit": 2
     },
     {
       "goal": "{{X}} Sand Ice Regional Coins",
@@ -3206,11 +3202,9 @@
         "smo/capturemoe-eye.webp"
       ],
       "progression": [
-        "e",
-        "m"
+        "e"
       ],
-      "orden": 124,
-      "progressive_ranges": true
+      "orden": 124
     },
     {
       "goal": "{{X}} Sand Moons",
@@ -3257,9 +3251,11 @@
         "smo/multisand.webp"
       ],
       "progression": [
-        "e"
+        "e",
+        "m"
       ],
-      "orden": 126
+      "orden": 126,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sand Oasis Moons",
@@ -3277,7 +3273,7 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/souvenir11.webp"
+        "smo/souvenir6.webp"
       ],
       "progression": [
         "e",
@@ -3306,10 +3302,12 @@
         "smo/kingdomsand.webp"
       ],
       "progression": [
-        "e"
+        "e",
+        "m"
       ],
       "orden": 128,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Sand Regional Coins",
@@ -3335,8 +3333,8 @@
         "e"
       ],
       "orden": 129,
-      "weighting": 90,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "weighting": 90
     },
     {
       "goal": "{{X}} Sand Ruins Moons",
@@ -3369,9 +3367,10 @@
     {
       "goal": "{{X}} Sand Ruins Regional Coins",
       "range": [
-        5,
-        10,
-        15
+        4,
+        8,
+        12,
+        16
       ],
       "individual_limit": 2,
       "board_categories": [
@@ -3586,7 +3585,7 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/souvenir6.webp"
+        "smo/sticker9.webp"
       ],
       "progression": [
         "l"
@@ -3669,8 +3668,8 @@
         "l"
       ],
       "orden": 142,
-      "weighting": 80,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "weighting": 80
     },
     {
       "goal": "{{X}} Seaside Story Moons",
@@ -3986,10 +3985,13 @@
         "smo/moonsnow.webp"
       ],
       "progression": [
-        "l"
+        "l",
+        "n"
       ],
       "orden": 155,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "progressive_ranges": true,
+      "weighting": 95
     },
     {
       "goal": "{{X}} Snow Outfit Door Moons",
@@ -4086,11 +4088,13 @@
         "smo/purplesnow.webp"
       ],
       "progression": [
-        "l"
+        "l",
+        "n"
       ],
       "orden": 159,
-      "weighting": 80,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "weighting": 75,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Snow Shiveria Moons",
@@ -4161,9 +4165,12 @@
         "smo/captureshiverianracer.webp"
       ],
       "progression": [
-        "l"
+        "l",
+        "n"
       ],
-      "orden": 162
+      "orden": 162,
+      "progressive_ranges": true,
+      "weighting": 95
     },
     {
       "goal": "{{X}} Snow Story Moons",
@@ -4195,8 +4202,7 @@
       "range": [
         2,
         4,
-        6,
-        8
+        6
       ],
       "individual_limit": 2,
       "board_categories": [
@@ -4217,7 +4223,7 @@
       ],
       "orden": 164,
       "progressive_ranges": true,
-      "weighting": 95
+      "weighting": 75
     },
     {
       "goal": "{{X}} Snow Ty-Foo Moons",
@@ -4327,14 +4333,11 @@
         "smo/moonseed.webp"
       ],
       "progression": [
-        "e",
         "m",
-        "l",
-        "n"
+        "l"
       ],
       "progressive_ranges": true,
-      "orden": 168,
-      "weighting": 55
+      "orden": 168
     },
     {
       "goal": "{{X}} Sphynx Moons",
@@ -4403,10 +4406,10 @@
     {
       "goal": "{{X}} Sub-Area Moons",
       "range": [
-        20,
-        24,
-        28,
-        32
+        18,
+        22,
+        26,
+        30
       ],
       "individual_limit": 2,
       "board_categories": [
@@ -4448,7 +4451,15 @@
       ],
       "tooltip": "Completed on Final Coin Touch.",
       "icons": [
-        "smo/purplemushroom.webp"
+        "smo/subareapurplecap.webp",
+        "smo/subareapurplecascade.webp",
+        "smo/subareapurplesand.webp",
+        "smo/subareapurplelake.webp",
+        "smo/subareapurplewooded.webp",
+        "smo/subareapurplemetro.webp",
+        "smo/subareapurplesnow.webp",
+        "smo/subareapurpleseaside.webp",
+        "smo/subareapurpleluncheon.webp"
       ],
       "progression": [
         "e",
@@ -4697,7 +4708,7 @@
       ],
       "tooltip": "Completed on Final Coin Touch.",
       "icons": [
-        "smo/regionalall.webp"
+        "smo/purpletotal.webp"
       ],
       "progression": [
         "e",
@@ -4755,7 +4766,7 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/mooncapturemeet.webp"
+        "smo/moonbonneter.webp"
       ],
       "progression": [
         "l",
@@ -4842,7 +4853,8 @@
         "n"
       ],
       "progressive_ranges": true,
-      "orden": 186
+      "orden": 186,
+      "weighting": 55
     },
     {
       "goal": "{{X}} Unique Life Up Hearts",
@@ -4901,6 +4913,27 @@
       "weighting": 75
     },
     {
+      "goal": "{{X}} Wedding Moons",
+      "range": [
+        2
+      ],
+      "board_categories": [
+        "moontype"
+      ],
+      "line_categories": [
+        "moontype"
+      ],
+      "tooltip": "Completed upon Moon Get Text.",
+      "icons": [
+        "smo/heartflowerbloom.webp"
+      ],
+      "progression": [
+        "m"
+      ],
+      "orden": 189,
+      "weighting": 80
+    },
+    {
       "goal": "{{X}} Wooded Checkpoints",
       "range": [
         2,
@@ -4925,7 +4958,7 @@
         "e",
         "m"
       ],
-      "orden": 189,
+      "orden": 190,
       "progressive_ranges": true,
       "weighting": 70
     },
@@ -4949,7 +4982,7 @@
       "progression": [
         "m"
       ],
-      "orden": 190,
+      "orden": 191,
       "weighting": 90
     },
     {
@@ -4975,7 +5008,7 @@
       "progression": [
         "e"
       ],
-      "orden": 191
+      "orden": 192
     },
     {
       "goal": "{{X}} Wooded Moons",
@@ -4998,10 +5031,13 @@
         "smo/moonwooded.webp"
       ],
       "progression": [
-        "e"
+        "e",
+        "m"
       ],
-      "orden": 192,
-      "individual_limit": 2
+      "orden": 193,
+      "individual_limit": 2,
+      "progressive_ranges": true,
+      "weighting": 70
     },
     {
       "goal": "{{X}} Wooded Multi-Moon[[s]]",
@@ -5022,9 +5058,12 @@
         "smo/multiwooded.webp"
       ],
       "progression": [
-        "e"
+        "e",
+        "m"
       ],
-      "orden": 193
+      "orden": 194,
+      "progressive_ranges": true,
+      "weighting": 70
     },
     {
       "goal": "{{X}} Wooded Nut Moons",
@@ -5050,7 +5089,7 @@
         "e",
         "m"
       ],
-      "orden": 194,
+      "orden": 195,
       "progressive_ranges": true,
       "weighting": 70,
       "individual_limit": 2
@@ -5071,12 +5110,12 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smgalaxy/pipe.webp"
+        "smo/sticker17.webp"
       ],
       "progression": [
         "e"
       ],
-      "orden": 195
+      "orden": 196
     },
     {
       "goal": "{{X}} Wooded Regional Coins",
@@ -5099,11 +5138,13 @@
         "smo/purplewooded.webp"
       ],
       "progression": [
-        "e"
+        "e",
+        "m"
       ],
-      "orden": 196,
-      "weighting": 80,
-      "individual_limit": 2
+      "orden": 197,
+      "weighting": 50,
+      "individual_limit": 2,
+      "progressive_ranges": true
     },
     {
       "goal": "{{X}} Wooded Story Moons",
@@ -5125,7 +5166,7 @@
       "progression": [
         "m"
       ],
-      "orden": 197,
+      "orden": 198,
       "weighting": 90
     },
     {
@@ -5151,33 +5192,8 @@
       "progression": [
         "m"
       ],
-      "orden": 198,
-      "weighting": 90
-    },
-    {
-      "goal": "{{X}} Wooded Uproot Moons",
-      "range": [
-        4,
-        6,
-        8
-      ],
-      "board_categories": [
-        "wooded",
-        "moontype"
-      ],
-      "line_categories": [
-        "wooded",
-        "moontype"
-      ],
-      "tooltip": "Completed upon Moon Get Text.",
-      "icons": [
-        "smo/captureuproot.webp"
-      ],
-      "progression": [
-        "e"
-      ],
       "orden": 199,
-      "individual_limit": 2
+      "weighting": 90
     },
     {
       "goal": "{{X}} Wooden Crate Moon[[s]]",
@@ -5229,7 +5245,7 @@
       ],
       "progressive_ranges": true,
       "orden": 201,
-      "weighting": 95,
+      "weighting": 75,
       "individual_limit": 2
     },
     {
@@ -5263,9 +5279,9 @@
     {
       "goal": "Activate {{X}} P-Switches",
       "range": [
+        1,
         2,
-        3,
-        4
+        3
       ],
       "board_categories": [
         "storymoons"
@@ -5279,12 +5295,11 @@
       ],
       "progression": [
         "e",
-        "m",
         "l"
       ],
       "progressive_ranges": true,
       "orden": 203,
-      "weighting": 85,
+      "weighting": 75,
       "individual_limit": 2
     },
     {
@@ -5694,9 +5709,9 @@
       "goal": "Capture {{X}} Binoculars",
       "range": [
         3,
-        5,
-        7,
-        9
+        6,
+        9,
+        12
       ],
       "board_categories": [
         "miscellaneous"
@@ -5716,7 +5731,8 @@
       ],
       "progressive_ranges": true,
       "orden": 223,
-      "individual_limit": 2
+      "individual_limit": 2,
+      "weighting": 55
     },
     {
       "goal": "Cascade Captain Toad Moon",
@@ -5814,7 +5830,7 @@
         "n"
       ],
       "orden": 228,
-      "weighting": 85
+      "weighting": 75
     },
     {
       "goal": "Correct Moon Sphynx Question",
@@ -6261,11 +6277,10 @@
         "smo/moonpaintingluncheon.webp"
       ],
       "progression": [
-        "m",
-        "l"
+        "e",
+        "m"
       ],
-      "orden": 251,
-      "weighting": 90
+      "orden": 251
     },
     {
       "goal": "Metro Captain Toad Moon",
@@ -6299,7 +6314,7 @@
       ],
       "tooltip": "Completed upon Moon Get Text.",
       "icons": [
-        "smo/souvenir13.webp"
+        "smo/sticker7.webp"
       ],
       "progression": [
         "m"
@@ -6323,7 +6338,8 @@
       "progression": [
         "l"
       ],
-      "orden": 254
+      "orden": 254,
+      "weighting": 90
     },
     {
       "goal": "Metro Hint Art Moon",
@@ -6499,8 +6515,7 @@
       "progression": [
         "l"
       ],
-      "orden": 263,
-      "weighting": 90
+      "orden": 263
     },
     {
       "goal": "Purchase {{X}} Costume Sets",
@@ -6708,11 +6723,10 @@
         "smo/moonpaintingsand.webp"
       ],
       "progression": [
-        "m",
-        "l"
+        "e",
+        "m"
       ],
-      "orden": 273,
-      "weighting": 90
+      "orden": 273
     },
     {
       "goal": "Save Cappy From Klepto",
@@ -6729,9 +6743,13 @@
         "sm64/klepto_ssl.webp"
       ],
       "progression": [
-        "m"
+        "e",
+        "m",
+        "l",
+        "n"
       ],
-      "orden": 274
+      "orden": 274,
+      "weighting": 55
     },
     {
       "goal": "Seaside Captain Toad Moon",

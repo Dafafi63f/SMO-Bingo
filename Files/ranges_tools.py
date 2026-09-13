@@ -222,5 +222,7 @@ SINGLE_VALUE_OK = {
     "{{X}} Sand Story Moons",
     "{{X}} Seaside Uproot Moons",
     "{{X}} Wooded Flower Road Moons",
+    "{{X}} Wedding Moons",
+    "{{X}} Lost Trapeetle Moons",
     "All Regional Coins in {{X}} Large Kingdom",
 }

@@ -1,23 +1,15 @@
-"""Export Catalog/zonas_reino.json — inventario por kingdom.
+"""Export Catalog/zonas_inventario.json — inventario por zone (alfa).
 
-Incluye:
-  - todos los ítems de goal_lists (source = nombre de lista)
+Construye en memoria un inventario por kingdom (función `build_zonas_reino`)
+y lo proyecta a `zonas_inventario.json`:
+  - ítems de goal_lists (source = nombre de lista) + binoculars
   - lunas in-scope (source = moon; desde lunas-objetivos.json)
 
-Cabecera: n_items = goal_lists; n_moons = lunas-objetivos (434); n_total = n_moons + n_items.
-
-list[] por kingdom (story): primero source=moon (nº luna); luego lists de
-goal_lists en alfa (orden del file dentro).
-
-ids en cada fila:
-  - id = 1..n_total (posición en list[])
-  - id_kingdom = nº luna o 1..n_items del reino
-
-zone: fuente de verdad de ubicación (POIs + lunas). Se preserva al regenerar
+Cabecera: n_moons / n_items / n_total; n_zoned / n_without_zone.
+Zone: fuente de ubicación (POIs + lunas); se preserva al regenerar
 (clave kingdom+source+name). No vive en goal_lists / goals_referencia.
 
-También escribe Catalog/zonas_inventario.json — vista de revisión por zone
-(alfa global; no editar; curar zone en zonas_reino).
+Si existe el legado `zonas_reino.json`, se elimina al exportar.
 
 Uso:
   python Files/export_zonas_reino.py
@@ -33,13 +25,19 @@ from catalog_lib import (
     load_sub_area_levels,
     write_catalog_json,
 )
-from goal_list_lib import load_goal_lists, load_zonas_zone_index, write_goal_lists
+from goal_list_lib import (
+    binoculars_lista,
+    load_goal_lists,
+    load_zonas_zone_index,
+    write_goal_lists,
+)
 
 ZONAS_REINO_PATH = CATALOG_DIR / "zonas_reino.json"
 ZONAS_INVENTARIO_PATH = CATALOG_DIR / "zonas_inventario.json"
 LUNAS_PATH = CATALOG_DIR / "lunas-objetivos.json"
 
 MOON_SOURCE = "moon"
+BINOCULARS_SOURCE = "binoculars"
 
 _KEY_ORDER = (
     "source",
@@ -96,6 +94,17 @@ def _moon_item(raw: dict) -> dict:
     }
 
 
+def _binoculars_item(raw: dict) -> dict:
+    """Fila source=binoculars (capturas_lunas.lista[]; no goal_lists)."""
+    item: dict = {
+        "source": BINOCULARS_SOURCE,
+        "name": str(raw.get("name") or ""),
+    }
+    if raw.get("disponibilidad") is not None:
+        item["disponibilidad"] = raw["disponibilidad"]
+    return item
+
+
 def _kingdom_from_lunas_row(raw: dict) -> str | None:
     """Reino desde tags[0] (lunas-objetivos sin campo kingdom)."""
     tags = raw.get("tags")
@@ -129,6 +138,19 @@ def _by_zone_counts(items: list[dict]) -> dict[str, int]:
     return {zone: counts[zone] for zone in sorted(counts)}
 
 
+def _by_source_sort_key(src: str) -> tuple:
+    return (0, src) if src == MOON_SOURCE else (1, src)
+
+
+def _by_source_counts(items: list[dict]) -> dict[str, int]:
+    counts = Counter(
+        str(it["source"]) for it in items if it.get("source") is not None
+    )
+    return {
+        src: counts[src] for src in sorted(counts, key=_by_source_sort_key)
+    }
+
+
 def _resolve_zone(
     *,
     kingdom: str,
@@ -137,7 +159,7 @@ def _resolve_zone(
     zone_map: dict[tuple[str, str, str], str],
     seed: str | None = None,
 ) -> str | None:
-    """Prioridad: mapa zonas_reino → seed legado (p. ej. goal_lists)."""
+    """Prioridad: mapa de zonas_inventario → seed legado (p. ej. goal_lists)."""
     key = _zone_key(kingdom, source, name)
     if key in zone_map:
         return zone_map[key]
@@ -177,10 +199,16 @@ _TOAD_ZONE: dict[str, str] = {
 
 # Fallback (kingdom, nº luna) cuando listas/tags no bastan.
 _MOON_ZONE_FALLBACK: dict[tuple[str, int], str] = {
-    ("cap", 1): "fog",
-    ("cap", 2): "odyssey",
-    ("cap", 3): "fog",
+    ("cap", 1): "odyssey",
+    ("cap", 2): "central_plaza",
+    ("cap", 3): "central_plaza",
     ("cap", 4): "top_hat_tower",
+    ("cap", 6): "top_hat_tower",
+    ("cap", 7): "top_hat_tower",
+    ("cap", 8): "top_hat_tower",
+    ("cap", 9): "top_hat_tower",
+    ("cap", 10): "central_plaza",
+    ("cap", 11): "central_plaza",
     ("cascade", 1): "odyssey",
     ("cascade", 2): "heights",
     ("cascade", 3): "basin",
@@ -259,7 +287,7 @@ _MOON_ZONE_FALLBACK: dict[tuple[str, int], str] = {
     ("wooded", 21): "iron_road",
     ("wooded", 22): "iron_road",
     ("wooded", 24): "sky_garden",
-    ("wooded", 25): "odyssey_start",
+    ("wooded", 25): "odyssey",
     ("wooded", 26): "summit_path",
     ("wooded", 27): "flower_field",
     ("wooded", 37): "flower_field",
@@ -290,12 +318,12 @@ _MOON_ZONE_FALLBACK: dict[tuple[str, int], str] = {
     ("metro", 5): "musicians",
     ("metro", 6): "main_street",
     ("metro", 7): "city_hall",
-    ("metro", 8): "girders",
-    ("metro", 9): "girders",
-    ("metro", 10): "girders",
+    ("metro", 8): "girder",
+    ("metro", 9): "girder",
+    ("metro", 10): "girder",
     ("metro", 11): "park",
     ("metro", 12): "rooftops",
-    ("metro", 13): "girders",
+    ("metro", 13): "girder",
     ("metro", 14): "garbage",
     ("metro", 15): "garbage",
     ("metro", 16): "outdoor_cafe",
@@ -318,6 +346,7 @@ _MOON_ZONE_FALLBACK: dict[tuple[str, int], str] = {
     ("metro", 34): "city_hall_interior",
     ("metro", 35): "sewers",
     ("metro", 36): "main_street",
+    ("metro", 46): "rooftops",
     ("metro", 52): "odyssey",
     ("snow", 1): "icicle_cavern",
     ("snow", 2): "hollow_crevasse",
@@ -608,7 +637,7 @@ def infer_moon_zone(
 def build_zonas_reino(
     *, zone_map: dict[tuple[str, str, str], str] | None = None
 ) -> dict:
-    """kingdoms[]: kingdom, by_zone, n_moons, n_items, n_total, list."""
+    """kingdoms[]: kingdom, by_zone, by_source, n_moons, n_items, n_total, list."""
     data = load_goal_lists()
     zones = zone_map if zone_map is not None else load_zonas_zone_index()
 
@@ -640,6 +669,24 @@ def build_zonas_reino(
             if zone:
                 item["zone"] = zone
             buckets[kingdom].append((item, source, (1, source, idx)))
+
+    for idx, raw in enumerate(binoculars_lista()):
+        if not isinstance(raw, dict) or not raw.get("kingdom"):
+            continue
+        kingdom = str(raw["kingdom"])
+        item = _binoculars_item(raw)
+        name = str(item.get("name") or "")
+        zone = _resolve_zone(
+            kingdom=kingdom,
+            source=BINOCULARS_SOURCE,
+            name=name,
+            zone_map=zones,
+        )
+        if zone:
+            item["zone"] = zone
+        buckets[kingdom].append(
+            (item, BINOCULARS_SOURCE, (1, BINOCULARS_SOURCE, idx))
+        )
 
     lunas = load_catalog(LUNAS_PATH) if LUNAS_PATH.is_file() else {}
     for raw in lunas.get("moons") or []:
@@ -694,6 +741,7 @@ def build_zonas_reino(
             {
                 "kingdom": kingdom,
                 "by_zone": _by_zone_counts(items),
+                "by_source": _by_source_counts(items),
                 "n_moons": n_moons_k,
                 "n_items": n_items_k,
                 "n_total": n_moons_k + n_items_k,
@@ -703,16 +751,31 @@ def build_zonas_reino(
 
     n_moons = sum(k["n_moons"] for k in kingdoms)
     n_items = sum(k["n_items"] for k in kingdoms)
+    n_binoculars = sum(
+        1
+        for k in kingdoms
+        for it in k["list"]
+        if it.get("source") == BINOCULARS_SOURCE
+    )
+    n_items_goal_lists = int(data.get("n_items") or 0)
+    if n_items != n_items_goal_lists + n_binoculars:
+        raise ValueError(
+            f"n_items={n_items} != goal_lists ({n_items_goal_lists}) + "
+            f"binoculars ({n_binoculars})"
+        )
     return {
         "_note": (
             "Inventario por kingdom (story order). "
             "Fuente de ubicación (zone) del proyecto: editar zone aquí; "
             "goal_lists / goals_referencia / bingo_groups no llevan zone. "
-            "n_items = Catalog/goal_lists.json; "
-            "n_moons = lunas-objetivos (434; mushroom#39 como luncheon#50); "
-            "n_total = n_moons + n_items (cabecera y por kingdom). "
+            f"n_items = goal_lists ({n_items_goal_lists}) + binoculars "
+            f"({n_binoculars}) = {n_items} "
+            "(= bingo_groups.n_lista_total); "
+            f"n_moons = lunas-objetivos ({n_moons}); "
+            f"n_total = n_moons + n_items ({n_moons + n_items}). "
+            "by_zone / by_source: conteos por zone o source en list[]. "
             "list[]: primero moon (nº luna), luego sources goal_lists en alfa "
-            "(orden del file dentro). "
+            "(orden del file dentro) + binoculars. "
             "id = 1..n_total (posición en list[]); "
             "id_kingdom = nº luna o 1..n_items del reino. "
             "Al regenerar, zone se preserva por (kingdom, source, name). "
@@ -728,8 +791,8 @@ def build_zonas_reino(
     }
 
 
-def _detalle_item(kingdom: str, raw: dict) -> dict:
-    """Fila compacta de revisión (ids de zonas_reino para cruzar)."""
+def _detalle_item(kingdom: str, raw: dict, *, zone: str | None = None) -> dict:
+    """Fila compacta de inventario (ids para cruzar)."""
     out: dict = {
         "kingdom": kingdom,
         "source": str(raw.get("source") or ""),
@@ -739,6 +802,8 @@ def _detalle_item(kingdom: str, raw: dict) -> dict:
     if raw.get("id_kingdom") is not None:
         out["id_kingdom"] = raw["id_kingdom"]
     out["name"] = str(raw.get("name") or "")
+    if zone:
+        out["zone"] = zone
     if raw.get("disponibilidad") is not None:
         out["disponibilidad"] = raw["disponibilidad"]
     if raw.get("total") is not None:
@@ -750,13 +815,17 @@ def _detalle_item(kingdom: str, raw: dict) -> dict:
     return out
 
 
+def _inventario_zone_label(kingdom: str, zone: str, *, shared: bool) -> str:
+    """Slug de zona en inventario: reino_zona si la zone es compartida."""
+    if shared:
+        return f"{kingdom}_{zone}" if kingdom else zone
+    return zone
+
+
 def build_zonas_inventario(payload: dict | None = None) -> dict:
-    """Vista de revisión: una entrada por (zone, kingdom), zone en alfa global."""
+    """Vista de inventario: una entrada por (zone, kingdom); slug único en zones[]."""
     if payload is None:
-        if not ZONAS_REINO_PATH.exists():
-            payload = build_zonas_reino()
-        else:
-            payload = load_catalog(ZONAS_REINO_PATH)
+        payload = build_zonas_reino()
 
     buckets: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for kblock in payload.get("kingdoms") or []:
@@ -769,69 +838,77 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
             zone = raw.get("zone")
             if zone is None or zone == "":
                 continue
-            buckets[(str(zone), kingdom)].append(_detalle_item(kingdom, raw))
+            buckets[(str(zone), kingdom)].append(
+                _detalle_item(kingdom, raw, zone=str(zone))
+            )
+
+    zone_reino_counts: Counter[str] = Counter(z for z, _ in buckets)
+
+    entries: list[tuple[str, str, str, bool]] = []
+    for zone, kingdom in buckets:
+        shared = zone_reino_counts[zone] > 1
+        label = _inventario_zone_label(kingdom, zone, shared=shared)
+        entries.append((label, kingdom, zone, shared))
 
     zones_out: list[dict] = []
-    for orden, (zone, kingdom) in enumerate(
-        sorted(buckets.keys(), key=lambda zk: (zk[0].lower(), zk[1])),
+    for orden, (label, kingdom, zone, shared) in enumerate(
+        sorted(entries, key=lambda t: t[0].lower()),
         start=1,
     ):
         items = buckets[(zone, kingdom)]
-        by_source = {
-            src: n
-            for src, n in sorted(
-                Counter(str(it["source"]) for it in items).items(),
-                key=lambda p: p[0],
-            )
-        }
-        zones_out.append(
-            {
-                "zone": zone,
-                "kingdom": kingdom,
-                "orden": orden,
-                "n_total": len(items),
-                "by_source": by_source,
-                "list": items,
-            }
-        )
+        by_source = _by_source_counts(items)
+        row: dict = {"zone": label}
+        if not shared:
+            row["kingdom"] = kingdom
+        row["orden"] = orden
+        row["n_total"] = len(items)
+        row["by_source"] = by_source
+        row["list"] = items
+        zones_out.append(row)
 
-    n_total = sum(z["n_total"] for z in zones_out)
+    n_zoned = sum(z["n_total"] for z in zones_out)
+    n_without_zone = int(payload.get("n_total") or 0) - n_zoned
+    header_counts = {
+        key: payload[key]
+        for key in ("n_kingdoms", "n_moons", "n_items", "n_total")
+        if key in payload
+    }
     return {
         "_definition": (
-            "Vista de revisión: contenido por zone (alfa global, sin "
-            "orden de historia). No editar a mano: curar zone en "
-            "zonas_reino.json y regenerar. Una entrada = (zone, kingdom); "
-            "el mismo slug en reinos distintos son filas distintas. "
-            "Campos: zone, kingdom, orden, n_total, by_source, list[] "
-            "(list: kingdom, source, id, id_kingdom, name, …; ids = zonas_reino)."
+            "Inventario por zone (alfa global). Fuente de ubicación (zone) del "
+            "proyecto: cada list[].zone es la zone base; el slug del bloque "
+            "(zones[].zone) es reino_zona si la zone se repite entre reinos "
+            "(p. ej. cap_odyssey). Editar zone aquí (o vía regen preservando "
+            "kingdom+source+name). Cabecera: n_total / n_moons / n_items; "
+            "n_zoned = filas con zone; n_without_zone = resto. "
+            "kingdom en el bloque solo si la zone es exclusiva de un reino."
         ),
         "_note": (
-            "Regenerar: python Files/export_zonas_reino.py "
-            "(escribe también este file)."
+            "Regenerar: python Files/export_zonas_reino.py. "
+            "Curar list[].zone aquí (preservado por kingdom+source+name)."
         ),
+        **header_counts,
         "n_zones": len(zones_out),
-        "n_total": n_total,
+        "n_zoned": n_zoned,
+        "n_without_zone": n_without_zone,
         "zones": zones_out,
     }
 
 
 def main() -> int:
-    # 1) Escribir zonas (preserva zone; seed desde goal_lists si aún hay zone).
+    # 1) Inventario por kingdom en memoria (preserva zone vía índice).
     payload = build_zonas_reino()
-    write_catalog_json(ZONAS_REINO_PATH, payload)
-    # 2) Limpiar zone de goal_lists (ya migrada / cubierta por zonas_reino).
+    # 2) Limpiar zone de goal_lists si aún quedara.
     write_goal_lists(load_goal_lists())
-    # 3) Vista de revisión por zone (alfa).
+    # 3) Vista / fuente de zone por zone (alfa).
     detalle = build_zonas_inventario(payload)
     write_catalog_json(ZONAS_INVENTARIO_PATH, detalle)
+    # 4) Quitar legado zonas_reino.json si existe.
+    if ZONAS_REINO_PATH.is_file():
+        ZONAS_REINO_PATH.unlink()
     print(
-        f"kingdoms={payload['n_kingdoms']} moons={payload['n_moons']} "
-        f"items={payload['n_items']} "
-        f"total={payload['n_total']} -> {ZONAS_REINO_PATH.name}"
-    )
-    print(
-        f"zonas_inventario: n_zones={detalle['n_zones']} "
-        f"n_total={detalle['n_total']} -> {ZONAS_INVENTARIO_PATH.name}"
+        f"Exportado: {ZONAS_INVENTARIO_PATH.relative_to(CATALOG_DIR.parent).as_posix()} "
+        f"(zones={detalle.get('n_zones')})"
     )
     return 0
 

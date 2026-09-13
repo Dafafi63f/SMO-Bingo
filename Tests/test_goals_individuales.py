@@ -253,12 +253,13 @@ class ResolveBlankProgressionTests(unittest.TestCase):
         )
 
     def test_fixed_delayed_last(self) -> None:
+        # Warp-Painting es delayed → última zona del overlap con el puente.
         self.assertEqual(
             resolve_blank_progression(
                 "sand",
                 "",
                 goal_text="Sand Warp-Painting Moon",
-                template_prog=["m", "l"],
+                template_prog=["e", "m"],
                 n_range=0,
                 template_has_mapped_prog=False,
             ),
@@ -298,7 +299,7 @@ class ResolveBlankProgressionTests(unittest.TestCase):
                 "sand",
                 "",
                 goal_text="Sand Warp-Painting Moon",
-                template_prog=["m", "l"],
+                template_prog=["e", "m"],
                 n_range=0,
                 template_has_mapped_prog=False,
             ),
@@ -661,8 +662,8 @@ class GoalsIndividualesCatalogTests(unittest.TestCase):
         self.assertEqual(by_goal["12 Lake Moons"]["progression"], "e")
         self.assertEqual(by_goal["12 Lake Moons"]["lockout"], "e")
         self.assertEqual(by_goal["18 Lake Moons"]["lockout"], "e")
-        # 2 NPC Lake: 1ª base (e) + 2ª wp (m) → limitante m.
-        self.assertEqual(by_goal["2 NPC Moons"]["kingdom"], "lake")
+        # 2 NPC: aggregate blank_reino; limitante Mid (1ª Lake base + 2ª Lake wp).
+        self.assertEqual(by_goal["2 NPC Moons"]["kingdom"], "")
         self.assertEqual(by_goal["2 NPC Moons"]["progression"], "m")
         # Lost = solo Mid; Metro día = solo Late (sin puente m,l).
         self.assertEqual(by_goal["3 Lost Butterfly Moons"]["progression"], "m")
@@ -673,6 +674,11 @@ class GoalsIndividualesCatalogTests(unittest.TestCase):
         self.assertEqual(by_goal["2 Lost Checkpoints"]["progression"], "m")
         self.assertEqual(by_goal["3 Lost Checkpoints"]["progression"], "m")
         self.assertEqual(by_goal["2 Lost Trapeetle Moons"]["progression"], "m")
+        # Wedding: solo umbral 2 (no 1: solaparía Outfit Lake / Bloom).
+        self.assertEqual(by_goal["2 Wedding Moons"]["progression"], "m")
+        self.assertEqual(by_goal["2 Wedding Moons"]["lockout"], "m")
+        self.assertNotIn("1 Wedding Moon", by_goal)
+        self.assertNotIn("1 Lost Trapeetle Moon", by_goal)
         self.assertEqual(by_goal["5 Lost Tropical Wiggler Moons"]["progression"], "m")
         # Mono 2 zonas: base fija → 1ª; mid/wp fija → 2ª.
         self.assertEqual(by_goal["Sand Shop Moon"]["progression"], "e")
@@ -714,8 +720,8 @@ class GoalsIndividualesCatalogTests(unittest.TestCase):
         self.assertEqual(by_goal["Metro Warp-Painting Moon"]["progression"], "m")
         # Pinturas con varias entradas → blank_reino + progression de entrada.
         for g, zones in (
-            ("Sand Warp-Painting Moon", ["m", "l"]),
-            ("Luncheon Warp-Painting Moon", ["m", "l"]),
+            ("Sand Warp-Painting Moon", ["e", "m"]),
+            ("Luncheon Warp-Painting Moon", ["e", "m"]),
             ("Lake Warp-Painting Moon", ["m", "l"]),
             ("Wooded Warp-Painting Moon", ["m", "l"]),
             ("Cascade Warp-Painting Moon", ["l", "n"]),
@@ -766,18 +772,21 @@ class GoalsIndividualesCatalogTests(unittest.TestCase):
         self.assertEqual(by_goal["4 Sand Jaxi Regional Coins"]["progression"], "e")
         self.assertEqual(by_goal["8 Sand Jaxi Regional Coins"]["progression"], "e")
         self.assertEqual(by_goal["12 Sand Jaxi Regional Coins"]["progression"], "e")
-        self.assertEqual(by_goal["5 Sand Ruins Regional Coins"]["progression"], "e")
-        self.assertEqual(by_goal["10 Sand Ruins Regional Coins"]["progression"], "e")
-        self.assertEqual(by_goal["15 Sand Ruins Regional Coins"]["progression"], "e")
+        self.assertEqual(by_goal["4 Sand Ruins Regional Coins"]["progression"], "e")
+        self.assertEqual(by_goal["8 Sand Ruins Regional Coins"]["progression"], "e")
+        self.assertEqual(by_goal["12 Sand Ruins Regional Coins"]["progression"], "e")
+        self.assertEqual(by_goal["16 Sand Ruins Regional Coins"]["progression"], "e")
         self.assertEqual(by_goal["45 Sand Regional Coins"]["progression"], "e")
-        # Totales de reino: Regional = mismo progression que Moons.
+        # Totales de reino: Combined progression (regionals no refinan por avail).
         self.assertEqual(by_goal["30 Lake Regional Coins"]["progression"], "e")
         self.assertEqual(by_goal["45 Seaside Regional Coins"]["progression"], "l")
         self.assertEqual(by_goal["30 Luncheon Regional Coins"]["progression"], "l")
         self.assertEqual(by_goal["45 Luncheon Regional Coins"]["progression"], "l")
         self.assertEqual(by_goal["20 Snow Regional Coins"]["progression"], "l")
+        # Combined [l,n] + progressive_ranges: 20/25→l, 30/35→n.
         self.assertEqual(by_goal["35 Snow Regional Coins"]["progression"], "n")
         self.assertEqual(by_goal["50 Wooded Regional Coins"]["progression"], "e")
+        # Combined [e,m] + progressive_ranges: 50/55→e, 60/65→m.
         self.assertEqual(by_goal["65 Wooded Regional Coins"]["progression"], "m")
         self.assertEqual(
             by_goal["10 Snow Shiveria Regional Coins"]["progression"], "l"
@@ -789,7 +798,7 @@ class GoalsIndividualesCatalogTests(unittest.TestCase):
         self.assertEqual(by_goal["Lake Moon Rock"]["progression"], "e")
         self.assertEqual(by_goal["Lake Talkatoo"]["progression"], "e")
         # Destructible: sand/e; wooded mid/wp→m; lost/m.
-        self.assertEqual(by_goal["1 Destructible Block Moons"]["progression"], "e")
+        self.assertEqual(by_goal["1 Destructible Block Moon"]["progression"], "e")
         self.assertEqual(by_goal["3 Destructible Block Moons"]["progression"], "m")
         self.assertEqual(by_goal["5 Destructible Block Moons"]["progression"], "m")
         # Spark Pylon curado: cap/metro (Bowser fuera; no hace falta la 5ª).

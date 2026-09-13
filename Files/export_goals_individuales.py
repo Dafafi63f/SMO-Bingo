@@ -251,7 +251,7 @@ def kingdom_run_boundaries(items: list[dict]) -> set[int]:
 KINGDOM_OVERRIDES: dict[str, dict[int, str]] = {
     "{{X}} Cheep Cheep Moons": {2: "lake", 4: "seaside", 6: "seaside"},
     "{{X}} Critter Moon[[s]]": {1: "cascade", 2: "sand", 3: "lost"},
-    "{{X}} Destructible Block Moons": {1: "sand", 3: "wooded", 5: "lost"},
+    "{{X}} Destructible Block Moon[[s]]": {1: "sand", 3: "wooded", 5: "lost"},
     "{{X}} Dorrie Moon[[s]]": {1: "lake", 2: "seaside", 3: "seaside"},
 # Lurker/Rumble: sand#52 base + sand#23 wp + seaside×2.
     "{{X}} Lurker/Rumble Moon[[s]]": {1: "sand", 2: "sand", 3: "seaside", 4: "seaside"},

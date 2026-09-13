@@ -39,10 +39,12 @@ from goal_list_lib import (
     build_goal_lista,
     checkpoint_goal_fields,
     enrich_lista_locations,
+    format_bingo_group_lista_item,
     goal_list_source,
     multi_moon_totals_lista,
     regional_goal_fields,
     regional_lista_for_goal,
+    resolve_lista_item_source,
     sort_lista_items,
 )
 
@@ -73,6 +75,12 @@ def is_moon_count_objective(goal: str, obj: dict) -> bool:
     if goal.startswith(("Activate ", "Look at ", "Talk to ")):
         return False
     if "freerunning" in gl:
+        return False
+    # Ubicación / hablar (como Talkatoo): pool lista, no lunas del reino.
+    # Ojo: "Moon Rock" / "Moon Talkatoo" contienen "moon" pero no son Moon Get.
+    if goal.endswith(" Moon Rock") or goal.endswith(" Talkatoo"):
+        return False
+    if goal in ("{{X}} Moon Rocks", "{{X}} Talkatoos"):
         return False
     if "moon" in gl:
         return True
@@ -170,11 +178,13 @@ def goal_kingdom(goal: str, board: list[str]) -> str | None:
 
 
 def collect_membership() -> dict[str, list[tuple[str, list[dict]]]]:
+    from catalog_lib import _resolve_bingo_group_moons_raw
+
     membership: dict[str, list[tuple[str, list[dict]]]] = defaultdict(list)
     combined = load_combined_objectives_by_goal(include_disabled=True)
     for group in load_bingo_groups():
         gid = group["id"]
-        moons = group_moons(group)
+        moons = _resolve_bingo_group_moons_raw(group)
         for ref in group_objective_refs(group, combined):
             goal = ref.get("goal")
             if goal:
@@ -182,7 +192,7 @@ def collect_membership() -> dict[str, list[tuple[str, list[dict]]]]:
     return membership
 
 
-_SUB_AREA_SPECIFIC = frozenset({"hybrid_2d"})
+_SUB_AREA_SPECIFIC = frozenset()
 
 _STANDARD_SEED_POTS = {
     ("sand", 25),
@@ -250,7 +260,7 @@ def _try_sub_area_pool(
     kd: str | None,
     gl: str,
 ) -> tuple[list[str], list[dict], str] | None:
-    """Sub-Area: pool dedicado o grupo temático (hybrid_2d)."""
+    """Sub-Area: pool del grupo sub_area (filtrado por reino si aplica)."""
     if "sub-area" not in gl:
         return None
     specific = [
@@ -319,7 +329,7 @@ def _choose_pool_moons(
     kingdom_ids: set[str],
 ) -> tuple[list[str], list[dict]]:
     """Elige group_ids + moons del membership (pool_only / concreto / shared)."""
-    thematic = [(g, m) for g, m in entries if g not in kingdom_ids]
+    thematic = [(g, m) for g, m in entries if g not in kingdom_ids and m]
     pool = thematic if thematic else entries
     concrete = [(g, m) for g, m in pool if g not in _UMBRELLA]
     if concrete:
@@ -392,7 +402,16 @@ def _filter_special_seed(moons: list[dict]) -> list[dict]:
         or "treasure made from coins" in _moon_name(m)
         or "ocean trench seed" in _moon_name(m)
     ]
-    return hit or list(_FALLBACK_SPECIAL_SEED)
+    if not hit:
+        return list(_FALLBACK_SPECIAL_SEED)
+    # Orden historia: lake → wooded → seaside (umbral 3 sella a seaside).
+    return sorted(
+        hit,
+        key=lambda m: (
+            kingdom_story_index(str(m.get("kingdom") or "")),
+            int(m.get("moon") or 0),
+        ),
+    )
 
 
 def _sheep_moons(registry: dict) -> list[dict]:
@@ -561,6 +580,9 @@ def _apply_seed_and_minigame_filters(
     is_seeds_planted = "seeds planted" in gl and "lake seed" not in gl
     if is_ntt_seed or is_seeds_planted:
         moons = _filter_standard_seed_pots(moons)
+    elif "special seed" in gl:
+        # Pool compartido seeds=15; Special Seed = lake#9 + wooded#33 + seaside#26.
+        moons = _filter_special_seed(moons)
     elif "golden turnip" in gl:
         moons = _name_any(moons, "golden turnip", "turnip recipe")
 
@@ -633,6 +655,9 @@ def normalize_moon_ref(raw: dict, registry: dict) -> dict:
     else:
         out["disponibilidad"] = str(entry.get("availability") or "base")
     out = enrich_moon_ref_odyssey(out, registry)
+    # Preservar goal=false (tag_only): cuenta en moons[] del grupo, no en la goal.
+    if "goal" in raw:
+        out["goal"] = bool(raw["goal"])
     return out
 
 
@@ -790,6 +815,53 @@ def resolve_goal_tags(
     if uniq:
         return uniq
     return list(dict.fromkeys(t for t in hints if t in STORY_ORDER))
+
+
+def moon_has_goal_tags(
+    moon_ref: dict,
+    goal_tags: list[str] | set[str],
+    registry: dict,
+) -> bool:
+    """True si la luna lleva todas las tags de la goal (tags[]).
+
+    Mirror inverso de moons[].goal en capturas/tags: aquí la luna ya está en el
+    pool de la goal; tag=false = en el pool pero sin la tag del grupo (p. ej.
+    apply_moon_tag=False / nature / stairface, o sub_area caída por mini_rocket).
+    """
+    from catalog_lib import ACCESS_DROPS_SUB_AREA
+
+    needed = set(goal_tags)
+    if not needed:
+        return False
+    kingdom = str(moon_ref.get("kingdom") or "")
+    try:
+        moon = int(moon_ref["moon"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    entry = registry.get((kingdom, moon))
+    if not entry:
+        return False
+    moon_tags = set(
+        normalize_moon_tags(
+            entry.get("tags") or [], kingdom=kingdom, moon=moon
+        )
+    )
+    if needed == {"sub_area"}:
+        return not bool(moon_tags & ACCESS_DROPS_SUB_AREA)
+    return needed.issubset(moon_tags)
+
+
+def annotate_moons_tag_flags(
+    moons: list[dict],
+    goal_tags: list[str],
+    registry: dict,
+) -> None:
+    """Añade moons[].tag (bool) al final de cada fila del detalle."""
+    if not goal_tags or not moons:
+        return
+    for moon in moons:
+        moon.pop("tag", None)
+        moon["tag"] = moon_has_goal_tags(moon, goal_tags, registry)
 
 
 # Keys allowed on kingdom-aggregate rows (lista → by_kingdom).
@@ -1005,9 +1077,14 @@ def _moon_count_meta(
     """Conteos físicos/Odyssey para pool_summary o lista_summary (no top-level)."""
     meta: dict = {}
     if moon_refs and (moon_detail or summarize_moons):
-        meta["n_moons"] = len(moon_refs)
-        odyssey_units = sum(int(m.get("odyssey_units") or 1) for m in moon_refs)
-        if odyssey_units != len(moon_refs):
+        countable = (
+            [m for m in moon_refs if m.get("goal") is not False]
+            if any("goal" in m for m in moon_refs)
+            else moon_refs
+        )
+        meta["n_moons"] = len(countable)
+        odyssey_units = sum(int(m.get("odyssey_units") or 1) for m in countable)
+        if odyssey_units != len(countable):
             meta["n_odyssey_units"] = odyssey_units
     elif goal == GOAL_TOTAL_MOONS and lista:
         totals = compute_in_scope_moon_totals(registry)
@@ -1088,16 +1165,22 @@ def attach_referencia_summaries(
 def _sorted_lista_for_goal(goal: str, lista: list[dict]) -> list[dict]:
     enriched = enrich_lista_locations(lista)
     if goal == "{{X}} Unique Captures":
-        return sorted(enriched, key=lambda x: int(x.get("id") or 0))
-    if regional_lista_for_goal(goal) is not None and lista and "id" in lista[0]:
-        return sorted(
+        ordered = sorted(enriched, key=lambda x: int(x.get("id") or 0))
+    elif regional_lista_for_goal(goal) is not None and lista and "id" in lista[0]:
+        ordered = sorted(
             enriched,
             key=lambda x: (
                 kingdom_story_index(str(x.get("kingdom") or "")),
                 int(x.get("id") or 0),
             ),
         )
-    return sort_lista_items(enriched)
+    else:
+        ordered = sort_lista_items(enriched)
+    hint = goal_list_source(goal)
+    return [
+        format_bingo_group_lista_item(item, resolve_lista_item_source(item, hint))
+        for item in ordered
+    ]
 
 
 def _count_preserve_list_order(items: list[dict], key_fn) -> dict[str, int]:
@@ -1133,13 +1216,19 @@ def _sort_by_disponibilidad(counts: dict[str, int]) -> dict[str, int]:
 
 
 def summarize_moon_pool(moons: list[dict]) -> dict:
+    # Si hay flag goal (tag_only), n_moons = solo las que cuentan para la goal.
+    countable = (
+        [m for m in moons if m.get("goal") is not False]
+        if any("goal" in m for m in moons)
+        else moons
+    )
     by_kingdom = _count_preserve_list_order(
-        moons, lambda m: str(m.get("kingdom") or "")
+        countable, lambda m: str(m.get("kingdom") or "")
     )
     by_disp = _sort_by_disponibilidad(
-        _count_preserve_list_order(moons, _disp_label)
+        _count_preserve_list_order(countable, _disp_label)
     )
-    out: dict = {"n_moons": len(moons)}
+    out: dict = {"n_moons": len(countable)}
     if by_kingdom:
         out["by_kingdom"] = by_kingdom
     if by_disp:
@@ -1182,7 +1271,7 @@ _GOAL_RECORD_KEY_ORDER = (
     "icons",
     "weighting",
     "tooltip",
-    "tag",
+    "tags",
     "bingo_groups",
     # Metadatos de goal (checkpoints, …)
     "checkpoint_total",
@@ -1263,11 +1352,14 @@ def build_goal_record(
         "goal": goal,
         **combined_fields_flat(goal, obj),
     }
-    # tag[] = tags de lunas (intersección / moon_tag); solo pool moons, no lista.
+    # tags[] = intersección / moon_tag del grupo; solo pool moons, no lista.
+    # moons[].tag = si la luna lleva esas tags (false = pool sin tag concreta).
+    goal_tags: list[str] = []
     if pool == "moons":
-        tags = resolve_goal_tags(moon_refs, entries, registry)
-        if tags:
-            record["tag"] = tags
+        goal_tags = resolve_goal_tags(moon_refs, entries, registry)
+        if goal_tags:
+            record["tags"] = goal_tags
+            annotate_moons_tag_flags(moon_detail, goal_tags, registry)
     if checkpoint_meta:
         record.update(checkpoint_meta)
 
@@ -1351,8 +1443,10 @@ def main() -> None:
         {
             "_definition": (
                 "Hub por goal Combined. Completo aquí: range/progression/weighting, "
-                "board/line_categories, icons, tooltip; tag[] solo si pool=moons "
-                "(tags comunes del pool de lunas; suele incluir moon_tag del grupo). "
+                "board/line_categories, icons, tooltip; tags[] solo si pool=moons "
+                "(intersección temática del pool / moon_tag del grupo). "
+                "moons[].tag=true si la luna lleva esas tags; false = en el pool "
+                "pero sin la tag (p. ej. apply_moon_tag=False o sub_area caída). "
                 "Pool: moons[] o lista[] (no ambos). "
                 "Resúmenes (detalle en otro JSON): bingo_groups→bingo_groups.json; "
                 "pool_summary/lista_summary (n_moons, n_odyssey_units si hay "
@@ -1361,7 +1455,7 @@ def main() -> None:
                 "individuales[]→goals_individuales.json (umbrales expandidos). "
                 "Pares Sub-Area: Files/sub_area_levels_data.py. "
                 "Regionales: lists.regionals en goal_lists.json "
-                "(+ filtros zone vía zonas_reino / sub_area/eight_bit). "
+                "(+ filtros zone vía zonas_inventario / sub_area/eight_bit). "
                 "Conteos físicos/Odyssey/regional_total/n_items solo en pool_summary "
                 "o lista_summary (sin n_moons/n_lista/regional_total top-level). "
                 "moon_count_mode: odyssey_units | physical_moons. "
@@ -1378,8 +1472,8 @@ def main() -> None:
                     "line_categories",
                     "icons",
                     "tooltip",
-                    "tag[] (solo pool=moons)",
-                    "moons[]",
+                    "tags[] (solo pool=moons)",
+                    "moons[] (+ tag bool si hay tags[])",
                     "lista[]",
                     "notas",
                 ],

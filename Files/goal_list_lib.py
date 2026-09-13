@@ -26,6 +26,8 @@ from fix_bingo_group_ranges import (
 )
 
 LISTS_PATH = CATALOG_DIR / "goal_lists.json"
+ZONAS_INVENTARIO_PATH = CATALOG_DIR / "zonas_inventario.json"
+# Legado (migración): si aún existe, alimenta el índice una vez.
 ZONAS_REINO_PATH = CATALOG_DIR / "zonas_reino.json"
 # Capturas: capturas_lunas.json / CAPTURE_LIST (no lists.captures).
 # Pares Level Sub-Area: Files/sub_area_levels_data.py (no lists.*).
@@ -41,25 +43,50 @@ SMALL_KINGDOMS = ("cap", "cascade", "lake", "lost", "snow", "moon")
 _zonas_zone_cache: dict[tuple[str, str, str], str] | None = None
 
 
+def _ingest_zone_rows(
+    out: dict[tuple[str, str, str], str],
+    *,
+    kingdom: str,
+    rows: list,
+) -> None:
+    for it in rows or []:
+        if not isinstance(it, dict) or not it.get("zone"):
+            continue
+        source = str(it.get("source") or "")
+        name = str(it.get("name") or "")
+        if kingdom and source and name:
+            out[(kingdom, source, name)] = str(it["zone"])
+
+
 def load_zonas_zone_index() -> dict[tuple[str, str, str], str]:
-    """(kingdom, source, name) → zone. Fuente: Catalog/zonas_reino.json."""
+    """(kingdom, source, name) → zone. Fuente: zonas_inventario (+ legado reino)."""
     global _zonas_zone_cache
     if _zonas_zone_cache is not None:
         return _zonas_zone_cache
     out: dict[tuple[str, str, str], str] = {}
+    # Legado primero si existe (migración → luego se borra al exportar).
     if ZONAS_REINO_PATH.is_file():
         data = json.loads(ZONAS_REINO_PATH.read_text(encoding="utf-8"))
         for block in data.get("kingdoms") or []:
             if not isinstance(block, dict):
                 continue
             kingdom = str(block.get("kingdom") or "")
+            _ingest_zone_rows(out, kingdom=kingdom, rows=block.get("list") or [])
+    if not out and ZONAS_INVENTARIO_PATH.is_file():
+        data = json.loads(ZONAS_INVENTARIO_PATH.read_text(encoding="utf-8"))
+        for block in data.get("zones") or []:
+            if not isinstance(block, dict):
+                continue
+            default_k = str(block.get("kingdom") or "")
             for it in block.get("list") or []:
-                if not isinstance(it, dict) or not it.get("zone"):
+                if not isinstance(it, dict):
                     continue
+                kingdom = str(it.get("kingdom") or default_k)
                 source = str(it.get("source") or "")
                 name = str(it.get("name") or "")
-                if kingdom and source:
-                    out[(kingdom, source, name)] = str(it["zone"])
+                zone = str(it.get("zone") or "")
+                if kingdom and source and name and zone:
+                    out[(kingdom, source, name)] = zone
     _zonas_zone_cache = out
     return out
 
@@ -67,14 +94,14 @@ def load_zonas_zone_index() -> dict[tuple[str, str, str], str]:
 def lookup_item_zone(
     kingdom: str, source: str, name: str, *, default: str | None = None
 ) -> str | None:
-    """Zone de un ítem/luna desde zonas_reino (no desde goal_lists)."""
+    """Zone de un ítem/luna desde zonas_inventario (no desde goal_lists)."""
     return load_zonas_zone_index().get(
         (str(kingdom), str(source), str(name)), default
     )
 
 
 def regional_cluster_zone(row: dict) -> str:
-    """Zone de un cluster regional (zonas_reino; fallback campo legado)."""
+    """Zone de un cluster regional (zonas_inventario; fallback campo legado)."""
     if row.get("zone"):
         return str(row["zone"])
     return (
@@ -91,28 +118,52 @@ def _is_broodal_fight(entry: dict) -> bool:
     return "(Broodal" in str(entry.get("name") or "")
 
 
+# Bosses cuya pelea exige captura (NAME_CAPTURE_REQUIRED en fill_captures_cappy).
+_CAPTURE_BOSS_NAME_MARKERS = (
+    "Madame Broode",
+    "Knucklotec",
+    "Torkdrift",
+    "Mecha Wiggler",
+    "Mollusque",
+    "Cookatiel",
+    "RoboBrood",
+)
+
+
+def _is_capture_boss_fight(entry: dict) -> bool:
+    name = str(entry.get("name") or "")
+    return any(marker in name for marker in _CAPTURE_BOSS_NAME_MARKERS)
+
+
+def capture_bosses_lista() -> list[dict]:
+    """Peleas de jefe que exigen captura (pool lista del grupo captures)."""
+    return [x for x in boss_fights_lista() if _is_capture_boss_fight(x)]
+
+
 # Fallback si falta lists.bosses en goal_lists.json.
+# moon = Power Moon / Multi Moon de la pelea (omitir si no hay luna lógica:
+# Cap Topper, Lost Bowser/Klepto, Moon Broode rematch).
 _BOSS_FIGHTS_FALLBACK: list[dict] = [
     {"kingdom": "cap", "name": "Topper (Broodal)", "disponibilidad": "base"},
-    {"kingdom": "cascade", "name": "Madame Broode (Broodal)", "disponibilidad": "base"},
-    {"kingdom": "sand", "name": "Hariet (Broodal)", "disponibilidad": "base"},
+    {"kingdom": "cascade", "name": "Madame Broode (Broodal)", "disponibilidad": "base", "moon": 2},
+    {"kingdom": "sand", "name": "Hariet (Broodal)", "disponibilidad": "base", "moon": 3},
     # 2º boss del reino → mid_story
-    {"kingdom": "sand", "name": "Knucklotec (Boss)", "disponibilidad": "mid_story"},
-    {"kingdom": "lake", "name": "Rango (Broodal)", "disponibilidad": "base"},
-    {"kingdom": "wooded", "name": "Spewart (Broodal)", "disponibilidad": "base"},
-    {"kingdom": "wooded", "name": "Torkdrift (Boss)", "disponibilidad": "mid_story"},
+    {"kingdom": "sand", "name": "Knucklotec (Boss)", "disponibilidad": "mid_story", "moon": 4},
+    {"kingdom": "lake", "name": "Rango (Broodal)", "disponibilidad": "base", "moon": 1},
+    {"kingdom": "wooded", "name": "Spewart (Broodal)", "disponibilidad": "base", "moon": 2},
+    {"kingdom": "wooded", "name": "Torkdrift (Boss)", "disponibilidad": "mid_story", "moon": 4},
     {"kingdom": "lost", "name": "Bowser (Boss)", "disponibilidad": "base"},
     {"kingdom": "lost", "name": "Klepto (Boss)", "disponibilidad": "base"},
-    {"kingdom": "metro", "name": "Mecha Wiggler (Boss)", "disponibilidad": "base"},
-    {"kingdom": "snow", "name": "Rango (Broodal, rematch)", "disponibilidad": "base"},
-    {"kingdom": "seaside", "name": "Mollusque-Lanceur (Boss)", "disponibilidad": "base"},
-    {"kingdom": "luncheon", "name": "Spewart (Broodal, rematch)", "disponibilidad": "base"},
-    {"kingdom": "luncheon", "name": "Cookatiel (Boss)", "disponibilidad": "mid_story"},
-    {"kingdom": "ruined", "name": "Ruined Dragon (Boss)", "disponibilidad": "base"},
-    {"kingdom": "bowser", "name": "Hariet (Broodal, rematch)", "moon": 2, "disponibilidad": "base"},
+    {"kingdom": "metro", "name": "Mecha Wiggler (Boss)", "disponibilidad": "base", "moon": 1},
+    {"kingdom": "snow", "name": "Rango (Broodal, rematch)", "disponibilidad": "base", "moon": 4},
+    {"kingdom": "seaside", "name": "Mollusque-Lanceur (Boss)", "disponibilidad": "base", "moon": 5},
+    {"kingdom": "luncheon", "name": "Spewart (Broodal, rematch)", "disponibilidad": "base", "moon": 1},
+    {"kingdom": "luncheon", "name": "Cookatiel (Boss)", "disponibilidad": "mid_story", "moon": 5},
+    {"kingdom": "ruined", "name": "Ruined Dragon (Boss)", "disponibilidad": "base", "moon": 1},
+    {"kingdom": "bowser", "name": "Hariet (Broodal, rematch)", "moon": 3, "disponibilidad": "base"},
     {"kingdom": "bowser", "name": "Topper (Broodal, rematch)", "moon": 3, "disponibilidad": "base"},
     {"kingdom": "bowser", "name": "RoboBrood (Broodal)", "moon": 4, "disponibilidad": "base"},
-    # Una sola pelea Moon (Broodal; no kingdom-boss pool).
+    # Una sola pelea Moon (Broodal; sin luna propia).
     {
         "kingdom": "moon",
         "name": "Madame Broode (Broodal, rematch)",
@@ -285,16 +336,14 @@ def regional_by_kingdom_lista(*, kingdoms: tuple[str, ...] | None = None) -> lis
 
 
 # Filtros de goals regionales subset → lists.regionals.
-# zone se resuelve vía zonas_reino (regional_cluster_zone).
+# zone se resuelve vía zonas_inventario (regional_cluster_zone).
 _REGIONAL_CLUSTER_FILTERS: dict[str, object] = {
     "{{X}} Sand Tostarena Regional Coins": lambda r: r.get("kingdom") == "sand"
     and regional_cluster_zone(r) == "tostarena",
     "{{X}} Sand Jaxi Regional Coins": lambda r: r.get("kingdom") == "sand"
     and regional_cluster_zone(r) == "jaxi_ruins",
-    "{{X}} Sand Ruins Regional Coins": lambda r: r.get("kingdom") == "sand"
-    and regional_cluster_zone(r) in {"ruins", "moe_eye_path"},
-    "{{X}} Sand Ice Regional Coins": lambda r: r.get("kingdom") == "sand"
-    and regional_cluster_zone(r) in {"ice_cave", "underground_temple"},
+    "{{X}} Sand Ruins Regional Coins": lambda r: _sand_ruins_regional(r),
+    "{{X}} Sand Ice Regional Coins": lambda r: _sand_ice_regional(r),
     "{{X}} Deep Woods Regional Coins": lambda r: r.get("kingdom") == "wooded"
     and regional_cluster_zone(r) == "deep_woods",
     "{{X}} Snow Overworld Regional Coins": lambda r: r.get("kingdom") == "snow"
@@ -304,6 +353,35 @@ _REGIONAL_CLUSTER_FILTERS: dict[str, object] = {
     "{{X}} Sub-Area Regional Coins": lambda r: bool(r.get("sub_area")),
     "{{X}} 8-Bit Regional Coins": lambda r: bool(r.get("eight_bit")),
 }
+
+
+def _sand_ice_regional(r: dict) -> bool:
+    """Ice Cave + Underground Temple (zona o nombre si el merge pierde zone)."""
+    if r.get("kingdom") != "sand":
+        return False
+    z = regional_cluster_zone(r)
+    if z in {"ice_cave", "underground_temple"}:
+        return True
+    name = str(r.get("name") or "").lower()
+    return "ice cave" in name or "underground temple" in name
+
+
+def _sand_ruins_regional(r: dict) -> bool:
+    """Ruinas + plataformas Round Tower→Moe-Eye; sin Invisible Maze ni Ice."""
+    if r.get("kingdom") != "sand":
+        return False
+    name = str(r.get("name") or "").lower()
+    if "invisible maze" in name:
+        return False
+    if "ice cave" in name or "underground temple" in name:
+        return False
+    z = regional_cluster_zone(r)
+    if z == "ruins":
+        return True
+    # Nota ruins regional: +3 purple Round Tower → Moe-Eye (zona moe_eye).
+    if "moe-eye" in name and "round tower" in name:
+        return True
+    return False
 
 _KINGDOM_REGIONAL_GOALS: dict[str, str] = {
     "{{X}} Cap Regional Coins": "cap",
@@ -466,11 +544,12 @@ def refresh_goal_lists_header(data: dict) -> dict:
         "lists.shops = Crazy Cap por reino; merchandise en costume_sets/hats/"
         "souvenirs/stickers/boxer_shorts. "
         "Capturas: capturas_lunas.json / CAPTURE_LIST (no lists.captures). "
+        "Binoculars: capturas_lunas.json lista[] (no lists.binoculars). "
         "Pares Level Sub-Area: Files/sub_area_levels_data.py (no lists.*). "
-        "Ubicación (zone): solo Catalog/zonas_reino.json (no aquí). "
+        "Ubicación (zone): solo Catalog/zonas_inventario.json (no aquí). "
         "id = global del file (1..n_items, lists alfa + orden del file); "
         "id_list = id dentro de la sublista. "
-        "n_items → Catalog/zonas_reino.json n_items."
+        "n_items → Catalog/zonas_inventario.json n_items."
     )
     ordered: dict = {}
     for key in (
@@ -489,7 +568,7 @@ def refresh_goal_lists_header(data: dict) -> dict:
 
 
 def strip_goal_lists_zones(data: dict) -> dict:
-    """Quita zone de lists.* (vive solo en zonas_reino.json)."""
+    """Quita zone de lists.* (vive solo en zonas_inventario.json)."""
     lists = data.get("lists") or {}
     if not isinstance(lists, dict):
         return data
@@ -512,7 +591,7 @@ def strip_goal_lists_zones(data: dict) -> dict:
 def write_goal_lists(data: dict) -> None:
     """Escribe goal_lists.json con cabecera de conteos actualizada.
 
-    Sin zone (ubicación solo en zonas_reino.json).
+    Sin zone (ubicación solo en zonas_inventario.json).
     """
     from catalog_lib import write_catalog_json
 
@@ -596,7 +675,7 @@ _NEAR_LOCATION_KEYS = frozenset(
 def enrich_lista_locations(items: list[dict]) -> list[dict]:
     """Limpia curación para export (referencia / grupos).
 
-    Sin zone (solo en zonas_reino). Sin near* / purchase_site / eight_bit.
+    Sin zone (solo en zonas_inventario). Sin near* / purchase_site / eight_bit.
     Si hay moon_link o moon y falta disponibilidad → hereda de la luna.
     """
     out: list[dict] = []
@@ -625,7 +704,7 @@ def enrich_lista_locations(items: list[dict]) -> list[dict]:
 def sort_lista_items(items: list[dict]) -> list[dict]:
     """Reino (historia) → source alfa → id_list/id → nombre/precio.
 
-    Agrupa por `source` (como zonas_reino tras moons) para no intercalear
+    Agrupa por `source` (como el inventario por kingdom tras moons) para no intercalear
     p. ej. checkpoints y regionals por el mismo id_list.
     """
     return sorted(
@@ -994,15 +1073,34 @@ def captures_identity_from_capture_list() -> list[dict]:
 
 
 def sync_captures_into_goal_lists() -> int:
-    """No-op: capturas viven en capturas_lunas / CAPTURE_LIST (quita lists.captures)."""
+    """Quita lists.captures / lists.binoculars (viven en capturas_lunas)."""
     data = load_goal_lists()
     lists = dict(data.get("lists") or {})
-    if "captures" not in lists:
+    removed = 0
+    for key in ("captures", "binoculars"):
+        if key in lists:
+            lists.pop(key, None)
+            removed += 1
+    if not removed:
         return 0
-    lists.pop("captures", None)
     data["lists"] = lists
     write_goal_lists(data)
-    return 0
+    return removed
+
+
+def binoculars_lista() -> list[dict]:
+    """Ubicaciones Binoculars (fuente BINOCULARS_LISTA; no lists.binoculars)."""
+    # Import diferido: evita ciclo con export_capturas_lunas → goal_list_lib.
+    from export_capturas_lunas import BINOCULARS_LISTA
+
+    out: list[dict] = []
+    for raw in BINOCULARS_LISTA:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        item["source"] = "binoculars"
+        out.append(item)
+    return out
 
 
 def unique_captures_list() -> list[dict]:
@@ -1020,7 +1118,7 @@ SHOP_ITEM_LISTS = (
 
 
 def apply_shop_zones(data: dict | None = None) -> dict:
-    """No-op: zone ya no vive en goal_lists (solo zonas_reino)."""
+    """No-op: zone ya no vive en goal_lists (solo zonas_inventario)."""
     if data is None:
         data = load_goal_lists()
     return data
@@ -1068,6 +1166,8 @@ _FIXED_GOAL_LISTAS: dict[str, list[dict]] = {
     "Defeat Madame Broode in Moon Kingdom": [
         {
             "kingdom": "moon",
+            "id": 19,
+            "id_list": 19,
             "name": "Madame Broode (Broodal, rematch)",
             "disponibilidad": "base",
         }
@@ -1077,6 +1177,7 @@ _FIXED_GOAL_LISTAS: dict[str, list[dict]] = {
             "kingdom": "ruined",
             "name": "Ruined Dragon (Boss)",
             "disponibilidad": "base",
+            "moon": 1,
         }
     ],
     "Save Cappy From Klepto": [
@@ -1093,7 +1194,6 @@ _CURATED_GOAL_LISTAS: dict[str, str | tuple[str, ...]] = {
     "{{X}} Moon Rocks": "moon_rocks",
     "Call Jaxi from {{X}} Stand[[s]]": "jaxi_stands",
     "{{X}} Unique Life Up Hearts": "life_up_hearts",
-    "Capture {{X}} Binoculars": "binoculars",
     "Activate {{X}} Levers": "levers",
     "Activate {{X}} P-Switches": "p_switches",
     "Activate {{X}} Ground-Pound Switches": "ground_pound_switches",
@@ -1133,6 +1233,10 @@ def goal_list_source(goal: str) -> str | None:
         return None
     if goal.startswith("Correct ") and goal.endswith(" Sphynx Question"):
         return "sphynxes"
+    if goal.endswith(" Talkatoo") and GOAL_X not in goal:
+        return "talkatoos"
+    if goal.endswith(" Moon Rock") and GOAL_X not in goal:
+        return "moon_rocks"
     gl = goal.lower()
     if goal == "{{X}} Boss Fights":
         return "bosses"
@@ -1172,6 +1276,8 @@ def build_goal_lista(
         items = [talkatoo_entry(kingdom)]
     elif goal.endswith(" Moon Rock") and kingdom:
         items = [moon_rock_entry(kingdom)]
+    elif goal == "Capture {{X}} Binoculars":
+        items = binoculars_lista()
     elif goal in _CURATED_GOAL_LISTAS:
         items = []
         for list_name in _curated_list_names(goal):
@@ -1309,7 +1415,8 @@ def format_bingo_group_lista_item(item: dict, source: str | None) -> dict:
     """Elemento lista[] de bingo_groups: kingdom, source, id, id_list, name, ….
 
     id = global de goal_lists (1..n_items); id_list = nº en la sublista.
-    Capturas (CAPTURE_LIST): id = id_list = id wiki. Sin zone (→ zonas_reino).
+    Capturas (CAPTURE_LIST): id = id_list = id wiki. Sin zone (→ zonas_inventario).
+    Conserva metadatos de pool (total, regional, sub_area, …) si vienen en item.
     """
     raw = dict(item)
     out: dict = {}
@@ -1360,6 +1467,26 @@ def format_bingo_group_lista_item(item: dict, source: str | None) -> dict:
     disp = raw.get("disponibilidad")
     if disp not in (None, ""):
         out["disponibilidad"] = disp
+    # Metadatos de pool (regionals, checkpoints, multi-moons, …).
+    for key in (
+        "total",
+        "regional",
+        "sub_area",
+        "icon",
+        "n_moons",
+        "n_groups",
+        "painting",
+        "use",
+        "n_odyssey_units",
+        "coins",
+        "moon",
+        "moon_link",
+        "progression",
+        "odyssey",
+        "capture",
+    ):
+        if key in raw and raw[key] not in (None, ""):
+            out[key] = raw[key]
     return out
 
 
@@ -1387,6 +1514,12 @@ def build_bingo_group_lista(
             continue
         combined = combined_by_goal.get(goal) or obj
         kingdom = kingdom_context_for_group_goal(group, goal)
+        # Binoculars y bosses-captura: pool fijo del grupo (no por objective suelto).
+        if str(group.get("id") or "") == "captures" and goal in (
+            "Capture {{X}} Binoculars",
+            "Defeat Madame Broode in Moon Kingdom",
+        ):
+            continue
         src = goal_list_source(goal)
         raw_items = build_goal_lista(goal, combined, kingdom=kingdom)
         if not raw_items:
@@ -1405,16 +1538,21 @@ def build_bingo_group_lista(
                 or item.get("moon") is not None
             ):
                 continue
-            key = list_item_match_key(item)
+            item_source = resolve_lista_item_source(item, src)
+            # Formatear antes del dedup: goals fijas (Defeat Bowser, …) llegan
+            # sin id; Boss Fights sí lo traen → misma clave solo tras enriquecer.
+            formatted = format_bingo_group_lista_item(item, item_source)
+            # Dedup con source: p.ej. checkpoint «Jaxi Ruins» vs jaxi_stands
+            # id_list=6 no deben colisionar.
+            key = list_item_match_key(formatted, list_name=item_source)
             if key in seen:
                 continue
             seen.add(key)
-            item_source = resolve_lista_item_source(item, src)
-            items.append(format_bingo_group_lista_item(item, item_source))
+            items.append(formatted)
 
-    # shopping: unión completa de Crazy Cap + mercancía (incl. boxer_shorts).
-    if str(group.get("id") or "") == "shopping":
-        for list_name in ("shops", *SHOP_ITEM_LISTS):
+    # shop: Crazy Cap ×11. merchandise: trajes/souvenirs/stickers/boxer_shorts.
+    if str(group.get("id") or "") == "shop":
+        for list_name in ("shops",):
             sources.add(list_name)
             for item in curated_list(list_name):
                 if not isinstance(item, dict):
@@ -1425,11 +1563,75 @@ def build_bingo_group_lista(
                     or item.get("moon") is not None
                 ):
                     continue
-                key = list_item_match_key(item, list_name=list_name)
+                formatted = format_bingo_group_lista_item(item, list_name)
+                key = list_item_match_key(formatted, list_name=list_name)
                 if key in seen:
                     continue
                 seen.add(key)
-                items.append(format_bingo_group_lista_item(item, list_name))
+                items.append(formatted)
+
+    if str(group.get("id") or "") == "merchandise":
+        for list_name in SHOP_ITEM_LISTS:
+            sources.add(list_name)
+            for item in curated_list(list_name):
+                if not isinstance(item, dict):
+                    continue
+                if not (
+                    item.get("name")
+                    or item.get("capture")
+                    or item.get("moon") is not None
+                ):
+                    continue
+                formatted = format_bingo_group_lista_item(item, list_name)
+                key = list_item_match_key(formatted, list_name=list_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append(formatted)
+
+    # sphynx: las 4 esfinges (Sand/Seaside sin goal Correct … Question).
+    if str(group.get("id") or "") == "sphynx":
+        sources.add("sphynxes")
+        for item in curated_list("sphynxes"):
+            if not isinstance(item, dict):
+                continue
+            if not (
+                item.get("name")
+                or item.get("capture")
+                or item.get("moon") is not None
+            ):
+                continue
+            formatted = format_bingo_group_lista_item(item, "sphynxes")
+            key = list_item_match_key(formatted, list_name="sphynxes")
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append(formatted)
+
+    # captures: binoculars (capturas_lunas) + bosses con captura obligatoria.
+    if str(group.get("id") or "") == "captures":
+        for list_name, pool in (
+            ("binoculars", binoculars_lista()),
+            ("bosses", capture_bosses_lista()),
+        ):
+            if not pool:
+                continue
+            sources.add(list_name)
+            for item in pool:
+                if not isinstance(item, dict):
+                    continue
+                if not (
+                    item.get("name")
+                    or item.get("capture")
+                    or item.get("moon") is not None
+                ):
+                    continue
+                formatted = format_bingo_group_lista_item(item, list_name)
+                key = list_item_match_key(formatted, list_name=list_name)
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append(formatted)
 
     lista = sort_lista_items(items)
     lista_source = "+".join(sorted(sources)) if sources else None
@@ -1465,7 +1667,7 @@ def collect_disponibilidad_list_violations() -> list[tuple[str, str, str]]:
 
 
 def collect_location_field_violations() -> list[tuple[str, str, str]]:
-    """Ubicación: zone solo en zonas_reino; near* prohibido en lists/referencia.
+    """Ubicación: zone solo en zonas_inventario; near* prohibido en lists/referencia.
 
     No audita moons[] / lunas-objetivos.
     """
@@ -1482,7 +1684,7 @@ def collect_location_field_violations() -> list[tuple[str, str, str]]:
                     (
                         f"goal_lists:{list_name}",
                         key,
-                        "zone solo en Catalog/zonas_reino.json",
+                        "zone solo en Catalog/zonas_inventario.json",
                     )
                 )
             near_hit = sorted(k for k in _NEAR_LOCATION_KEYS if k in raw)
@@ -1510,7 +1712,7 @@ def collect_location_field_violations() -> list[tuple[str, str, str]]:
                         (
                             f"goals_referencia:{gname}",
                             key,
-                            "lista[] sin zone (usar zonas_reino)",
+                            "lista[] sin zone (usar zonas_inventario)",
                         )
                     )
                 near_hit = sorted(k for k in _NEAR_LOCATION_KEYS if k in item)

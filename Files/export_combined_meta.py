@@ -358,10 +358,12 @@ def _build_icon_entries(
             [g for g in by_icon_disabled.get(icon, []) if g not in set(active)]
         )
         goals_with_icon.update(active)
+        n_goals_n = len(active)
         entry: dict = {
             "icon": icon,
             "orden": orden,
-            "n_goals": len(active),
+            "n_goals": n_goals_n,
+            "shared": n_goals_n >= 2,
             "goals": active,
         }
         if disabled:
@@ -383,6 +385,23 @@ def _goals_with_non_smo_icon(by_icon: dict[str, list[str]]) -> list[str]:
     return _uniq(list(goals))
 
 
+def _goals_smo_only(by_icon: dict[str, list[str]]) -> list[str]:
+    """Goals activas cuyos icons[] son solo smo/ (complemento de non_smo)."""
+    non_smo = set(_goals_with_non_smo_icon(by_icon))
+    with_icon: set[str] = set()
+    for gs in by_icon.values():
+        with_icon.update(gs)
+    return _uniq([g for g in with_icon if g not in non_smo])
+
+
+def _count_active_goals(objectives: list) -> int:
+    return sum(
+        1
+        for obj in objectives
+        if not obj.get("disabled") and str(obj.get("goal") or "")
+    )
+
+
 def _count_goals_by_icon_arity(
     objectives: list,
 ) -> tuple[int, int]:
@@ -402,6 +421,14 @@ def _count_goals_by_icon_arity(
     return n_one, n_multi
 
 
+def _build_n_icons_by_n_goals(icons_out: list[dict]) -> dict[str, int]:
+    """Histograma: cuántos iconos tienen exactamente n goals activas (0, 1, 2, …)."""
+    counts: dict[int, int] = defaultdict(int)
+    for entry in icons_out:
+        counts[int(entry.get("n_goals") or 0)] += 1
+    return {str(k): counts[k] for k in sorted(counts)}
+
+
 def export_icons() -> None:
     data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     objectives = data.get("objectives") or []
@@ -415,7 +442,57 @@ def export_icons() -> None:
         all_icons, by_icon, by_icon_disabled
     )
     non_smo_goals = _goals_with_non_smo_icon(by_icon)
+    smo_only_goals = _goals_smo_only(by_icon)
     n_one_icon, n_multi_icon = _count_goals_by_icon_arity(objectives)
+    n_goals = _count_active_goals(objectives)
+    n_goals_no_icon = len(no_icon)
+    n_icons_shared = sum(1 for e in icons_out if int(e.get("n_goals") or 0) > 1)
+    n_icons_by_n_goals = _build_n_icons_by_n_goals(icons_out)
+    n_icons_extra = 0
+    if official is not None:
+        n_icons_extra = sum(1 for ic in all_icons if ic not in set(official))
+
+    if n_goals != len(goals_with_icon) + n_goals_no_icon:
+        raise ValueError(
+            f"n_goals={n_goals} != with_icon ({len(goals_with_icon)}) + "
+            f"no_icon ({n_goals_no_icon})"
+        )
+    if len(smo_only_goals) + len(non_smo_goals) != len(goals_with_icon):
+        raise ValueError(
+            "n_goals_smo_only + n_goals_non_smo != n_goals_with_icon"
+        )
+    if sum(n_icons_by_n_goals.values()) != len(icons_out):
+        raise ValueError("n_icons_by_n_goals no suma n_icons")
+    hist_shared = sum(
+        int(n) for k, n in n_icons_by_n_goals.items() if int(k) >= 2
+    )
+    if hist_shared != n_icons_shared:
+        raise ValueError(
+            f"n_icons_shared={n_icons_shared} != Σ n_icons_by_n_goals[≥2] "
+            f"({hist_shared})"
+        )
+
+    counters: dict = {
+        "n_icons": len(icons_out),
+        "n_used": len(used_icons),
+        "n_unused": n_unused,
+        "n_icons_by_n_goals": n_icons_by_n_goals,
+        "n_icons_shared": n_icons_shared,
+        "n_goals": n_goals,
+        "n_goals_no_icon": n_goals_no_icon,
+        "n_goals_with_icon": len(goals_with_icon),
+        "n_goals_one_icon": n_one_icon,
+        "n_goals_multi_icon": n_multi_icon,
+        "n_goals_smo_only": len(smo_only_goals),
+        "n_goals_non_smo": len(non_smo_goals),
+    }
+    if official is not None:
+        counters = {
+            "n_icons": counters["n_icons"],
+            "n_official": len(official),
+            "n_icons_extra": n_icons_extra,
+            **{k: counters[k] for k in counters if k != "n_icons"},
+        }
 
     catalog: dict = {
         "_definition": (
@@ -423,29 +500,24 @@ def export_icons() -> None:
             "Combined y oficiales lockout aun sin goal (n_goals=0, ideas "
             "futuras). Fuente oficial: lockout.live/manifests/smo.json. "
             "orden = 1..N alfa por path. Una goal con varias icons cuenta "
-            "en todas. Range/progression → goals_referencia / Combined."
+            "en todas. Por icono: n_goals = goals activas que lo usan; "
+            "shared=true si n_goals≥2. Range/progression → goals_referencia."
         ),
         "_note": (
-            "Campos: icon, orden, n_goals, goals[]. "
+            "Por icono: icon, orden, n_goals, shared, goals[]. "
             "n_disabled/goals_disabled si hay objectives desactivados. "
-            "n_official / n_used / n_unused = conteos de icons. "
+            "n_icons_by_n_goals[k] = iconos con exactamente k goals activas "
+            "(Σ = n_icons; k≥2 → n_icons_shared). "
+            "n_goals = activas en Combined; n_goals_no_icon = sin icons[]. "
             "n_goals_with_icon = activas con ≥1 icon; "
             "n_goals_one_icon + n_goals_multi_icon = n_goals_with_icon "
-            "(1 icon vs ≥2). "
-            "n_goals_non_smo = activas con ≥1 icono fuera de smo/. "
+            "(cuántos icons[] lleva cada goal: 1 vs ≥2). "
+            "n_goals_smo_only + n_goals_non_smo = n_goals_with_icon. "
+            "n_official / n_used / n_unused / n_icons_extra = conteos de icons. "
             "no_icon = goals Combined sin icons[]."
         ),
-        "n_icons": len(icons_out),
-        "n_used": len(used_icons),
-        "n_unused": n_unused,
-        "n_goals_with_icon": len(goals_with_icon),
-        "n_goals_one_icon": n_one_icon,
-        "n_goals_multi_icon": n_multi_icon,
-        "n_goals_non_smo": len(non_smo_goals),
-        "icons": icons_out,
+        **counters,
     }
-    if official is not None:
-        catalog["n_official"] = len(official)
     if no_icon:
         catalog["no_icon"] = {
             "n_goals": len(no_icon),
@@ -456,15 +528,16 @@ def export_icons() -> None:
             "n_goals": len(no_icon_disabled),
             "goals": no_icon_disabled,
         }
+    catalog["icons"] = icons_out
 
     write_catalog_json(ICONS_OUT_JSON, catalog)
-    shared = sum(1 for e in icons_out if e["n_goals"] > 1)
     print(
         f"Exportado: {ICONS_OUT_JSON.relative_to(ROOT)} "
         f"({len(icons_out)} icons, {len(used_icons)} used, "
-        f"{n_unused} unused, {shared} compartidos, "
-        f"goals one/multi/non_smo="
-        f"{n_one_icon}/{n_multi_icon}/{len(non_smo_goals)})"
+        f"{n_unused} unused, {n_icons_shared} compartidos, "
+        f"by_n_goals={n_icons_by_n_goals}, "
+        f"goals={n_goals} one/multi/non_smo/smo_only="
+        f"{n_one_icon}/{n_multi_icon}/{len(non_smo_goals)}/{len(smo_only_goals)})"
     )
 
 
@@ -533,7 +606,8 @@ def export_tooltips() -> None:
 # goal → icon. Combined es fuente de verdad (edicion manual).
 # Remap solo sugiere defaults; --remap NO pisa icons ya puestos en Combined.
 # Regionals: purple*/regional* (no icono de la goal de lunas hermana).
-# Multi-icon (8-Bit Regional, Switch Moons, Hybrid 2D, …) no van aqui.
+# Multi-icon (8-Bit Regional, Sub-Area Regional, Switch Moons, …) no van aqui.
+# Icons mushroom: no en rotaciones ni remap genérico (excepción: Mushroom Warp-Painting).
 ICON_PURPLE_SAND = "smo/purplesand.webp"
 GOAL_ICON_REMAP: dict[str, str] = {
     # Capturas / enemigos
@@ -546,7 +620,6 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Sand Moe-Eye Moons": "smo/capturemoe-eye.webp",
     "{{X}} Glydon Moon[[s]]": "smo/captureglydon.webp",
     "{{X}} Sherm Moons": "smo/capturesherm.webp",
-    "{{X}} Wooded Uproot Moons": "smo/captureuproot.webp",
     "{{X}} Seaside Uproot Moons": "smo/captureuproot.webp",
     "Capture Boulder": "smo/captureboulder.webp",
     "Capture Poison Piranha Plant": "smo/capturepoisonpiranhaplant.webp",
@@ -561,7 +634,7 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Luncheon Volbonan Moons": "smo/capturevolbonan.webp",
     "{{X}} Bowser's Pokio Moons": "smo/capturepokio.webp",
     "{{X}} Bowser's Stairface Ogre Moon[[s]]": "smo/moongroundpoundbowser.webp",
-    "{{X}} Pokio Hole Moons": "smo/moonpokio.webp",
+    "{{X}} Pokio Hole Moons": "smo/sticker11.webp",  # Bowser sticker; moonpokio ≈ capturepokio en lockout
     "Capture Chargin' Chuck": "smo/capturecharginchuck.webp",
     "{{X}} Moon Banzai Bill Moon[[s]]": "smo/capturebanzaibill.webp",
     "Moon Parabones Moon": "smo/captureparabones.webp",
@@ -586,9 +659,9 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Metro RC Car Moons": "smo/moonrccar.webp",
     "{{X}} Bowser's Jizo Moons": "smo/moonjizo.webp",
     "{{X}} Moon Rocks": "smo/moonrock.webp",
-    "{{X}} Seaside Komboo Moons": "smo/souvenir6.webp",
+    "{{X}} Seaside Komboo Moons": "smo/sticker9.webp",  # Seaside; no GP ni Gushen
     "Mushroom Warp-Painting Moon": "smo/moonpaintingmushroom.webp",
-    "Metro City Hall Moon": "smo/souvenir13.webp",  # New Donk City Hall Model
+    "Metro City Hall Moon": "smo/sticker7.webp",  # Metro sticker (sin asset City Hall en CDN)
     "{{X}} Unique Captures": "smo/captures.webp",
     "{{X}} Cap Moons": "smo/mooncap.webp",
     "{{X}} Cascade Moons": "smo/mooncascade.webp",
@@ -619,6 +692,7 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "Metro Festival Moon": "smo/moonpauline.webp",
     # Seeds / flora (plantedseed{reino} no: goals cruzan reinos)
     "{{X}} Bloom Flower Moon[[s]]": "smo/moonflowerbloom.webp",
+    "{{X}} Wedding Moons": "smo/heartflowerbloom.webp",
     "{{X}} Wooded Flower Road Moons": "mkwo/flower_cup.webp",
     "{{X}} Nature Moons": "smo/souvenir5.webp",
     "{{X}} Seeds Planted": "smo/plantedseed.webp",
@@ -663,30 +737,32 @@ GOAL_ICON_REMAP: dict[str, str] = {
     "{{X}} Sand Tostarena Regional Coins": ICON_PURPLE_SAND,
     "{{X}} Sand Ruins Moons": "smo/refightknucklotec.webp",
     "{{X}} Sand Ruins Regional Coins": ICON_PURPLE_SAND,
-    "{{X}} Sand Oasis Moons": "smo/souvenir11.webp",
+    "{{X}} Sand Oasis Moons": "smo/souvenir6.webp",
     "{{X}} Sand Pyramid Moons": "smo/kingdomsand.webp",
     "{{X}} Sand Jaxi Regional Coins": ICON_PURPLE_SAND,
-    "{{X}} Sub-Area Regional Coins": "smo/purplemushroom.webp",
+    # Totales: moontotal ↔ purpletotal (como Default/Short/Long).
+    "{{X}} Total Regional Coins": "smo/purpletotal.webp",
+    # Sub-Area Regional: rotación multi-icono en Combined (sin mushroom).
     "{{X}} Sand Bird Moons": "smo/moonbird.webp",
     "{{X}} Fauna Moons": "app-game-icons/paw-print.webp",
     "{{X}} Ledge Grab Moons": "app-game-icons/grab.webp",
     "{{X}} Dorrie Moon[[s]]": "smo/souvenir4.webp",
-    "{{X}} Lost Butterfly Moons": "smo/souvenir12.webp",
-    "{{X}} Lost Trapeetle Moon[[s]]": "smo/kingdomlost.webp",
+    "{{X}} Lost Butterfly Moons": "smo/sticker6.webp",  # Lost sticker (sin asset Butterfly Mobile)
+    "{{X}} Lost Trapeetle Moons": "smo/kingdomlost.webp",
     "{{X}} Seaside Maw-Ray Moon[[s]]": "smgalaxy/kingfin.webp",
-    "{{X}} Wooded Pipe Moons": "smgalaxy/pipe.webp",
+    "{{X}} Wooded Pipe Moons": "smo/sticker17.webp",  # Pipe Sticker (Mushroom postgame)
     "{{X}} Luncheon Lantern Moon[[s]]": "smo/moonlantern.webp",
     "{{X}} Luncheon Golden Turnip Moon[[s]]": "smo/moonturnip.webp",
     "{{X}} NPC Moons": "smo/moonhinttoad.webp",
-    "{{X}} Tourist Moon[[s]]": "smo/mooncapturemeet.webp",
-    "{{X}} Koopa Trace-Walking Moon[[s]]": "mkwo/koopa.webp",
+    "{{X}} Tourist Moon[[s]]": "smo/moonbonneter.webp",  # NPC; no moontourist (=taxi) ni mooncapturemeet (=meat)
+    "{{X}} Koopa Trace-Walking Moon[[s]]": "smo/moonwalking.webp",
     "Look at {{X}} Hint-Arts": "smo/lookhintart.webp",
     # Checkpoints aggregate
     "{{X}} Total Checkpoints": "smo/checkpointnone.webp",
     "All Checkpoints in {{X}} Kingdoms": "smo/checkpointall.webp",
     # Familias sin variante / shop rotating (souvenir/sticker tambien en {{X}} Souvenirs/Stickers)
     "Call Jaxi from {{X}} Stand[[s]]": "smo/jaxicall.webp",
-    "{{X}} Sand Jaxi Moons": "smo/souvenir3.webp",
+    "{{X}} Sand Jaxi Moons": "smo/souvenir3.webp",  # slot Sand Crazy Cap (Jaxi)
     "Correct Wooded Sphynx Question": "smo/sphynxquestions.webp",
     "Correct Moon Sphynx Question": "smo/sphynxquestions.webp",
     "{{X}} Sphynx Moons": "smo/sphynxquestions.webp",

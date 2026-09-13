@@ -614,6 +614,9 @@ def _print_lunas_stats(
     print(f"Exportado: Catalog/{OUTPUT_LUNAS_JSON.name} ({len(moons)} lunas)")
     print("Alcance: base/mid_story/revisit/world_peace")
     print(f"Con 2+ tags: {multi}")
+    by_n = Counter(len(row["tags"]) for row in moons)
+    hist = ", ".join(f"{k}={by_n[k]}" for k in sorted(by_n))
+    print(f"n_moons_by_n_tags: {hist}")
     summary = kingdom_availability_summary(registry)
     print("\nDisponibilidad por reino (orden = tier_order del reino):")
     for kingdom in KINGDOM_COLUMNS:
@@ -637,6 +640,9 @@ def export_lunas() -> None:
     rules = load_kingdom_availability()
     moons, dropped = _build_lunas_moon_rows(registry, allowed)
 
+    by_n_tags: Counter[int] = Counter(len(row.get("tags") or []) for row in moons)
+    n_moons_by_n_tags = {str(k): by_n_tags[k] for k in sorted(by_n_tags)}
+
     write_catalog_json(
         OUTPUT_LUNAS_JSON,
         {
@@ -646,6 +652,8 @@ def export_lunas() -> None:
                 "moons[]: {id,moon,name,disponibilidad,tags[]}. "
                 "id = 1..n_moons global (historia + nº luna); moon = nº reino. "
                 "Sin campo kingdom: tags[0] = reino, resto alfa. "
+                "n_moons_by_n_tags[k] = lunas con exactamente k tags "
+                "(incl. reino; Σ = n_moons). "
                 "CSV hermano (lunas-objetivos.csv) se deriva de este JSON. "
                 "mushroom#39 (Secret Path) → luncheon#50 sintético "
                 "(LUNAS_CATALOG_SYNTHETIC; evita choque con luncheon#39)."
@@ -653,9 +661,11 @@ def export_lunas() -> None:
             "_note": (
                 "Regenerar con export_lunas_tags.py o regenerate_all.py. "
                 "CSV: python export_lunas_tags.py --csv-only (desde este JSON). "
+                "n_moons_by_n_tags como items_goals.n_items_by_n_goals. "
                 f"Sintéticos: {dict((f'{a}#{b}', f'{c}#{d}') for (a, b), (c, d) in LUNAS_CATALOG_SYNTHETIC.items())}."
             ),
             "n_moons": len(moons),
+            "n_moons_by_n_tags": n_moons_by_n_tags,
             "moons": moons,
         },
     )

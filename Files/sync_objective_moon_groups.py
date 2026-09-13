@@ -51,12 +51,11 @@ RETIRED_OBJECTIVE_GROUP_IDS: frozenset[str] = frozenset(
         "picture_match",  # Cloud/Mushroom fuera de alcance
         "sand_bullet_bill",  # → bullet_bill (multireino)
         "wooded_sherm",  # → sherm (multireino)
-        "uproot",  # → wooded_uproot (+ seaside_uproot)
         "luncheon_hammer_bro",  # → hammer_bro
         "fire_hammer_bro",  # → fire_bro + hammer_bro (goals separadas)
         "talkatoo_moons",  # Talkatoo Moons retirado; solo hablar (como Moon Rock)
         "wooded_coin_coffer",  # → seeds (Coin Coffer / Special Seed)
-        "metro_sewer",  # → metro_manhole (4 lunas: ambos manholes)
+        "metro_sewer",  # → manhole
         "special_capture_moons",  # Capture fijas → captures / goals
         "special_captures",  # vacío legado; Capture fijas en captures
         "bowser_statue",  # Bowser Statue Moon (sin grupo; evita strip bowser_)
@@ -64,36 +63,84 @@ RETIRED_OBJECTIVE_GROUP_IDS: frozenset[str] = frozenset(
         "lake_cheep_cheep",  # → cheep_cheep (multireino)
         "seaside_cheep_cheep",  # → cheep_cheep (multireino)
         "style_sisters",  # post-Bowser (fuera de alcance)
-        # musicos metro#2–#5: tag npc vía npc_moons.tag_only_moons
+        # musicos metro#2–#5: tag npc vía npc.tag_only_moons
         "ndc_festival_band",
-        "totals",  # → totales (Total Moons/Checkpoints/Regionals/Multi/Story)
-        "shop",  # → shopping
-        "checkpoint",  # → checkpoints (id bingo_lineas)
-        "regionals",  # → regionalcoins
-        "moon_rock",  # → moonrock
-        "captain_toad",  # → captaintoad
-        "story_moon",  # → storymoons
-        "sub_area",  # → subarea
+        "tourist",  # → npc (tag_only + goal Tourist)
         "kingdommoons",  # totales de reino viven en grupos kingdom
         "moontype",  # tipos concretos viven en grupos tematicos
-        "jump_rope",  # → metro_minigames
+        "jump_rope",  # → minigame
         "volleyball",  # goal en minigame; sin grupo propio
-        "rc_car",  # → metro_rc_car
+        "metro_minigames",  # → minigame (grupo minigame ya existe)
         "misc",  # levers/P-Switches → story_moon
         "snow_rocket_flower",  # Cold Water Dash → solo sub_area+cappy (sin goal)
-        # snow_bitefrost: Hollow Crevasse reactivado (goal + tag)
         # Singulares 1 luna: goal Combined OK; sin grupo/tag propio
         "moon_bowser_statue",
         "festival",  # Metro Festival Moon (#36 8-bit)
         # banzai_bill: reactivado (#11+#13)
         "parabones",  # Moon Parabones Moon
-        # sheep: grupo propio (Sand Sheep Moon → tag fauna)
-        "sub_area_hybrid_2d",  # → hybrid_2d
+        # sheep: Sand Sheep Moon → fauna (extra en fauna / tag_only dog; sin grupo)
+        "sheep",
+        "sub_area_hybrid_2d",  # legacy
+        "hybrid_2d",  # pool = Chasm Lifts + Roulette (goals propias; sin tercera)
         # fire_piranha_plant: reactivado (#32 + Magma Swamp #37+#38)
         "special_seeds",  # lunas Special Seed viven en seeds
-        "miscellaneous",  # goals viven en 8bit/seeds/captures/sand_jaxi/…
+        "miscellaneous",  # goals viven en 8bit/seeds/captures/jaxi/…
+        "pokio_hole",  # → pokio (misma captura; 2 goals en capturas_lunas)
+        # Fusión en grupo canónico ya existente o vía spec uproot:
+        "wooded_uproot",  # → uproot (spec)
+        "seaside_uproot",  # → uproot (spec)
+        "snow_goomba",  # → goomba (grupo goomba ya existe)
     }
 )
+
+# Renombres de id de grupo → canónico (tag / singular). Se aplican al sync
+# antes de RETIRED para conservar moons (preserve_moons).
+# Objetivo: id de grupo = slug en palabras_inventario (sin prefijo reino).
+GROUP_ID_RENAMES: dict[str, str] = {
+    # Ids legacy / plural / line_category
+    "captaintoad": "captain_toad",
+    "subarea": "sub_area",
+    "shopping": "shop",
+    "checkpoints": "checkpoint",
+    "storymoons": "story_moon",
+    "npc_moons": "npc",
+    "regionals": "regionalcoins",
+    "totals": "totales",
+    "moon_rock": "moonrock",
+    # Prefijos de reino → tag canónica (sin kingdom_)
+    "sand_birds": "birds",
+    "lost_tropical_wiggler": "tropical_wiggler",
+    "lost_butterfly": "butterfly",
+    "lost_trapeetle": "trapeetle",
+    "sand_jaxi": "jaxi",
+    "sand_moe_eye": "moe_eye",
+    "sand_tostarena": "tostarena",
+    "sand_oasis": "oasis",
+    "sand_ruins": "ruins",
+    "sand_pyramid": "pyramid",
+    "wooded_flower_road": "flower_road",
+    "sand_ice": "ice",
+    "wooded_pipe": "pipe",
+    "metro_girder": "girder",
+    "metro_night": "night",
+    "metro_trash": "trash",
+    "metro_manhole": "manhole",
+    "metro_taxi": "taxi",
+    "metro_motor_scooter": "motor_scooter",
+    "metro_rc_car": "rc_car",
+    "luncheon_lantern": "lantern",
+    "luncheon_volbonan": "volbonan",
+    "snow_shiveria": "shiveria",
+    "snow_overworld": "overworld",
+    "snow_ty_foo": "ty_foo",
+    "snow_bitefrost": "bitefrost",
+    "moon_cave": "cave",
+    "cascade_chasm_lifts": "chasm_lifts",
+    "cascade_chain_chomp": "chain_chomp",
+    "ruined_roulette": "roulette",
+    "cap_frog": "frog",
+    "lake_zipper": "zipper",
+}
 
 # id → spec.
 # - goals / goal: texto(s) Combined
@@ -107,12 +154,13 @@ RETIRED_OBJECTIVE_GROUP_IDS: frozenset[str] = frozenset(
 # - moon_tag: tag en lunas si ≠ id (paraguas fauna/flora → umbrella)
 # - aggregate_moon_tag: une lunas (+ goals) de grupos con ese moon_tag
 # - preserve_moons: si no hay moons/patrones, conserva moons[] ya en bingo_groups
+# - exclude_moons: [(kingdom, moon), ...] quitados del pool tras resolve/preserve
 # - goals_only: solo objectives[] (moons/lista vacios). Para cats con pool
 #   enorme ya cubierto en reinos/grupos concretos (evita duplicar JSON).
 # - note: texto _note en el grupo
 OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     # --- lost ---
-    "lost_tropical_wiggler": {
+    "tropical_wiggler": {
         "goal": "{{X}} Lost Tropical Wiggler Moons",
         "kingdom": "lost",
         "capture": "Tropical Wiggler",
@@ -125,7 +173,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("lost", 20),
         ],
     },
-    "lost_butterfly": {
+    "butterfly": {
         "goal": "{{X}} Lost Butterfly Moons",
         "kingdom": "lost",
         "moons": [
@@ -139,8 +187,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "ground pound. #12: mariposa brillante + Cappy."
         ),
     },
-    "lost_trapeetle": {
-        "goal": "{{X}} Lost Trapeetle Moon[[s]]",
+    "trapeetle": {
+        "goal": "{{X}} Lost Trapeetle Moons",
         "kingdom": "lost",
         "moons": [
             ("lost", 11),  # Wrecked Rock Block → trapeetle+blocks
@@ -153,7 +201,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     # --- sand ---
-    "sand_jaxi": {
+    "jaxi": {
         "goals": [
             "{{X}} Sand Jaxi Moons",
             "{{X}} Sand Jaxi Regional Coins",
@@ -173,7 +221,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Regional: 12 purple (veneno 4 + cueva Jaxi Ruins 8)."
         ),
     },
-    "sand_moe_eye": {
+    "moe_eye": {
         "goal": "{{X}} Sand Moe-Eye Moons",
         "kingdom": "sand",
         "capture": "Moe-Eye",
@@ -182,24 +230,22 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("sand", 54),  # Invisible Maze
             ("sand", 55),  # Skull Sign in the Transparent Maze
         ],
-        # n=3 + goal propia, pero sin tag moe_eye (basta captures): excepción
-        # documentada en CAPTURE_NO_CONCRETE_TAGS / apply_moon_tag=False.
-        "apply_moon_tag": False,
+        "tag_only_moons": [
+            ("sand", 2),  # Moon Shards (story; captura en habitat, tag sin goal)
+        ],
         "note": (
-            "TC2 (#29) + Invisible Maze (#54+#55). Sin tag moe_eye "
-            "(n=3 con goal; basta captures; presupuesto de tags en "
-            "sub_area/key/switch/timer). "
-            "Sin #2 Moon Shards (story; captura Moe-Eye en habitat pero "
-            "fuera del pool Combined). "
+            "Pool goal: TC2 (#29) + Invisible Maze (#54+#55). "
+            "tag_only sand#2 (shards/story). Tag moe_eye en las 4 lunas; "
+            "sin tag captures (basta moe_eye). "
             "Sin goal regional (habitat/Invisible Maze siguen en Sand Regional)."
         ),
     },
-    "sand_birds": {
+    "birds": {
         "goal": "{{X}} Sand Bird Moons",
         "kingdom": "sand",
         "moons": [("sand", 16), ("sand", 21), ("sand", 22)],
         "moon_tag": "fauna",
-        "note": "Fauna ≥3 → solo birds. Rango [2, 3] (n=3).",
+        "note": "Fauna ≥3 → solo birds. Rango [2, 3] (n=3). Id sin prefijo sand_.",
     },
     "cactus_tree": {
         "goal": "{{X}} Cactus/Tree Moons",
@@ -246,7 +292,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Turnip = #15–#17. Tag seeds."
         ),
     },
-    "sand_tostarena": {
+    "tostarena": {
         "goals": [
             "{{X}} Sand Tostarena Moons",
             "{{X}} Sand Tostarena Regional Coins",
@@ -275,7 +321,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Regional: 29 purple coins (pueblo 24 + Strange Neighborhood 5)."
         ),
     },
-    "sand_oasis": {
+    "oasis": {
         "goal": "{{X}} Sand Oasis Moons",
         "kingdom": "sand",
         "moons": [
@@ -289,11 +335,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "moon_tag": "oasis",
         "note": (
             "Desert Oasis. 6 lunas (sin #21 pájaro → tostarena). "
-            "Tag oasis. #38 también sand_jaxi. Rango [3, 6]. "
+            "Tag oasis. #38 también jaxi. Rango [3, 6]. "
             "Sin regional; sin Moon Rock #70."
         ),
     },
-    "sand_ruins": {
+    "ruins": {
         "goals": [
             "{{X}} Sand Ruins Moons",
             "{{X}} Sand Ruins Regional Coins",
@@ -316,14 +362,15 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Ruinas de Tostarena (estructura principal: entrada → torre). "
             "10 lunas: path de ruinas + Goombette. Tag ruins. "
             "Sand Ruins Moons range [4, 6, 8, 10]. "
-            "Sin Ice Cave #50 ni sus 4 purple (solo sand_ice; no doble conteo). "
+            "Zona ice (#47–#50 templo + Ice Cave): solo sand_ice "
+            "(ni Moons ni Regional de Ruins). "
             "Sin semilla #26, Jaxi Ruins, pirámide/templo ni Moe-Eye Habitat. "
             "Regional: 16 purple coins (entrada/8-bits 10 + Sphynx 3 + "
             "plataformas Round Tower→Moe-Eye 3). "
             "Sin Jaxi Ruins / oasis / pirámide / Underground Temple / Moe-Eye."
         ),
     },
-    "sand_pyramid": {
+    "pyramid": {
         "goal": "{{X}} Sand Pyramid Moons",
         "kingdom": "sand",
         "moons": [
@@ -337,7 +384,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "moon_tag": "pyramid",
         "note": (
             "Pirámide invertida (estructura + techo). 6 lunas; #3 multi "
-            "cuenta 1 (physical). #14+#39 también sand_jaxi. "
+            "cuenta 1 (physical). #14+#39 también jaxi. "
             "Sin #18 Luggage / #33 Sheep (base/dunas) ni templo ice. "
             "Sin goal regional (8-bit/techo siguen en Sand Regional / 8-Bit Regional)."
         ),
@@ -356,10 +403,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "Wooded nuts. Fuera del paraguas flora. Incluye #10/#11/#12/#26 "
             "(nombre sin 'nut') ademas de name_patterns. "
-            "Uproot en #10/#11/#13/#14/#15/#16/#24; resto nut sin captura."
+            "Sin tag uproot (captura solo en Seaside Uproot); "
+            "varias nuts usan Uproot en gameplay sin contar en esa goal."
         ),
     },
-    "wooded_flower_road": {
+    "flower_road": {
         "goal": "{{X}} Wooded Flower Road Moons",
         "kingdom": "wooded",
         "moons": [("wooded", 43), ("wooded", 44)],
@@ -393,7 +441,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Tag deep_woods. Regional: 9 purple coins (3 clusters × 3)."
         ),
     },
-    "sand_ice": {
+    "ice": {
         "goals": [
             "{{X}} Sand Ice Moon[[s]]",
             "{{X}} Sand Ice Regional Coins",
@@ -407,17 +455,15 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "moon_tag": "ice",
         "note": (
-            "Hielo Sand: Ice Cave (ruinas) + Underground Temple / Deepest "
-            "(bajo pirámide). Tag ice. Templo (#47–#49) antes del par Ice "
-            "Cave → rango moons [1, 3]. "
-            "#50 Ice Cave solo ice (no sand_ruins); #47–#49 solo ice. "
-            "Regional: 11 purple (Ice Cave 4 + Underground Temple 7). "
-            "Ice Cave coins solo sand_ice (no Sand Ruins Regional); "
-            "templo solo ice. "
-            "Sin sand#4 The Hole in the Desert (story/multi)."
+            "Hielo Sand (zona ice junto a ruinas / templo bajo pirámide): "
+            "#47–#50. Tag ice. Pool 4 → rango [1, 2, 3, 4]. "
+            "Solo ice: no Sand Ruins Moons ni Sand Ruins Regional "
+            "(Ice Cave purple + templo → Sand Ice Regional). "
+            "Sin sand#4 The Hole in the Desert (story/multi). "
+            "Regional: 11 purple (Ice Cave 4 + Underground Temple 7)."
         ),
     },
-    "wooded_pipe": {
+    "pipe": {
         "goal": "{{X}} Wooded Pipe Moons",
         "kingdom": "wooded",
         "moons": [
@@ -443,8 +489,21 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "En paraguas Flora Moons / Nature."
         ),
     },
+    "wedding": {
+        "goal": "{{X}} Wedding Moons",
+        "moons": [
+            ("lake", 21),    # I Feel Underdressed (dress / outfit door)
+            ("wooded", 27),  # Make the Secret Flower Field Bloom
+        ],
+        "apply_moon_tag": False,
+        "note": (
+            "Par temático dress+flowers (boda). Solo range [2]: "
+            "no umbral 1 (solaparía Lake Outfit Door / Bloom 1). "
+            "Sin tag nueva; lake#21 sigue outfit_door, wooded#27 flora."
+        ),
+    },
     # --- metro ---
-    "metro_girder": {
+    "girder": {
         "goal": "{{X}} Metro Girder Moon[[s]]",
         "kingdom": "metro",
         "moons": [
@@ -459,7 +518,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Board/line Combined: lost (tramo Metro noche), no metro."
         ),
     },
-    "metro_night": {
+    "night": {
         "goals": [
             "{{X}} Metro Night Moons",
             "{{X}} Metro Girder Moon[[s]]",
@@ -484,12 +543,12 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Girder #13 mid_story también lost/m. Kingdom tag sigue metro."
         ),
     },
-    "metro_trash": {
+    "trash": {
         "goal": "{{X}} Metro Trash Moon[[s]]",
         "kingdom": "metro",
         "name_patterns": [r"trash|garbage|scrap"],
     },
-    "metro_manhole": {
+    "manhole": {
         "goal": "{{X}} Metro Manhole Moons",
         "kingdom": "metro",
         "capture": "Manhole",
@@ -498,16 +557,19 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("metro", 43),  # Inside the Rotating Maze
             ("metro", 44),  # Outside the Rotating Maze
         ],
+        "tag_only_moons": [
+            ("metro", 6),  # Powering Up the Station (story; manhole acceso)
+        ],
         "moon_tag": "manhole",
         "note": (
             "Acceso manhole → tag manhole. Goal: #35+#43+#44. "
             "#43+#44 Rotating Maze llevan sub_area (grupo); "
             "#35 Sewer Treasure no (como bowser#26 spark_pylon). "
-            "metro#6 Powering Up (story) fuera: no cuenta → story_moon (sin manhole). "
+            "metro#6 Powering Up (story): tag_only en fila Manhole (sin goal). "
             "#35 no cuenta en {{X}} Sub-Area Moons (guía)."
         ),
     },
-    "metro_taxi": {
+    "taxi": {
         "goal": "{{X}} Metro Taxi Moons",
         "kingdom": "metro",
         "capture": "Taxi",
@@ -538,7 +600,9 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "Acceso Mini Rocket → tag mini_rocket (sin sub_area encima). "
             "Sand Strange Neighborhood + Wooded Fog + Metro High-Rise + "
-            "Seaside Cloud Sea (8)."
+            "Seaside Cloud Sea (8). "
+            "ruined#3 Roulette Climbed: solo sub_area (+ Roulette Tower); "
+            "sin tag/pool Mini Rocket (par con #4 8bit)."
         ),
     },
     "beanstalk": {
@@ -557,7 +621,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "moon_tag": "beanstalk",
         "note": (
             "Enredadera/nubes → tag beanstalk (sin sub_area encima). "
-            "Wooded Cloud Walking (#47+#48 tambien uproot) + Snow Cloud "
+            "Wooded Cloud Walking (#47+#48; sin uproot) + Snow Cloud "
             "Spinning + Bowser Cloud Dashing."
         ),
     },
@@ -580,7 +644,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "En paraguas Flora/Nature. Rango propio [2, 4, 6]."
         ),
     },
-    "metro_motor_scooter": {
+    "motor_scooter": {
         "goal": "{{X}} Metro Motor Scooter Moon[[s]]",
         "kingdom": "metro",
         "moons": [
@@ -596,45 +660,58 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "#60 Leap of Faith = Moon Rock (fuera)."
         ),
     },
-    "metro_minigames": {
-        "goal": "{{X}} Metro Minigame Moon[[s]]",
-        "kingdom": "metro",
-        "moon_tag": "minigame",
-        "moons": [
-            ("metro", 28),  # Slots
-            ("metro", 29),  # Jump-Rope Hero
-            ("metro", 30),  # Jump-Rope Genius
-            ("metro", 32),  # RC Car Pro!
-        ],
-        "note": (
-            "4 minijuegos Metro. Tag minigame (no 'minigames'). "
-            "Sin #31 Remotely Captured Car (tutorial captura). "
-            "Goal tambien en grupo minigame."
-        ),
-    },
-    "metro_rc_car": {
+    "rc_car": {
         "goal": "{{X}} Metro RC Car Moons",
         "kingdom": "metro",
         "capture": "RC Car",
         "moons": [("metro", 31), ("metro", 32)],
         "note": "#31 Remotely Captured Car + #32 RC Car Pro!. Tambien captures.",
     },
+    "frog": {
+        "goal": "{{X}} Cap Frog Moons",
+        "kingdom": "cap",
+        "capture": "Frog",
+        "moons": [
+            ("cap", 1),
+            ("cap", 2),
+            ("cap", 10),
+            ("cap", 11),
+        ],
+        "note": "Id=tag frog (antes cap_frog). Rango [2, 4].",
+    },
+    "zipper": {
+        "goal": "{{X}} Lake Zipper Moons",
+        "kingdom": "lake",
+        "capture": "Zipper",
+        "moons": [
+            ("lake", 4),
+            ("lake", 22),
+            ("lake", 23),
+        ],
+        "note": "Id=tag zipper (antes lake_zipper). Rango [2, 3].",
+    },
     "pokio": {
-        "goal": "{{X}} Bowser's Pokio Moons",
+        "goals": [
+            "{{X}} Bowser's Pokio Moons",
+            "{{X}} Pokio Hole Moons",
+        ],
         "kingdom": "bowser",
         "capture": "Pokio",
         "moons": [
             ("bowser", 5),
             ("bowser", 6),
             ("bowser", 9),   # Past the Moving Wall
+            ("bowser", 21),  # Poking Your Nose in the Plaster Wall
+            ("bowser", 22),  # Poking the Turret Wall
+            ("bowser", 23),  # Poking Your Nose by the Great Gate
             ("bowser", 33),
             ("bowser", 34),
         ],
         "note": (
-            "Pokio overworld (#5/#6/#9) + Spinning Tower (#33+#34). "
-            "Holes (#21–#23) → grupo pokio_hole (misma captura Pokio; "
-            "2 goals en capturas_lunas). "
-            "#2/#4 story/multi: captures (Pokio en camino); no cuentan en este goal. "
+            "Pokio overworld (#5/#6/#9) + holes (#21–#23) + Spinning Tower "
+            "(#33+#34). Dos goals Combined (Bowser's Pokio / Pokio Hole); "
+            "misma captura wiki en capturas_lunas. "
+            "#2/#4 story/multi: captures (Pokio en camino); no cuentan en estos goals. "
             "#14 bloque = stairface_ogre. #26 Behind Bars → solo spark_pylon."
         ),
     },
@@ -646,26 +723,10 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("bowser", 14),  # Inside a Block in the Castle (ogro rompe bloque)
             ("bowser", 16),  # Exterminate the Ogres!
         ],
-        "apply_moon_tag": False,
         "note": (
             "Paraguas blocks (#14) / critter (#16) / story (#1 Infiltrate). "
             "Stairface Ogre: #1 story + #14 (rompe bloque) + #16 (derrotar 3). "
             "Rango [1, 2, 3]. #33 ogro solo abre puerta → Pokio."
-        ),
-    },
-    "pokio_hole": {
-        "goal": "{{X}} Pokio Hole Moons",
-        "kingdom": "bowser",
-        "capture": "Pokio",
-        "moon_tag": "pokio_hole",
-        "moons": [
-            ("bowser", 21),  # Poking Your Nose in the Plaster Wall
-            ("bowser", 22),  # Poking the Turret Wall
-            ("bowser", 23),  # Poking Your Nose by the Great Gate
-        ],
-        "note": (
-            "Lunas en muros agujereados (Pokio Hole). Misma captura wiki Pokio "
-            "que Bowser's Pokio Moons (unica captura con 2 goals)."
         ),
     },
     "spark_pylon": {
@@ -755,37 +816,28 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "goomba": {
-        "goal": "{{X}} Goomba Moon[[s]]",
+        "goals": [
+            "{{X}} Goomba Moon[[s]]",
+            "{{X}} Snow Goomba Moons",
+        ],
         "capture": "Goomba",
         "moons": [
             ("sand", 35),      # Love in the Heart of the Desert
             ("sand", 48),      # Goomba Tower Assembly
             ("wooded", 21),    # Love in the Forest Ruins
             ("wooded", 44),    # Flower Road Reach
+            ("snow", 1),       # The Icicle Barrier (solo Snow Goomba Moons)
             ("snow", 18),      # Ice-Dodging Goomba Stack
             ("seaside", 32),   # Love by the Seaside
             ("luncheon", 24),  # Love Above the Lava
             ("bowser", 19),    # Stack Up Above the Wall
         ],
-        "note": (
-            "Captura Goomba multireino. Snow: solo #18 en este pool; "
-            "#1 Icicle Barrier → {{X}} Snow Goomba Moons (junto a #18). "
-            "Wooded: Love + Flower Road Reach (#43 carrera sin Goomba). "
-            "#48 Stacked-Up Ice Climb = Moon Rock."
-        ),
-    },
-    "snow_goomba": {
-        "goal": "{{X}} Snow Goomba Moons",
-        "kingdom": "snow",
-        "capture": "Goomba",
-        "moons": [
-            ("snow", 1),   # The Icicle Barrier (historia; excepción)
-            ("snow", 18),  # Ice-Dodging Goomba Stack (tambien Goomba Moon[[s]])
-        ],
         "include_story_moons": [("snow", 1)],
         "note": (
-            "Icicle Cavern: ambas captures+goomba. Rango fijo [2]. "
-            "#1 story no cuenta en {{X}} Goomba Moon[[s]]; sí en este goal."
+            "Captura Goomba multireino (id=tag goomba). "
+            "Snow: #18 en ambos goals; #1 story solo en Snow Goomba Moons. "
+            "Wooded: Love + Flower Road Reach (#43 carrera sin Goomba). "
+            "#48 Stacked-Up Ice Climb = Moon Rock."
         ),
     },
     "sherm": {
@@ -799,37 +851,19 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("metro", 41),
             ("metro", 42),
         ],
+        "tag_only_moons": [
+            ("wooded", 3),  # Path to Secret Flower Field (story / acceso)
+            ("metro", 1),  # Mechawiggler / multiluna (story)
+        ],
         "note": (
             "Captura multireino Sherm (Wooded+Metro). "
-            "Sin wooded#3 / metro#1 (story). Rango [2, 4, 6] (n=6)."
+            "Goal: #5/#22/#45/#46 + Under Siege (#41+#42). "
+            "#3/#1 tag sherm (tag_only; story, no cuentan en la goal). "
+            "Rango [2, 4, 6] (n=6)."
         ),
     },
-    "wooded_uproot": {
-        "goal": "{{X}} Wooded Uproot Moons",
-        "capture": "Uproot",
-        "kingdom": "wooded",
-        "moons": [
-            ("wooded", 10),  # Atop the Tall Tree (nut)
-            ("wooded", 11),  # Tucked Away Inside the Tunnel (nut)
-            ("wooded", 13),  # The Nut 'Round the Corner
-            ("wooded", 14),  # Climb the Cliff to Get the Nut
-            ("wooded", 15),  # The Nut in the Red Maze
-            ("wooded", 16),  # The Nut at the Dead End
-            ("wooded", 24),  # Nut Planted in the Tower
-            ("wooded", 25),  # Stretching Your Legs
-            ("wooded", 47),  # Walking on Clouds (Cloud Walking + Uproot)
-            ("wooded", 48),  # Above the Clouds (idem)
-        ],
-        "moon_tag": "uproot",
-        "note": (
-            "Uproot Wooded (10). Sin #4 multi. Nut∩uproot: "
-            "#10/#11/#13/#14/#15/#16/#24. Torre #24+#25. Cloud Walking "
-            "#47+#48 (+ beanstalk). Seaside Stretch → seaside_uproot."
-        ),
-    },
-    "seaside_uproot": {
+    "uproot": {
         "goal": "{{X}} Seaside Uproot Moons",
-        "kingdom": "seaside",
         "capture": "Uproot",
         "moons": [
             ("seaside", 47),  # Hurry and Stretch
@@ -837,11 +871,14 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "moon_tag": "uproot",
         "note": (
-            "Subárea Stretch Seaside (#47+#48). Goal propia; tag uproot. "
-            "Rango fijo [2]. No cuenta en {{X}} Wooded Uproot Moons."
+            "Seaside Stretch (#47+#48). wooded#25 Stretching Your Legs: "
+            "tag uproot vía FORCE_MOON_TAGS (fuera de esta goal). "
+            "Wooded nuts quedan en nut (sin uproot: solapan con Nut Moons). "
+            "Cloud Walking #47+#48 = beanstalk (sin uproot). "
+            "Sin wooded#4 multi (tag_only en capturas)."
         ),
     },
-    "luncheon_lantern": {
+    "lantern": {
         "goal": "{{X}} Luncheon Lantern Moon[[s]]",
         "kingdom": "luncheon",
         "moons": [
@@ -857,7 +894,21 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "en fire_piranha_plant). Sin #50 Rooftop."
         ),
     },
-    "luncheon_volbonan": {
+    "volcano_cave": {
+        "goal": "{{X}} Luncheon Volcano Cave Moons",
+        "kingdom": "luncheon",
+        "moons": [
+            ("luncheon", 4),   # Climb Up the Cascading Magma (story)
+            ("luncheon", 29),  # Alcove Behind the Pillars of Magma
+        ],
+        "apply_moon_tag": False,
+        "note": (
+            "Volcano Cave: #4 Cascading Magma (story) + #29 Alcove. "
+            "Fuera de Luncheon Sub-Area (guía). Rango fijo [2]. "
+            "n=2 → sin tag volcano_cave. #4 también Story; #29 mario."
+        ),
+    },
+    "volbonan": {
         "goal": "{{X}} Luncheon Volbonan Moons",
         "kingdom": "luncheon",
         "capture": "Volbonan",
@@ -973,9 +1024,15 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("seaside", 45),  # Fly Through the Narrow Valley
             ("seaside", 46),  # Treasure Chest in the Narrow Valley
         ],
+        "tag_only_moons": [
+            ("seaside", 1),  # Stone Pillar Seal (story)
+            ("seaside", 3),  # Hot Spring Seal (story)
+            ("seaside", 5),  # Mollusque multiluna (boss; lista)
+        ],
         "note": (
             "Gushen (captura burbuja), no Komboo (algas enemigas → tag komboo). "
-            "Sin sellos #1/#3/#5 (story/multi). "
+            "Goal: #6/#7/#26/#34/#45/#46. "
+            "#1/#3/#5 tag gushen (tag_only; sellos story + multiluna boss). "
             "Incluye #26 Ocean Trench Seed (special; Gushen acelera). "
             "Sin Sea Gardening #23–#25 (macetas normales). "
             "Sin #15 Dorrie/#31 Notes (alt opcional). Rango [2, 4, 6]."
@@ -998,12 +1055,12 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "También Snow Multi-Moon y pool Minigame."
         ),
     },
-    "snow_shiveria": {
+    "shiveria": {
         "goals": [
             "{{X}} Snow Shiveria Moons",
             "{{X}} Snow Shiveria Regional Coins",
             # Goals cuyo pool de lunas cae entero (o casi) en este perímetro.
-            "{{X}} Snow Story Moons",
+            # Snow Story → solo story_moon (4 barreras), no todo el agujero.
             "{{X}} Snow Bitefrost Moons",
             "{{X}} Snow Goomba Moons",
             "{{X}} Snow Outfit Door Moons",
@@ -1042,12 +1099,12 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "extras cavernas + Class S + Cold Room + Hint Art (#34). "
             "Sin overworld ni Trace-Walking (#22 → snow_overworld). "
             "Tag shiveria. Regional: 37 purple coins (mismo perímetro). "
-            "También goals Combined cuyo pool de lunas es solo Shiveria "
-            "(Story, Bitefrost, Goomba, Outfit Door, Racer, Multi, Shop, "
-            "Hint Art, Boxer Shorts)."
+            "También goals Combined cuyo pool es solo Shiveria "
+            "(Bitefrost, Goomba, Outfit Door, Racer, Multi, Shop, "
+            "Hint Art, Boxer Shorts). Story = solo story_moon (4)."
         ),
     },
-    "snow_overworld": {
+    "overworld": {
         "goals": [
             "{{X}} Snow Overworld Moons",
             "{{X}} Snow Overworld Regional Coins",
@@ -1080,7 +1137,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Tag overworld. Regional: 13 purple coins (solo clusters de superficie)."
         ),
     },
-    "snow_ty_foo": {
+    "ty_foo": {
         "goal": "{{X}} Snow Ty-Foo Moons",
         "kingdom": "snow",
         "capture": "Ty-foo",
@@ -1097,7 +1154,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Fuera del pool Sub-Area Moons. Rango [2, 3]."
         ),
     },
-    "snow_bitefrost": {
+    "bitefrost": {
         "goal": "{{X}} Snow Bitefrost Moons",
         "kingdom": "snow",
         "moons": [
@@ -1117,10 +1174,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("snow", 28),  # Blowing and Sliding (Ty-foo puzzle)
         ],
         "apply_moon_tag": False,
+        "extra_tags": ["captures"],
         "note": (
             "n=2 → sin tag puzzle; paraguas captures (+ ty_foo en #28). "
             "Lake Puzzle Part (#20) + Snow Blowing and Sliding (#28). "
-            "Lake Puzzle Part (#20) + Snow Blowing and Sliding (#28). Rango [1,2]."
+            "extra_tags captures (grupo captures omite moons[])."
         ),
     },
     # --- moon ---
@@ -1140,7 +1198,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "(Banzai = acceso) → fuera. Rango [1, 2]."
         ),
     },
-    "moon_cave": {
+    "cave": {
         "goals": [
             "{{X}} Moon Cave Moons",
         ],
@@ -1159,33 +1217,29 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     },
     # --- cross ---
     "transport": {
+        # Union de accesos que quitan sub_area (ACCESS_DROPS_SUB_AREA).
+        "aggregate_moon_tags": ["mini_rocket", "beanstalk", "outfit_door"],
         "goals": [
             GOAL_BEANSTALK_MOONS,
             GOAL_MINI_ROCKET_MOONS,
-        ],
-        "moons": [
-            # Beanstalk / enredadera → nubes
-            ("wooded", 47),
-            ("wooded", 48),
-            ("snow", 31),
-            ("snow", 32),
-            ("bowser", 37),
-            ("bowser", 38),
-            # Mini Rocket (cohete; no Rocket Flower)
-            ("sand", 60),
-            ("sand", 61),
-            ("wooded", 41),
-            ("wooded", 42),
-            ("metro", 45),
-            ("metro", 46),
-            ("seaside", 43),
-            ("seaside", 44),
+            "{{X}} Outfit Door Moons",
+            "Sand Outfit Door Moon",
+            "Lake Outfit Door Moon",
+            "Wooded Outfit Door Moon",
+            "{{X}} Metro Outfit Door Moons",
+            "{{X}} Snow Outfit Door Moons",
+            "Seaside Outfit Door Moon",
+            "{{X}} Luncheon Outfit Door Moons",
+            "{{X}} Bowser's Outfit Door Moons",
         ],
         "apply_moon_tag": False,
         "note": (
-            "Paraguas acceso (grupo + goals; sin tag transport en lunas). "
-            "Solo Beanstalk + Mini Rocket (cohete). Rocket Flower = planta "
-            "(flora; fuera del paraguas). Manhole/Taxi = grupos propios. "
+            "Paraguas de acceso (ex sub_area_access): Mini Rocket + Beanstalk + "
+            "Outfit Door. Sin tag transport en lunas (valen las concretas). "
+            "Mini Rocket / Beanstalk: pueden estar en pool sub_area (goal) "
+            "pero sin tag sub_area (ACCESS_DROPS_SUB_AREA). "
+            "Outfit Door: fuera del pool Sub-Area (solo outfit). "
+            "Rocket Flower = planta (flora; fuera). Manhole/Taxi = grupos propios. "
             "Sin Flower Road / Pipe / Spark Pylon / Warp-Painting."
         ),
     },
@@ -1194,12 +1248,17 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "aggregate_moon_tag": "fauna",
         "moon_tag": "fauna",
         "apply_moon_tag": False,
+        "moons": [
+            ("sand", 33),  # Herding Sheep → Fauna Moons (+ Sand Sheep Moon)
+        ],
         "goals": [
             "{{X}} Fauna Moons",
         ],
         "note": (
             "Paraguas fauna (pool/goals; sin retaguear lunas). "
-            "birds, butterfly, dorrie, dog, jaxi, sheep. "
+            "birds, butterfly, dorrie, dog, jaxi + sand#33 Sheep (extra; "
+            "tag fauna vía FORCE_MOON_TAGS; Sand Sheep Moon aparte; "
+            "fuera de Dog). "
             "Sin Klepto (boss → story_moon/cappy). "
             "Tags: <3 solo fauna, ≥3 solo concreto. "
             "Goal {{X}} Fauna Moons. Nature = fauna+flora."
@@ -1247,16 +1306,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "Good Dog: sand#31 + seaside#29. Fauna <3 → solo fauna. "
             "Objetivo junta ambas (rango [1, 2]). "
-            "sand#33 Sheep → grupo sheep (fauna); no cuenta en Dog."
-        ),
-    },
-    "sheep": {
-        "goal": "Sand Sheep Moon",
-        "moons": [("sand", 33)],  # Herding Sheep in the Dunes
-        "moon_tag": "fauna",
-        "note": (
-            "n=1 → sin tag sheep; paraguas fauna. "
-            "Goal Sand Sheep Moon; también en pool fauna/nature."
+            "sand#33 Sheep → fauna (extra) + Sand Sheep Moon; fuera de Dog."
         ),
     },
     "slots": {
@@ -1286,7 +1336,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "extra_tags": ["npc"],  # Koopa NPC; fuera del pool {{X}} NPC Moons
         "note": (
             "n=2 → sin tag koopa_trace; tag npc (Koopa) sin entrar en "
-            "npc_moons / {{X}} NPC Moons. snow#22 también overworld. "
+            "npc / {{X}} NPC Moons. snow#22 también overworld. "
             "2 in-scope (sand/snow); también pool Minigame (trofeo mapa). "
             "moon#21 Walking on the Moon! = post-Bowser. "
             "wooded#47 Walking on Clouds = enredadera, no Trace."
@@ -1345,7 +1395,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Llave → Keyhole Pedestal. 8 in-scope: sand#29, lake#22 "
             "(zipper; wiki omite la llave), lost#17, metro#20, "
             "luncheon#19+#20, bowser#34, moon#10. "
-            "sand#29 también en pool Sand Moe-Eye Moons (sin tag moe_eye). "
+            "sand#29 también en pool Sand Moe-Eye Moons (tag moe_eye; sin captures). "
             "Sin lake#23 Super-Secret Zipper (sin llave). "
             "Sin TCs de carrera pura. Cages rotas → cages."
         ),
@@ -1393,7 +1443,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "blocks": {
-        "goal": "{{X}} Destructible Block Moons",
+        "goal": "{{X}} Destructible Block Moon[[s]]",
         "moons": [
             ("sand", 20),    # Inside a Block Is a Hard Place
             ("wooded", 5),   # Behind the Rock Wall
@@ -1454,6 +1504,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "moon_tag": "8bit",
         "preserve_moons": True,
+        # Chasm Lifts #16 = mitad 3D (sub_area); solo #17 es 8-bit.
+        "exclude_moons": [("cascade", 16)],
         "note": (
             "Secciones 8-bit (lunas) + pixels Mario/Peach/Luigi (no Power Moons). "
             "Cat Mario/Peach: 2/reino (sin Cloud/Ruined); listas pixel_cat_marios + "
@@ -1463,8 +1515,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Lunas via preserve_moons (tag 8bit). "
             "Regional: 29 purple DENTRO del mural 8-bit (sin 3D cerca del "
             "pipe Cascade ni techo Chasm Lifts). "
-            "Subáreas híbridas 2D/3D: goal Hybrid 2D Sub-Area; "
-            "8bit solo en la luna 2D de cada par (#17, #30, ruined#4)."
+            "Pares híbridos 2D/3D: goals Chasm Lifts / Roulette Tower "
+            "(sin goal ni tag Hybrid 2D). "
+            "Chasm Lifts: #16 3D (sub_area, sin 8bit) + #17 2D (8bit). "
+            "Roulette: #3 Climbed (sub_area; sin Mini Rocket) + #4 Stopped "
+            "(sub_area+8bit). Cold Room #30 = outfit_door."
         ),
     },
     "timer_challenge": {
@@ -1536,13 +1591,13 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Resto postgame/Moon Rock."
         ),
     },
-    "captaintoad": {
+    "captain_toad": {
         "line_category": "captaintoad",
         "name_patterns": [r"captain toad"],
         "moon_tag": "captain_toad",
         "note": (
             "11 Captain Toad in-scope (1/reino salvo Cloud/Ruined/Moon). "
-            "Total + fijas por reino."
+            "Total + fijas por reino. Id grupo = tag; bingo_lineas: captaintoad."
         ),
     },
     "hidden_timer": {
@@ -1558,27 +1613,6 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Siguen en timer_challenge (#29+#37)."
         ),
     },
-    "hybrid_2d": {
-        "goal": "{{X}} Hybrid 2D Sub-Area Moons",
-        "moons": [
-            # Chasm Lifts: #16 3D / #17 2D (8bit)
-            ("cascade", 16),
-            ("cascade", 17),
-            # Cold Room: #29 shards 3D / #30 2D (8bit)
-            ("snow", 29),
-            ("snow", 30),
-            # Roulette Tower: #3 3D / #4 2D oculta (8bit)
-            ("ruined", 3),
-            ("ruined", 4),
-        ],
-        "note": (
-            "Subáreas Level con una luna 2D y otra 3D (3 pares = 6 lunas). "
-            "Chasm Lifts (#16 3D / #17 2D), Cold Room (#29 3D / #30 2D), "
-            "Roulette Tower (#3 3D / #4 2D oculta). Folding Screen no cuenta "
-            "(ambas 2D). Tag 8bit solo en la luna 2D de cada par "
-            "(#17, #30, ruined#4)."
-        ),
-    },
     "cappy": {
         "goals": [
             "{{X}} Cappy Moons",
@@ -1586,7 +1620,8 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             # Pools enteros dentro de moons[] cappy (acción Cappy).
             "{{X}} Slots Moon[[s]]",
             "{{X}} Bloom Flower Moon[[s]]",
-            "{{X}} Lost Trapeetle Moon[[s]]",
+            "{{X}} Lost Trapeetle Moons",
+            "{{X}} Wedding Moons",
             "Lake Outfit Door Moon",
         ],
         "moon_tag": "cappy",
@@ -1596,7 +1631,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Lunas via preserve_moons / fill_captures_cappy. "
             "Goal {{X}} Cappy Moons rango [3, 6, 9, 12] (como Mario Moons; pool 18). "
             "También goals cuyo pool es subconjunto: Slots (3), Bloom Flower (2), "
-            "Lost Trapeetle (2), Lake Outfit Door (#21)."
+            "Lost Trapeetle (2), Wedding (2), Lake Outfit Door (#21)."
         ),
     },
     "mario": {
@@ -1630,11 +1665,13 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("bowser", 20),
         ],
         "note": (
-            "Mario a pie 'en medio de la nada': solo reino+mario (sin tag "
-            "tematica). Goal {{X}} Mario Moons rango [3, 6, 9, 12], progression "
+            "Mario a pie al aire libre: solo reino+mario (sin otra tag "
+            "tematica). Fuera: subáreas / puertas (scarecrow, hat door, "
+            "cohete) — p. ej. Spinning Athletics, Chasm Lifts, Roulette. "
+            "Goal {{X}} Mario Moons rango [3, 6, 9, 12], progression "
             "e/m/l/n (puente multireino; zonas vacias OK). "
-            "Tag-only fuera de la goal para evitar lunas con solo reino: "
-            "lost#3/#7, metro#25, luncheon#29, bowser#8/#16/#20. "
+            "Tag-only fuera de la goal: lost#3/#7, metro#25, luncheon#29, "
+            "bowser#8/#16/#20. "
             "Sand: pilares/alcobas de ruinas (#6, #7, #11, #13; "
             "Bullet Bill opcional en #7/#11/#13). lake#3 Crossing = tag "
             "cheep_cheep (transporte; no Mario). Bowser: solo #7 (azotea; "
@@ -1642,27 +1679,30 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "agua. Resto a pie sin captures/cappy: sin tag de accion."
         ),
     },
-    "storymoons": {
+    "story_moon": {
         "line_category": "storymoons",
         "moon_tag": "story_moon",
         "preserve_moons": True,
         "allow_empty_moons": True,
         "note": (
-            "Cat bingo_lineas storymoons (id alineado). "
-            "Lunas story (wiki, XOR multi) via preserve_moons / sync_lunas. "
+            "Cat bingo_lineas storymoons; id grupo = tag story_moon. "
+            "Lunas story (wiki, XOR multi) via preserve_moons / regenerate_all. "
             "Incluye Multi + Boss/Broodal + Levers/P/GP + Sphynx/Klepto/Life-Up "
             "(board Combined storymoons). multi_moon / boss / lever siguen aparte."
         ),
     },
-    "subarea": {
+    "sub_area": {
         "line_category": "subarea",
+        "omit_moons": True,
         # Guía bingo subáreas (pares Level + extras). Ruined Roulette Tower incluido.
         # Fuera (ya en otros goals): Sky Garden Tower, Power Plant, barreras Snow
         # (Icicle/Hollow/Wind-Chill/Snowy Mountain), Volcano Cave Luncheon.
         # Sin Ty-Foo (barrera/captura; no par Level).
-        # Levels sin goal tematica propia: Freezing Water Swim, Magma Swamp,
-        # Spinning Athletics, Folding Screen, Sinking Island → solo reino.
-        # Híbridas 2D/3D (Chasm Lifts, Cold Room, Roulette) → Hybrid 2D goal.
+        # Tag sub_area en el pool (salvo ACCESS_DROPS: mini_rocket/beanstalk).
+        # Outfit door Levels → fuera del pool (solo outfit_door).
+        # Híbridas 2D/3D (Chasm Lifts, Roulette): goals propias (sin Hybrid 2D).
+        # Chasm #16 3D (sub_area) / #17 2D (8bit). Roulette #3+#4 → sub_area
+        # (#4 también 8bit; #3 sin mini_rocket).
         "moons": [
             # Cap
             ("cap", 6),
@@ -1703,11 +1743,9 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("wooded", 46),
             ("wooded", 47),
             ("wooded", 48),
-            # Metro (sin Underground Power Plant #6+#35)
+            # Metro (sin Underground Power Plant #6+#35; sin Wire #39+#40 outfit)
             ("metro", 37),
             ("metro", 38),
-            ("metro", 39),
-            ("metro", 40),
             ("metro", 41),
             ("metro", 42),
             ("metro", 43),
@@ -1718,13 +1756,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("metro", 48),
             ("metro", 49),
             ("metro", 50),
-            # Snow guía (sin barreras historia #1+#18/#2+#12/#3+#9/#4+#7)
+            # Snow guía (sin barreras; sin Cold Room #29+#30 outfit)
             ("snow", 24),
             ("snow", 25),
             ("snow", 26),
             ("snow", 27),
-            ("snow", 29),
-            ("snow", 30),
             ("snow", 31),
             ("snow", 32),
             # Seaside
@@ -1734,9 +1770,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("seaside", 46),
             ("seaside", 47),
             ("seaside", 48),
-            # Luncheon (sin Volcano Cave #4+#29)
-            ("luncheon", 27),
-            ("luncheon", 28),
+            # Luncheon (sin Volcano Cave #4+#29; sin Simmering #27+#28 outfit)
             ("luncheon", 37),
             ("luncheon", 38),
             ("luncheon", 39),
@@ -1747,22 +1781,23 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("luncheon", 44),
             ("luncheon", 45),
             ("luncheon", 46),
-            # Bowser
-            ("bowser", 31),
-            ("bowser", 32),
+            # Bowser (sin Folding Screen #31+#32 outfit)
             ("bowser", 33),
             ("bowser", 34),
             ("bowser", 35),
             ("bowser", 36),
             ("bowser", 37),
             ("bowser", 38),
-            # Ruined (Roulette Tower; acceso Mini Rocket, no pool mini_rocket)
+            # Ruined (Roulette Tower; #3 sub_area, #4 sub_area+8bit)
             ("ruined", 3),
             ("ruined", 4),
         ],
         "moon_tag": "sub_area",
         "note": (
-            "Subáreas guía bingo (pares Level). 84 lunas = 42 pares. "
+            "Subáreas guía bingo (pares Level). 76 lunas = 38 pares. "
+            "moons[] omitido en JSON (n.moons=76); pool en tags/lunas-objetivos. "
+            "Tag sub_area en el pool salvo acceso concreto "
+            "(ACCESS_DROPS: mini_rocket/beanstalk/outfit_door). "
             "Goals: total + por reino (10) + tema/acceso de cada Level "
             "(Frog, Zipper, Moe-Eye, Jaxi, Ice, Pipe, Flower Road, Sherm, "
             "Manhole, Taxi, Mini Rocket, Beanstalk, Rocket Flower, Gushen, "
@@ -1772,6 +1807,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "(wooded/metro/luncheon). Sand: 4 pares (sin Ice Cave). "
             "Sin Sky Garden / Power Plant / barreras Snow / Volcano Cave / "
             "Ty-Foo (otros goals). Sin snow#28 Blowing (Ty-Foo; no es par Level). "
+            "Sin Wire / Cold Room / Simmering / Folding (outfit_door). "
             "Ice Cave Level (#49+#50): solo sand_ice (no Sub-Area ni "
             "sand_ruins). "
             "Pares Level → Files/sub_area_levels_data.py."
@@ -1871,7 +1907,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Bowser's Outfit Door Moons",
         ],
         "moons": [
-            # Puerta/outfit requerido. Si abre sub_area de 2 lunas, ambas cuentan.
+            # Puerta/outfit requerido. Pares de 2 → ambas en Outfit Door, no Sub-Area.
             ("sand", 53),       # Dancing with New Friends (unico Sand)
             ("lake", 21),       # I Feel Underdressed (bañador)
             ("wooded", 36),     # Exploring for Treasure (Explorer)
@@ -1888,12 +1924,13 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "moon_tag": "outfit_door",
         "note": (
             "Outfit requerido para puerta. Tag outfit_door SIN npc "
-            "(sin sub_area encima: basta el acceso). "
+            "(sin tag sub_area: basta el acceso; fuera del pool Sub-Area). "
             "Board/line Combined: subarea (ya no hay cat outfitdoor). "
             "Sand: solo #53 baile (#43 Employees Only = normal). "
             "No Private Room / I'm Not Cold (esas = npc). "
-            "Luncheon Spinning Athletics = scarecrow → mario (no outfit_door). "
-            "Goals por reino: 1 luna → rango [1×4]; sub_area de 2 → [2×4]. "
+            "Luncheon Spinning Athletics = scarecrow abre (Cappy fuera); "
+            "curso interior → no mario ni outfit_door. "
+            "Goals por reino: 1 luna → rango [1×4]; par de 2 → [2×4]. "
             "Global: 12 in-scope → rango [2,4,6,8]."
         ),
     },
@@ -1928,7 +1965,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Lurkers enterrados + lunas HD Rumble (Toadette Instructor). "
             "GP para revelar; tambien en pool ground_pound. "
             "Orden: sand#52 base → sand#23 wp → seaside. "
-            "sand#52 sigue en sand_tostarena (ubicacion pueblo)."
+            "sand#52 sigue en tostarena (ubicacion pueblo)."
         ),
     },
     "critter": {
@@ -1939,11 +1976,12 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("lost", 5),      # Over the Fuzzies, Above the Swamp
             ("lost", 6),      # Avoiding Fuzzies Inside the Wall
         ],
-        "apply_moon_tag": False,
+        "moon_tag": "critter",
         "note": (
             "Cajon lunas sueltas criatura/enemigo: Burrbo, Chincho, Fuzzy×2. "
+            "Tag concreta critter (n=4 ≥ umbral). "
             "Stairface → stairface_ogre (#1+#14+#16). Sin Sheep (Sand Sheep Moon). "
-            "Sin cascade#13 Running Wild (no Burrbo). Sin retaguear lunas. "
+            "Sin cascade#13 Running Wild (no Burrbo). "
             "n=4 → rango [1, 2, 3] (progression e/l)."
         ),
     },
@@ -1973,10 +2011,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Fuera: bowser#45 / moon#27 / Dark Side (postgame)."
         ),
     },
-    "npc_moons": {
+    "npc": {
         "goals": [
             "{{X}} NPC Moons",
             "Snow Boxer Shorts Moon",
+            "{{X}} Tourist Moon[[s]]",
         ],
         "moons": [
             # Hablar / pedir captura o traje (NO outfit_door, NO Goombette).
@@ -1991,46 +2030,63 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("metro", 3),  # Guitarist on Board!
             ("metro", 4),  # Bassist on Board!
             ("metro", 5),  # Trumpeter on Board!
-        ],
-        "moon_tag": "npc",
-        "note": (
-            "NPC pide captura/traje o hablar. "
-            "Goombette → goomba (no npc). "
-            "outfit_door usa outfit_door sin npc. "
-            "lake#16 tambien en Cheep Cheep Moons. "
-            "Snow Boxer Shorts Moon = Moon Get snow#20 I'm Not Cold!. "
-            "Musicos Metro#2–#5: tag npc vía tag_only_moons (fuera del pool). "
-            "Koopa Trace + turista: tag npc vía extra_tags "
-            "(fuera de este pool / {{X}} NPC Moons)."
-        ),
-    },
-    "tourist": {
-        "goal": "{{X}} Tourist Moon[[s]]",
-        "moons": [
+            # Cadena Desert Wanderer (ex-grupo tourist).
             ("metro", 52),     # A Tourist in the Metro Kingdom!
             ("cascade", 19),   # A Tourist in the Cascade Kingdom
             ("luncheon", 48),  # A Tourist in the Luncheon Kingdom!
             ("moon", 25),      # A Tourist in the Moon Kingdom!
         ],
-        "apply_moon_tag": False,
-        "extra_tags": ["npc"],
+        "moon_tag": "npc",
         "note": (
-            "Cadena Desert Wanderer in-scope (4). "
-            "Sin mushroom#40 ni sand#68 Round-the-World. "
-            "Solo tag npc (como otras lunas de hablar); el goal "
-            "{{X}} Tourist Moon[[s]] diferencia el subconjunto."
+            "NPC pide captura/traje o hablar. Id grupo = tag npc. "
+            "Goombette → goomba (no npc). "
+            "outfit_door usa outfit_door sin npc. "
+            "lake#16 tambien en Cheep Cheep Moons. "
+            "Snow Boxer Shorts Moon = Moon Get snow#20 I'm Not Cold!. "
+            "Musicos Metro#2–#5 + cadena Tourist (4): tag npc vía "
+            "tag_only_moons (fuera del pool {{X}} NPC Moons). "
+            "Goal {{X}} Tourist Moon[[s]] vive aqui (sin grupo tourist). "
+            "Koopa Trace: tag npc vía extra_tags."
         ),
     },
-    "shopping": {
-        "line_category": "shopping",
+    "shop": {
+        "goals": [
+            "{{X}} Shop Moons",
+            "Bowser's Shop Moon",
+            "Cap Shop Moon",
+            "Cascade Shop Moon",
+            "Lake Shop Moon",
+            "Lost Shop Moon",
+            "Luncheon Shop Moon",
+            "Metro Shop Moon",
+            "Sand Shop Moon",
+            "Seaside Shop Moon",
+            "Snow Shop Moon",
+            "Wooded Shop Moon",
+        ],
         "name_patterns": [r"\bshopping\b"],
         "moon_tag": "shop",
         "note": (
-            "Crazy Cap (ex-id shop): lunas Shopping (tag shop) + goals por reino + "
-            "compras (costume_sets/hats/souvenirs/stickers/boxer_shorts) + "
-            "lists.shops (Crazy Cap ×11). "
-            "Snow Boxer Shorts Moon = moon Get en npc/snow; aquí por la compra "
-            "del traje (lista boxer_shorts). Sin Moon postgame."
+            "Crazy Cap: id grupo = tag shop; bingo_lineas: shopping (17 goals; "
+            "aquí solo tienda+lunas). Lunas Shopping + goals por reino + "
+            "lists.shops (Crazy Cap ×11). Compras → merchandise."
+        ),
+    },
+    "merchandise": {
+        "goals": [
+            "{{X}} Souvenirs",
+            "{{X}} Stickers",
+            "Purchase {{X}} Costume Sets",
+            "Purchase {{X}} Hats",
+            "Snow Boxer Shorts Moon",
+        ],
+        "moons": [],
+        "allow_empty_moons": True,
+        "note": (
+            "Mercancía Crazy Cap: costume_sets/hats/souvenirs/stickers + "
+            "boxer_shorts (Sand). Goals en bingo_lineas shopping; sin moons[]. "
+            "Snow Boxer Shorts Moon = compra traje (lista boxer_shorts); "
+            "Moon Get snow#20 vive en npc."
         ),
     },
     # Objetivos sin moons[]: pool lista (kind=lista).
@@ -2043,22 +2099,41 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "Defeat Madame Broode in Moon Kingdom",
             "Defeat Ruined Dragon",
         ],
-        "moons": [],
-        "allow_empty_moons": True,
+        # Lunas con Moon Get de pelea (lists.bosses[].moon). Sin luna: Cap Topper,
+        # Lost Bowser, Klepto, Moon Broode rematch (solo lista[]).
+        "moons": [
+            ("cascade", 2),   # Madame Broode
+            ("sand", 3),      # Hariet
+            ("sand", 4),      # Knucklotec
+            ("lake", 1),      # Rango
+            ("wooded", 2),    # Spewart
+            ("wooded", 4),    # Torkdrift
+            ("metro", 1),     # Mecha Wiggler
+            ("snow", 4),      # Rango rematch
+            ("seaside", 5),   # Mollusque-Lanceur (multi)
+            ("luncheon", 1),  # Spewart rematch
+            ("luncheon", 5),  # Cookatiel
+            ("ruined", 1),    # Ruined Dragon
+            ("bowser", 3),    # Big Broodal Battle (Hariet+Topper rematch)
+            ("bowser", 4),    # RoboBrood
+        ],
+        "moon_tag": "boss",
         "note": (
-            "Peleas de jefe (Death Cutscene), no Moon Get. "
-            "lista[] = bosses (sin moons[]). "
+            "Peleas de jefe. lista[] = bosses (19). "
+            "moons[] = 14 con Moon Get (tag boss). "
+            "Sin luna: Cap Topper, Lost Bowser, Klepto, Moon Broode rematch. "
             "Especificos: Cloud Bowser + Moon Madame Broode + Ruined Dragon. "
             "Board/line Combined: storymoons (ya no hay cat boss)."
         ),
     },
-    "checkpoints": {
+    "checkpoint": {
         "line_category": "checkpoints",
         "moons": [],
         "allow_empty_moons": True,
         "goals_only": True,
         "note": (
-            "Cat checkpoints: solo goals (Total + All + por reino). "
+            "Cat bingo_lineas checkpoints; id grupo = checkpoint (singular). "
+            "Solo goals (Total + All + por reino). "
             "lista checkpoints vive en grupos kingdom (sin duplicar ×78)."
         ),
     },
@@ -2070,7 +2145,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "note": (
             "Cat regionalcoins: solo goals (Total + All Large/Small + "
             "por reino + subsets). lista regionals vive en kingdom / "
-            "8bit / subarea / etc. (sin duplicar ×287)."
+            "8bit / sub_area / etc. (sin duplicar ×287)."
         ),
     },
     "life_up": {
@@ -2135,6 +2210,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     # --- categorias bingo_lineas sin grupo previo (ids = lineas) ---
     "artistic": {
         "line_category": "artistic",
+        "apply_moon_tag": False,
         "moons": [
             # Warp-Painting / Secret Path (painting)
             ("cascade", 18),
@@ -2252,7 +2328,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     # --- cascade ---
-    "cascade_chain_chomp": {
+    "chain_chomp": {
         "goal": "{{X}} Cascade Chain Chomp Moons",
         "kingdom": "cascade",
         "capture": "Chain Chomp",
@@ -2261,16 +2337,18 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             ("cascade", 15),  # Very Nice Shot with the Chain Chomp!
         ],
         "tag_only_moons": [
+            ("cascade", 1),  # Our First Power Moon (tutorial; no Chain Chomp Cave)
             ("cascade", 3),  # Chomp Through the Rocks
             ("cascade", 7),  # Above a High Cliff
         ],
         "moon_tag": "chain_chomp",
         "note": (
             "Goal: solo subárea Chain Chomp Cave (#14+#15), rango [2]. "
-            "#3/#7 tag chain_chomp (tag_only; no cuentan en la goal)."
+            "#1/#3/#7 tag chain_chomp (tag_only; no cuentan en la goal). "
+            "Id canónico chain_chomp (ex cascade_chain_chomp)."
         ),
     },
-    "cascade_chasm_lifts": {
+    "chasm_lifts": {
         "goal": "{{X}} Cascade Chasm Lifts Moons",
         "kingdom": "cascade",
         "moons": [
@@ -2279,13 +2357,14 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "apply_moon_tag": False,
         "note": (
-            "n=2 → sin tag chasm_lifts; paraguas sub_area (+ hybrid_2d). "
+            "n=2 → sin tag chasm_lifts; paraguas sub_area. "
             "Par Chasm Lifts (puerta Cappy tras Stone Bridge). "
-            "#16 3D / #17 2D oculta. También Hybrid 2D Sub-Area + Cascade Sub-Area."
+            "#16 3D (sub_area, sin 8bit) / #17 2D (8bit). "
+            "También Cascade Sub-Area."
         ),
     },
     # --- ruined ---
-    "ruined_roulette": {
+    "roulette": {
         "goal": "{{X}} Roulette Tower Moons",
         "kingdom": "ruined",
         "moons": [
@@ -2294,9 +2373,10 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ],
         "apply_moon_tag": False,
         "note": (
-            "n=2 → sin tag roulette; paraguas sub_area (+ hybrid_2d). "
-            "Par Roulette Tower (Mini Rocket). Pool reino: #1 multi, #2 cofre, "
-            "#3+#4 torre (6 unidades con multi×3)."
+            "n=2 → sin tag roulette; paraguas sub_area. "
+            "Par Roulette Tower (#3 sub_area; #4 sub_area+8bit; sin Mini Rocket "
+            "Moons). Pool reino: #1 multi, #2 cofre, #3+#4 torre "
+            "(6 unidades con multi×3)."
         ),
     },
 
@@ -2572,6 +2652,35 @@ def _aggregate_goals_by_moon_tag(
     return out
 
 
+def _exclude_moon_keys(spec: dict[str, Any]) -> set[tuple[str, int]]:
+    """Claves (kingdom, moon) a sacar del pool (SPEC exclude_moons)."""
+    out: set[tuple[str, int]] = set()
+    for pair in spec.get("exclude_moons") or []:
+        if isinstance(pair, (list, tuple)) and len(pair) >= 2:
+            try:
+                out.add((str(pair[0]), int(pair[1])))
+            except (TypeError, ValueError):
+                continue
+        elif isinstance(pair, dict):
+            try:
+                out.add((str(pair["kingdom"]), int(pair["moon"])))
+            except (KeyError, TypeError, ValueError):
+                continue
+    return out
+
+
+def _filter_excluded_moons(
+    moons: list[dict], exclude: set[tuple[str, int]]
+) -> list[dict]:
+    if not exclude:
+        return moons
+    return [
+        m
+        for m in moons
+        if (str(m.get("kingdom")), int(m.get("moon"))) not in exclude
+    ]
+
+
 def _preserve_moons_from_group(by_id: dict[str, dict], gid: str) -> list[dict]:
     return [
         {
@@ -2633,6 +2742,8 @@ def _apply_spec_flags(group: dict[str, Any], spec: dict[str, Any]) -> None:
         group["apply_moon_tag"] = False
     if spec.get("goals_only"):
         group["goals_only"] = True
+    if spec.get("omit_moons"):
+        group["omit_moons"] = True
 
 
 def _build_spec_group(
@@ -2748,6 +2859,7 @@ def _sync_one_spec_group(
     moons = resolve_moons(spec, registry)
     if not moons and spec.get("preserve_moons"):
         moons = _preserve_moons_from_group(by_id, gid)
+    moons = _filter_excluded_moons(moons, _exclude_moon_keys(spec))
     goals_only = bool(spec.get("goals_only"))
     allow_empty = bool(spec.get("allow_empty_moons")) or goals_only
     related_goals = [g for g in goals if g in combined]
@@ -2821,6 +2933,8 @@ def _sync_aggregate_group(
         group["apply_moon_tag"] = False
     if spec.get("goals_only"):
         group["goals_only"] = True
+    if spec.get("omit_moons"):
+        group["omit_moons"] = True
     by_id[gid] = group
     counts[gid] = len(moons)
 
@@ -2832,6 +2946,14 @@ def sync_objective_moon_groups() -> dict[str, int]:
     bingo = load_catalog(BINGO_GROUPS_PATH) if BINGO_GROUPS_PATH.exists() else {"groups": []}
     by_id = {g["id"]: g for g in bingo.get("groups", [])}
     counts: dict[str, int] = {}
+
+    for old_id, new_id in GROUP_ID_RENAMES.items():
+        if old_id not in by_id:
+            continue
+        legacy = by_id.pop(old_id)
+        legacy["id"] = new_id
+        if new_id not in by_id:
+            by_id[new_id] = legacy
 
     for gid in RETIRED_OBJECTIVE_GROUP_IDS:
         by_id.pop(gid, None)
@@ -2864,12 +2986,9 @@ def sync_objective_moon_groups() -> dict[str, int]:
             counts=counts,
         )
 
-    bingo["groups"] = [
-        normalize_bingo_group(g, combined)
-        for g in assign_bingo_group_orden(
-            [normalize_bingo_group(by_id[gid], combined) for gid in sorted(by_id)]
-        )
-    ]
+    bingo["groups"] = assign_bingo_group_orden(
+        [normalize_bingo_group(by_id[gid], combined) for gid in sorted(by_id)]
+    )
     write_catalog_json(BINGO_GROUPS_PATH, finalize_bingo_groups_doc(bingo))
     clear_group_context_tags_cache()
     return counts
