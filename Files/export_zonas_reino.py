@@ -842,7 +842,9 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
                 _detalle_item(kingdom, raw, zone=str(zone))
             )
 
-    zone_reino_counts: Counter[str] = Counter(z for z, _ in buckets)
+    zone_reino_counts: Counter[str] = Counter(
+        zone for (zone, _kingdom), _items in buckets.items()
+    )
 
     entries: list[tuple[str, str, str, bool]] = []
     for (zone, kingdom), _items in buckets.items():
