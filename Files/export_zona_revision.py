@@ -369,9 +369,9 @@ def build_zona_revision() -> dict:
             if not isinstance(it, dict):
                 continue
             flat_rows.append((kdom, it))
-            z = it.get("zone")
-            if z:
-                zone_kingdoms[str(z)].add(kdom)
+            z_raw = it.get("zone")
+            if z_raw:
+                zone_kingdoms[str(z_raw)].add(kdom)
 
     status_by_id = _load_status_by_id()
     items: list[dict] = []

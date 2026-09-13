@@ -535,10 +535,10 @@ def build_items_goals() -> dict:
             cat_k, cat_m = lunas_catalog_ref(
                 str(moon.get("kingdom") or ""), int(moon["moon"])
             )
-            idx = moon_index.get(_moon_key(cat_k, cat_m))
-            if idx is None:
+            moon_idx = moon_index.get(_moon_key(cat_k, cat_m))
+            if moon_idx is None:
                 continue
-            _add_moon(idx, goal_row, cat_k=cat_k, cat_m=cat_m)
+            _add_moon(moon_idx, goal_row, cat_k=cat_k, cat_m=cat_m)
 
         _attach_lista_pool(goal_row)
 
@@ -568,17 +568,17 @@ def build_items_goals() -> dict:
     if total_story:
         orden_ts = int(total_story.get("orden") or 0)
         for cat_k, cat_m in story_keys:
-            idx = moon_index.get(_moon_key(cat_k, cat_m))
-            if idx is None:
+            moon_idx = moon_index.get(_moon_key(cat_k, cat_m))
+            if moon_idx is None:
                 continue
             if any(
-                _is_kingdom_story_goal(g) for _, g in goals_by_idx.get(idx) or []
+                _is_kingdom_story_goal(g) for _, g in goals_by_idx.get(moon_idx) or []
             ):
                 continue
-            if orden_ts in seen_goal[idx]:
+            if orden_ts in seen_goal[moon_idx]:
                 continue
-            seen_goal[idx].add(orden_ts)
-            goals_by_idx[idx].append((orden_ts, "{{X}} Total Story Moons"))
+            seen_goal[moon_idx].add(orden_ts)
+            goals_by_idx[moon_idx].append((orden_ts, "{{X}} Total Story Moons"))
 
     n_with = 0
     by_n: dict[int, int] = defaultdict(int)

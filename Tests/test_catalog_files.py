@@ -475,12 +475,13 @@ class CatalogFilesExistTests(unittest.TestCase):
         for g in groups_data:
             gid = g["id"]
             parsed = parse_usos(by_word[gid]["usos"])
-            n = g.get("n") or {}
+            n_raw = g.get("n")
+            n_counts = n_raw if isinstance(n_raw, dict) else {}
             with self.subTest(grupo_items=gid):
-                if int(n.get("objectives") or 0) > 0:
-                    self.assertEqual(parsed.get("goal"), n["objectives"])
-                if int(n.get("moons") or 0) > 0:
-                    self.assertEqual(parsed.get("luna"), n["moons"])
+                if int(n_counts.get("objectives") or 0) > 0:
+                    self.assertEqual(parsed.get("goal"), n_counts["objectives"])
+                if int(n_counts.get("moons") or 0) > 0:
+                    self.assertEqual(parsed.get("luna"), n_counts["moons"])
                 if "lista" in parsed:
                     want_lista_n = _resolve_lista_n(
                         gid,
@@ -1346,6 +1347,9 @@ class BingoGroupsSyncTests(unittest.TestCase):
 
 
 class CapturasLunasTests(unittest.TestCase):
+    data: ClassVar[dict[str, Any]]
+    by_name: ClassVar[dict[str, Any]]
+
     @classmethod
     def setUpClass(cls) -> None:
         data = json.loads((CATALOG_DIR / "capturas_lunas.json").read_text(encoding="utf-8"))
@@ -1885,6 +1889,9 @@ class ItemsGoalsTests(unittest.TestCase):
 
 
 class GoalReferenciaHubTests(unittest.TestCase):
+    ref: ClassVar[dict[str, Any]]
+    by_goal: ClassVar[dict[str, Any]]
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.ref = json.loads(

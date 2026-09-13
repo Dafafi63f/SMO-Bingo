@@ -249,12 +249,12 @@ def collect_goal_lists_icon_mismatches(
             continue
         id_list = int(entry["id_list"])
         kingdom = str(entry.get("kingdom") or "")
-        actual = entry.get("icon")
+        actual_icon = str(entry.get("icon") or "")
         if id_list not in SOUVENIR_GOAL_LIST_ICON_ID_LISTS:
-            if actual:
+            if actual_icon:
                 out.append(
                     f"souvenirs id_list={id_list} ({entry.get('name')}): "
-                    f"solo un icon por reino en goal_lists; quitar {actual!r}"
+                    f"solo un icon por reino en goal_lists; quitar {actual_icon!r}"
                 )
             continue
         expected_id = SOUVENIR_GOAL_LIST_ICON_BY_KINGDOM.get(kingdom)
@@ -265,10 +265,10 @@ def collect_goal_lists_icon_mismatches(
             )
             continue
         expected = souvenir_kingdom_icon(kingdom)
-        if str(actual or "") != expected:
+        if actual_icon != expected:
             out.append(
                 f"souvenirs id_list={id_list} ({entry.get('name')}): "
-                f"icon={actual!r}, esperado {expected!r}"
+                f"icon={actual_icon!r}, esperado {expected!r}"
             )
 
     return out

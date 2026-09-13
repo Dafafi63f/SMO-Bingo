@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import unittest
+from typing import Any
 
 from apply_progression_accessibility import (
     FORK_LATE_KINGDOMS,
@@ -135,7 +136,7 @@ class MonoKingdomProgressionTests(unittest.TestCase):
     def test_mid_story_fixed_uses_second(self) -> None:
         moons = [{"kingdom": "metro", "name": "Celebrating in the Streets!", "disponibilidad": "mid_story"}]
         # Dump del reino + luna concreta: debe usar Festival mid_story → n.
-        dump = [
+        dump: list[dict[str, Any]] = [
             {"kingdom": "metro", "moon": 1, "name": "Pest", "disponibilidad": "base"},
             moons[0],
         ]

@@ -86,9 +86,15 @@ def _build_bingo_individual_counts() -> dict[str, int]:
     return out
 
 
+def _group_n(group: dict) -> dict:
+    """Cabecera ``n`` del grupo; vacío si falta o no es dict."""
+    n_raw = group.get("n")
+    return n_raw if isinstance(n_raw, dict) else {}
+
+
 def _grupo_has_lista_pool(group: dict) -> bool:
     """Pool lista curado (goal_lists), no ítems sueltos de goals."""
-    n = group.get("n") if isinstance(group.get("n"), dict) else {}
+    n = _group_n(group)
     if int(n.get("lista") or 0) > 0:
         return True
     return bool(group_lista(group))
@@ -103,7 +109,7 @@ def _build_grupo_item_counts() -> dict[str, dict[str, int]]:
         word = _canon(group.get("id"), "grupo") or _slug(group.get("id"))
         if not word:
             continue
-        n = group.get("n") if isinstance(group.get("n"), dict) else {}
+        n = _group_n(group)
         n_goal = int(n.get("objectives") or 0)
         if n_goal <= 0:
             n_goal = len(group.get("objectives") or [])
@@ -348,7 +354,7 @@ def _build_captura_grupo_moon_count() -> int:
     for group in load_bingo_groups():
         if not isinstance(group, dict) or group.get("id") != CAPTURA_GRUPO_ID:
             continue
-        n = group.get("n") if isinstance(group.get("n"), dict) else {}
+        n = _group_n(group)
         n_m = int(n.get("moons") or 0)
         if n_m > 0:
             return n_m
@@ -867,7 +873,7 @@ def _expected_palabra_fija_by_uso() -> dict[str, int]:
         word = _canon(group.get("id"), "grupo") or _slug(group.get("id"))
         if not word:
             continue
-        n = group.get("n") if isinstance(group.get("n"), dict) else {}
+        n = _group_n(group)
         n_lista = int(n.get("lista") or 0)
         if n_lista <= 0 and _grupo_has_lista_pool(group):
             n_lista = len(group.get("lista") or [])
