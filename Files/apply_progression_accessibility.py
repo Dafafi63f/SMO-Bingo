@@ -547,14 +547,14 @@ def progression_from_kingdom_availability(
     )
     if not zones:
         return ""
-    if len(zones) == 1:
-        return zones[0]
+    first = zones[0]
+    rest = zones[1:]
     av = (availability or "base").strip().lower()
     if av == "revisit":
         av = "base"
-    if av in {"mid_story", "world_peace"} and len(zones) >= 2:
-        return zones[1]
-    return zones[0]
+    if av in {"mid_story", "world_peace"} and rest:
+        return rest[0]
+    return first
 
 
 def progression_letter_for_threshold(
