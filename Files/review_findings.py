@@ -21,7 +21,6 @@ import json
 import sys
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, field
-from pathlib import Path
 from typing import Callable
 
 from catalog_lib import CATALOG_DIR, JSON_PATH, load_catalog, write_catalog_json
@@ -569,10 +568,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--write",
-        nargs="?",
-        const=str(DEFAULT_WRITE),
-        default="",
-        help=f"Escribe JSON (default path si flag solo: {DEFAULT_WRITE})",
+        action="store_true",
+        help=f"Escribe JSON en {DEFAULT_WRITE} (ruta fija bajo Catalog/).",
     )
     parser.add_argument(
         "--json",
@@ -596,9 +593,11 @@ def main(argv: list[str] | None = None) -> int:
     payload = findings_payload(findings, names)
 
     if args.write:
-        path = Path(args.write)
-        write_catalog_json(path, payload)
-        print(f"Wrote {path} ({payload['n_findings']} findings)", flush=True)
+        write_catalog_json(DEFAULT_WRITE, payload)
+        print(
+            f"Wrote {DEFAULT_WRITE} ({payload['n_findings']} findings)",
+            flush=True,
+        )
 
     if args.json:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
