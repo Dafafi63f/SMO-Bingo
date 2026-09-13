@@ -331,10 +331,11 @@
       "id": 14,
       "tag": "captures",
       "rol": "context",
-      "lunas": 7,
-      "pct_lunas": 1.6,
-      "n_goals": 4,
+      "lunas": 9,
+      "pct_lunas": 2.1,
+      "n_goals": 5,
       "goals": [
+        "{{X}} Fire Bro Moon[[s]]",
         "{{X}} Luncheon Volbonan Moons",
         "{{X}} Metro RC Car Moons",
         "{{X}} Puzzle Moon[[s]]",
@@ -342,9 +343,11 @@
       ],
       "moons": [
         {"kingdom": "lake", "moon": 20, "name": "A Successful Repair Job", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "wooded", "moon": 19, "name": "Fire in the Cave", "disponibilidad": "base", "goal": true},
         {"kingdom": "metro", "moon": 31, "name": "Remotely Captured Car", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "metro", "moon": 32, "name": "RC Car Pro!", "disponibilidad": "mid_story", "goal": true},
         {"kingdom": "snow", "moon": 28, "name": "Blowing and Sliding", "disponibilidad": "world_peace", "goal": true},
+        {"kingdom": "luncheon", "moon": 31, "name": "Light the Two Flames", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 41, "name": "Fork Flickin' to the Summit", "disponibilidad": "base", "goal": true},
         {"kingdom": "luncheon", "moon": 42, "name": "Fork Flickin' Detour", "disponibilidad": "base", "goal": true},
         {"kingdom": "bowser", "moon": 10, "name": "Above the Poison Swamp", "disponibilidad": "world_peace", "goal": false}

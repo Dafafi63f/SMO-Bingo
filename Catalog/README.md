@@ -22,7 +22,7 @@ Si se pide un cambio en `goals_referencia`:
 
 Si se pide un cambio de **ubicación (`zone`)**: editar `zonas_inventario.json` (no `goal_lists`).
 
-Contadores útiles: `goal_lists` / `zonas_inventario` → `n_items`; `zonas_inventario` → `n_moons` + `n_total`; `bingo_lineas` → `n_goals_1_cat` / `n_goals_2_cats`; `bingo_groups` → `n_groups_both` / `n_groups_moons` / `n_groups_lista` (`kind`).
+Contadores útiles: `goal_lists.n_items`; `zonas_inventario.n_items` (= lists + binoculars), `n_moons`, `n_total` (`n_without_zone` debe ser 0); `bingo_lineas` → `n_goals_1_cat` / `n_goals_2_cats`; `bingo_groups` → `n_groups_todo` / `n_groups_goals_moons` / `n_groups_goals_lista` / … (`kind`).
 
 ## Configuración
 
@@ -36,8 +36,7 @@ Contadores útiles: `goal_lists` / `zonas_inventario` → `n_items`; `zonas_inve
 
 | Archivo | Generado por |
 |---|---|
-| `zonas_inventario.json` | **Fuente de `zone`** (ubicación POI **y lunas**). Vista por zone (alfa). Regenerar preserva zone por (kingdom, source, name). |
-| `zonas_revision.json` | Cola de revisión: `groups[]` kind=kingdom\|zone\|source; `status` por ítem; grupos 100% ok no se muestran. |
+| `zonas_inventario.json` | **Fuente de `zone`** (lists + binoculars + lunas). Vista por zone (alfa). Regenerar preserva zone por (kingdom, source, name). |
 | `items_goals.json` | Ítem → goals Combined; recorta paraguas si hay concreta (Nature/Sand/…). |
 | `goals_referencia.json` | `Files/export_goals_referencia.py` (hub bingo Combined) |
 | `goals_individuales.json` | `Files/export_goals_individuales.py` |
@@ -47,6 +46,15 @@ Contadores útiles: `goal_lists` / `zonas_inventario` → `n_items`; `zonas_inve
 | `palabras_inventario.json` | `Files/export_palabras_inventario.py` (slugs × usos: bingo/grupo/tag/…) |
 | `bingo_lineas.json`, `goal_icons.json`, `goal_tooltips.json` | `Files/export_combined_meta.py` |
 | `mariowiki_capture_guides.json` | `Files/mariowiki_guides.py --refresh` (caché wiki) |
+
+## Colas locales (gitignored)
+
+Temporales de revisión; no van al repo ni a `regenerate_all`. Borrar al terminar.
+
+| Archivo | Generado por |
+|---|---|
+| `zonas_revision.json` | `Files/export_zona_revision.py` |
+| `review_findings.json` | `Files/review_findings.py --write` |
 
 ## Pipeline
 
@@ -63,19 +71,19 @@ Comando único: `python Files/regenerate_all.py`
 
 Auditoría opcional: `python Files/audit_catalog_consistency.py`
 
-`project.in_scope_moon_count` (434) = `lunas-objetivos` / lunas en `zonas_inventario` (mushroom#39 entra como **luncheon#50** sintético, última luna de luncheon antes de ruined). Totales: `zonas_inventario.n_total` = 434+n_items.
+`project.in_scope_moon_count` (434) = `lunas-objetivos` / lunas en `zonas_inventario` (mushroom#39 entra como **luncheon#50** sintético, última luna de luncheon antes de ruined). Totales: `zonas_inventario.n_total` = 434 + `zonas_inventario.n_items` (lists + binoculars).
 
 ## Ubicación (`zone`)
 
-Solo en **`zonas_inventario.json`** (ítems de lists + lunas). Sin `zone` en `goal_lists`, `goals_referencia.lista[]`, `bingo_groups.lista[]` ni capturas.
+Solo en **`zonas_inventario.json`** (ítems de lists + binoculars + lunas). Sin `zone` en `goal_lists`, `goals_referencia.lista[]`, `bingo_groups.lista[]` ni en `capturas_lunas` (salvo identidad de fila).
 
-Para revisar asignación zona↔contenido: **`zonas_inventario.json`** (zones[] en alfa; una fila = `(zone, kingdom)`).
+Para revisar asignación zona↔contenido: **`zonas_inventario.json`** (zones[] en alfa; una fila = `(zone, kingdom)`). Cola local: `zonas_revision.json` (gitignored).
 
 | Campo | Usar en | Ejemplo |
 |---|---|---|
 | **`zone`** (+ `sub_area` / `eight_bit` opcionales en curación de regionals) | `zonas_inventario` (zone); flags de filtro en `goal_lists.regionals` | `zone: "sphynx"`, `zone: "tostarena"` |
 
-`lists.shops` = Crazy Cap por reino; merchandise sin zone en lists (mirar `zonas_inventario`). Capturas y ubicaciones Binoculars: solo `capturas_lunas.json` (no en `goal_lists`).
+`lists.shops` = Crazy Cap por reino; merchandise sin zone en lists (mirar `zonas_inventario`). Identidad Binoculars: `capturas_lunas.lista[]` (no `goal_lists`); **zone** de binoculars: `zonas_inventario`.
 
 Lunas: `zone` solo al curar/ver en `zonas_inventario` (no en `lunas-objetivos`).
 
@@ -111,4 +119,5 @@ Regionals ya están alineados a letras del mapa GN (`total` = marcador). Merges
 históricos: Lost 18→16, Seaside 33→32, Sand 31→26, Metro 36→31. Los scripts
 one-shot de apply/reorder se eliminaron; el estado vive en `goal_lists.json`.
 
-Cambios y pendientes del repo: [`README.md`](../README.md#cambios-recientes-2026-09).
+Cambios, pendientes y **revisión híbrida** (detectores + curación):
+[`README.md`](../README.md#revisar-híbrido-auto--manual).

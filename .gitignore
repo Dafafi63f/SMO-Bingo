@@ -1,7 +1,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.Python
 .venv/
 venv/
 .env
@@ -14,14 +13,10 @@ Thumbs.db
 .vscode/
 .mypy_cache/
 .pytest_cache/
-pytest-cache-files-*/
-.regenerate_state.json
 Files/.regenerate_state.json
+Catalog/review_findings.json
+Catalog/zonas_revision.json
 .coverage
 coverage.xml
 htmlcov/
 .scannerwork/
-*.swp
-*~
-_lockout_probe/
-Files/_lockout_chunks/

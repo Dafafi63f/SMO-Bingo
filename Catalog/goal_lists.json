@@ -1,5 +1,5 @@
 {
-  "_note": "Listas curadas a mano. lists.regionals = clusters de monedas; lists.shops = Crazy Cap por reino; merchandise en costume_sets/hats/souvenirs/stickers/boxer_shorts. Capturas: capturas_lunas.json / CAPTURE_LIST (no lists.captures). Binoculars: capturas_lunas.json lista[] (no lists.binoculars). Pares Level Sub-Area: Files/sub_area_levels_data.py (no lists.*). Ubicación (zone): solo Catalog/zonas_inventario.json (no aquí). id = global del file (1..n_items, lists alfa + orden del file); id_list = id dentro de la sublista. n_items → Catalog/zonas_inventario.json n_items.",
+  "_note": "Listas curadas a mano. lists.regionals = clusters de monedas; lists.shops = Crazy Cap por reino; merchandise en costume_sets/hats/souvenirs/stickers/boxer_shorts. Capturas: capturas_lunas.json / CAPTURE_LIST (no lists.captures). Binoculars: capturas_lunas.json lista[] (no lists.binoculars). Pares Level Sub-Area: Files/sub_area_levels_data.py (no lists.*). Ubicación (zone): solo Catalog/zonas_inventario.json (no aquí). id = global del file (1..n_items, lists alfa + orden del file); id_list = id dentro de la sublista. n_items (este file) + binoculars (capturas_lunas) = zonas_inventario.n_items (= bingo_groups.n_lista_total).",
   "n_lists": 20,
   "n_items": 568,
   "lists": {

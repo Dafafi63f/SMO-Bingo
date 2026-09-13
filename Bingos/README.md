@@ -16,7 +16,8 @@ Tras cambiar Combined: `python Files/regenerate_all.py`
 
 Descarga estable (Release GitHub): [Super-Mario-Odyssey-Combined.json](https://github.com/Dafafi63f/SMO-Bingo/releases/latest/download/Super-Mario-Odyssey-Combined.json)
 
-Datos derivados (grupos, líneas, icons, referencia): `Catalog/`.
+Datos derivados (grupos, líneas, icons, referencia, zonas): `Catalog/`.
+Colas de revisión (`zonas_revision`, `review_findings`) son **locales** (gitignored).
 
 ## Restricciones al crear una goal (lockout.live)
 

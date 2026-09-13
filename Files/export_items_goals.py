@@ -23,6 +23,7 @@ from catalog_lib import (
 )
 from export_zonas_inventario import BINOCULARS_SOURCE, MOON_SOURCE, build_zonas_inventario
 from goal_list_lib import (
+    SHOP_ITEM_LISTS,
     list_item_match_key,
     load_zonas_zone_index,
     regional_lista_for_goal,
@@ -32,6 +33,16 @@ from goal_list_lib import (
 OUT_PATH = CATALOG_DIR / "items_goals.json"
 REF_PATH = CATALOG_DIR / "goals_referencia.json"
 GOAL_TOTAL_STORY_MOONS = "{{X}} Total Story Moons"
+GOAL_SHOP_MOONS_AGG = "{{X}} Shop Moons"
+GOAL_SNOW_BOXER_SHORTS = "Snow Boxer Shorts Moon"
+
+# En Crazy Cap: no heredar agregados genéricos / exclusivos de un ítem suelto.
+_SHOP_INHERIT_SKIP_GOALS = frozenset(
+    {
+        GOAL_SHOP_MOONS_AGG,
+        GOAL_SNOW_BOXER_SHORTS,
+    }
+)
 
 # Agregados multi-reino / capturas sueltas: no van en items_goals (evitan inflación).
 SKIP_GOALS = frozenset(
@@ -284,7 +295,7 @@ def _lista_keys(
 
 
 def _item_id(kingdom: str, source: str, id_kingdom: object) -> str:
-    """Mismo esquema que zonas_revision: reino/source/nº."""
+    """Id reino/source/nº (mismo esquema que la cola local zonas_revision)."""
     return f"{kingdom}/{source}/{id_kingdom}"
 
 
@@ -726,17 +737,72 @@ def _ref_by_goal(ref: dict) -> dict[str, dict]:
     }
 
 
+def _shop_moon_goal_by_kingdom(
+    ref_by_goal: dict[str, dict],
+) -> dict[str, dict]:
+    """Shop Moon por reino (1 luna shopping) → forzar enlace a Crazy Cap."""
+    by_kingdom: dict[str, dict] = {}
+    for goal, row in ref_by_goal.items():
+        if goal == "{{X}} Shop Moons" or "Shop Moon" not in goal:
+            continue
+        moons = [
+            m
+            for m in (row.get("moons") or [])
+            if isinstance(m, dict) and m.get("kingdom")
+        ]
+        if len(moons) != 1:
+            continue
+        kingdom = str(moons[0]["kingdom"])
+        by_kingdom.setdefault(kingdom, row)
+    return by_kingdom
+
+
+def _goal_add_pair(
+    state: _ItemsGoalsState, idx: int, orden: int, goal: str
+) -> None:
+    if not goal or goal in SKIP_GOALS:
+        return
+    if orden in state.seen_goal[idx]:
+        return
+    state.seen_goal[idx].add(orden)
+    state.goals_by_idx[idx].append((orden, goal))
+
+
+def _apply_shop_inherits_sold_item_goals(state: _ItemsGoalsState) -> None:
+    """Crazy Cap = unión de goals de mercancía del reino (+ Shop Moon del reino)."""
+    for (kingdom, source), shop_idxs in state.by_kingdom_source.items():
+        if source != "shops" or not shop_idxs:
+            continue
+        by_orden: dict[int, str] = {}
+        for merch_src in SHOP_ITEM_LISTS:
+            if merch_src == "boxer_shorts":
+                continue
+            for idx in state.by_kingdom_source.get((kingdom, merch_src), []):
+                for orden, goal in state.goals_by_idx.get(idx) or []:
+                    if goal in _SHOP_INHERIT_SKIP_GOALS:
+                        continue
+                    by_orden[int(orden)] = goal
+        if not by_orden:
+            continue
+        for shop_idx in shop_idxs:
+            for orden, goal in by_orden.items():
+                _goal_add_pair(state, shop_idx, orden, goal)
+
+
 def _apply_forced_poi_goals(
     state: _ItemsGoalsState, ref_by_goal: dict[str, dict]
 ) -> None:
-    boxer = ref_by_goal.get("Snow Boxer Shorts Moon")
+    boxer = ref_by_goal.get(GOAL_SNOW_BOXER_SHORTS)
     if boxer:
         _goal_add_ks_forced(state, boxer, kingdom="sand", source="boxer_shorts")
     sphynx = ref_by_goal.get("{{X}} Sphynx Moons")
-    if not sphynx:
-        return
-    for kingdom in ("sand", "seaside"):
-        _goal_add_ks_forced(state, sphynx, kingdom=kingdom, source="sphynxes")
+    if sphynx:
+        for kingdom in ("sand", "seaside"):
+            _goal_add_ks_forced(state, sphynx, kingdom=kingdom, source="sphynxes")
+    # Solo Shop Moon del reino (no {{X}} Shop Moons).
+    for kingdom, shop_row in _shop_moon_goal_by_kingdom(ref_by_goal).items():
+        _goal_add_ks_forced(state, shop_row, kingdom=kingdom, source="shops")
+    _apply_shop_inherits_sold_item_goals(state)
 
 
 def _attach_total_story_moons(
@@ -821,6 +887,9 @@ def build_items_goals() -> dict:
             "outfit_door: sin goals Sub-Area (solo outfit + resto). "
             "n_items_by_n_goals[k] = ítems con exactamente k goals "
             "(Σ = n_items). Moon remap mushroom#39 → luncheon#50. "
+            "Crazy Cap (shops): Shop Moon del reino + unión de goals de "
+            "merchandise (costume_sets/hats/souvenirs/stickers); sin "
+            "{{X}} Shop Moons ni Snow Boxer Shorts Moon. "
             "Detalle → goals_referencia. No editar."
         ),
         "_note": (

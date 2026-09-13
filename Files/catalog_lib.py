@@ -1205,9 +1205,9 @@ SKIP_CATALOGS = {
     "goal_lists.json",  # listas contables (sub_area_levels → sub_area_levels_data.py)
     "goal_tooltips.json",  # tooltips unicos Combined
     "zonas_inventario.json",  # inventario por zone (+ fuente zone)
-    "zonas_revision.json",  # cola de revisión de zones
-    "capturas_lunas.json",  # hub captura↔lunas/goals
-    "tags_inventario.json",  # inventario de tags
+    "zonas_revision.json",  # cola local de revisión (gitignored)
+    "review_findings.json",  # hallazgos auto locales (gitignored)
+    "capturas_lunas.json",  # hub captura↔lunas/goals    "tags_inventario.json",  # inventario de tags
     "palabras_inventario.json",  # slugs × usos (bingo/grupo/tag/…)
     "items_goals.json",  # ítem → goals Combined (id reino/source/nº)
     "lunas-objetivos.json",  # export tags por luna
@@ -3616,6 +3616,9 @@ FORCE_MOON_TAGS: dict[tuple[str, int], frozenset[str]] = {
     # Puzzle Part / Lakitu transporte: sin captura concreta de lista.
     ("lake", 20): frozenset({"captures"}),
     ("bowser", 10): frozenset({"captures"}),
+    # Fire Bro (n=2 → sin tag fire_bro; sí captures). wooded#19 también cappy.
+    ("wooded", 19): frozenset({"captures"}),
+    ("luncheon", 31): frozenset({"captures"}),
     # Sheep: fauna sin familia (fuera de Dog); pool Fauna vía fauna.moons.
     ("sand", 33): frozenset({"fauna"}),
     # Uproot Sky Garden (fuera de Seaside Uproot Moons).
@@ -3712,7 +3715,11 @@ def apply_bingo_group_tags(merged: dict[tuple[str, int], dict]) -> None:
     rules = load_kingdom_availability()
 
     for group in load_bingo_groups():
-        tags_to_add = set(group_moon_tags(group))
+        tags_to_add = {
+            canonicalize_tag(str(t))
+            for t in group_moon_tags(group)
+            if t
+        }
         tags_to_add |= {
             canonicalize_tag(str(t))
             for t in (group.get("extra_tags") or [])
@@ -3727,7 +3734,7 @@ def apply_bingo_group_tags(merged: dict[tuple[str, int], dict]) -> None:
         _apply_tags_to_merged_moon(
             merged,
             {"kingdom": kingdom, "moon": moon},
-            set(tags),
+            {canonicalize_tag(str(t)) for t in tags},
             wiki,
             rules,
         )

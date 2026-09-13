@@ -450,15 +450,17 @@ def _resolve_format_counts(
     grupo_n: dict[str, int] | None,
     lista_n: int | None,
 ) -> tuple[int, int, int]:
+    """n_luna = tag en lunas-objetivos (nunca moons[] del bingo grupo)."""
     g = grupo_n or {}
+    n_luna = int(n_ind.get("luna") or luna_for_tag or 0)
     if g:
         return (
-            int(g.get("luna") or 0),
-            int(g.get("goal") or 0),
+            n_luna,
+            int(g.get("goal") or n_ind.get("goal") or 0),
             int(lista_n if lista_n is not None else g.get("lista") or 0),
         )
     return (
-        int(n_ind.get("luna") or luna_for_tag or 0),
+        n_luna,
         int(n_ind.get("goal") or 0),
         int(lista_n or 0),
     )
@@ -957,7 +959,11 @@ def _individual_counts_for_word(
 ) -> dict[str, int]:
     """Conteos concretos: +1 por goal/luna en referencia si algún campo contiene el slug."""
     if "grupo" in usos:
-        return {}
+        # goal/lista vienen del grupo; luna solo si es tag real en lunas-objetivos.
+        if "luna" not in usos and "tag" not in usos:
+            return {}
+        n_luna = _lookup_individual_count(word, usos, luna_counts)
+        return {"luna": n_luna} if n_luna else {}
     if _is_capture_only_usos(usos, word, standalone_capture_words):
         return _individual_counts_capture_only(
             word,
@@ -995,11 +1001,9 @@ def _should_add_luna_uso(
     usos: set[str],
     *,
     standalone_capture_words: set[str],
-    captura_has_luna: dict[str, bool],
     luna_tags: set[str],
 ) -> bool:
-    if "captura" in usos and captura_has_luna.get(word):
-        return True
+    """luna = slug presente como tag en lunas-objetivos (no moons de grupo)."""
     if _is_capture_only_usos(usos, word, standalone_capture_words):
         return False
     keys = _lookup_keys_for_variable(word, usos)
@@ -1015,7 +1019,6 @@ def _apply_variable_usos_for_word(
     goal_tags: set[str],
     luna_tags: set[str],
     captura_has_goal: dict[str, bool],
-    captura_has_luna: dict[str, bool],
 ) -> None:
     if not (usos & set(USO_IDENTITY) or word in standalone_capture_words):
         return
@@ -1024,7 +1027,7 @@ def _apply_variable_usos_for_word(
     if word in standalone_capture_words:
         if captura_has_goal.get(word):
             _add(out, word, "goal")
-        if captura_has_luna.get(word):
+        if word in luna_tags:
             _add(out, word, "luna")
         return
     if _should_add_goal_uso(
@@ -1039,7 +1042,6 @@ def _apply_variable_usos_for_word(
         word,
         usos,
         standalone_capture_words=standalone_capture_words,
-        captura_has_luna=captura_has_luna,
         luna_tags=luna_tags,
     ):
         _add(out, word, "luna")
@@ -1052,7 +1054,6 @@ def _apply_variable_usos(
     goal_tags: set[str],
     luna_tags: set[str],
     captura_has_goal: dict[str, bool],
-    captura_has_luna: dict[str, bool],
 ) -> None:
     for word, usos in out.items():
         _apply_variable_usos_for_word(
@@ -1063,22 +1064,23 @@ def _apply_variable_usos(
             goal_tags=goal_tags,
             luna_tags=luna_tags,
             captura_has_goal=captura_has_goal,
-            captura_has_luna=captura_has_luna,
         )
 
 
 def _apply_grupo_item_usos(
     out: dict[str, set[str]],
     grupo_counts: dict[str, dict[str, int]],
+    *,
+    luna_tags: set[str],
 ) -> None:
-    """Si la palabra es grupo: goal/luna/lista según ítems del grupo."""
+    """Grupo: goal/lista por ítems; luna solo si el slug es tag real en lunas."""
     for word, usos in out.items():
         if "grupo" not in usos:
             continue
         counts = grupo_counts.get(word) or {}
         if int(counts.get("goal") or 0) > 0:
             _add(out, word, "goal")
-        if int(counts.get("luna") or 0) > 0:
+        if word in luna_tags:
             _add(out, word, "luna")
         if int(counts.get("lista") or 0) > 0:
             _add(out, word, "lista")
@@ -1110,15 +1112,15 @@ def collect_palabra_usos() -> tuple[
         captura_goal_counts,
         capture_luna_counts,
     ) = _build_variable_indexes()
+    del captura_has_luna  # luna = tags de lunas-objetivos, no «captura tiene moons»
     _apply_variable_usos(
         out,
         standalone_capture_words=standalone_capture_words,
         goal_tags=goal_tags,
         luna_tags=luna_tags,
         captura_has_goal=captura_has_goal,
-        captura_has_luna=captura_has_luna,
     )
-    _apply_grupo_item_usos(out, grupo_counts)
+    _apply_grupo_item_usos(out, grupo_counts, luna_tags=luna_tags)
     return (
         out,
         bingo_counts,
@@ -1581,6 +1583,7 @@ def _validate_grupo_in_row(
     row: dict,
     parsed: dict[str, int],
     grupo_counts: dict[str, dict[str, int]],
+    luna_counts: dict[str, int] | None = None,
 ) -> None:
     if "grupo" not in parsed:
         return
@@ -1589,10 +1592,18 @@ def _validate_grupo_in_row(
         raise ValueError(
             f"{row['palabra']!r}: goal de grupo debe ser n.objectives"
         )
-    if "luna" in parsed and parsed["luna"] != int(g.get("luna") or 0):
-        raise ValueError(
-            f"{row['palabra']!r}: luna de grupo debe ser n.moons"
-        )
+    # luna = tag en lunas-objetivos (no n.moons del grupo / paraguas nature).
+    if "luna" in parsed:
+        want = int((luna_counts or {}).get(row["palabra"]) or 0)
+        if want <= 0:
+            want = int(
+                (luna_counts or {}).get(canonicalize_tag(row["palabra"])) or 0
+            )
+        if parsed["luna"] != want:
+            raise ValueError(
+                f"{row['palabra']!r}: luna={parsed['luna']} != "
+                f"lunas-objetivos tag ({want})"
+            )
 
 
 def _validate_palabra_row(
@@ -1602,6 +1613,7 @@ def _validate_palabra_row(
     goal_list_counts: dict[str, int],
     capture_lista_counts: dict[str, int],
     grupo_lista_computed: dict[str, int],
+    luna_counts: dict[str, int],
 ) -> None:
     parsed = parse_usos(row["usos"])
     if row["n_usos"] != sum(parsed.values()):
@@ -1617,7 +1629,9 @@ def _validate_palabra_row(
         capture_lista_counts=capture_lista_counts,
         grupo_lista_computed=grupo_lista_computed,
     )
-    _validate_grupo_in_row(row, parsed, grupo_counts)
+    _validate_grupo_in_row(
+        row, parsed, grupo_counts, luna_counts=luna_counts
+    )
 
 
 def _validate_all_palabra_rows(
@@ -1627,6 +1641,7 @@ def _validate_all_palabra_rows(
     goal_list_counts: dict[str, int],
     capture_lista_counts: dict[str, int],
     grupo_lista_computed: dict[str, int],
+    luna_counts: dict[str, int],
 ) -> None:
     for row in rows:
         _validate_palabra_row(
@@ -1635,6 +1650,7 @@ def _validate_all_palabra_rows(
             goal_list_counts=goal_list_counts,
             capture_lista_counts=capture_lista_counts,
             grupo_lista_computed=grupo_lista_computed,
+            luna_counts=luna_counts,
         )
 
 
@@ -1728,6 +1744,7 @@ def _validate_palabras_inventario(
     grupo_lista_computed: dict[str, int],
     captura_counts: dict[str, int],
     captura_sin_luna: dict[str, int],
+    luna_counts: dict[str, int],
 ) -> dict[str, int]:
     _validate_fixed_word_uso_counts(uso_counts)
     _validate_bingo_total(totals["bingo"])
@@ -1753,6 +1770,7 @@ def _validate_palabras_inventario(
         goal_list_counts=goal_list_counts,
         capture_lista_counts=capture_lista_counts,
         grupo_lista_computed=grupo_lista_computed,
+        luna_counts=luna_counts,
     )
     n_palabras_by_uso = _count_palabras_by_uso(rows)
     _validate_uso_fijo_consistency(uso_counts, n_palabras_by_uso)
@@ -1811,6 +1829,7 @@ def build_palabras_inventario() -> dict:
         grupo_lista_computed=grupo_lista_computed,
         captura_counts=captura_counts,
         captura_sin_luna=captura_sin_luna,
+        luna_counts=luna_counts,
     )
     return _palabras_inventario_payload(rows, uso_counts, n_palabras_by_uso)
 

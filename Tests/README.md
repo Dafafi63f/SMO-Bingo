@@ -16,6 +16,7 @@ En GitHub: `.github/workflows/tests.yml` (+ SonarCloud si hay `SONAR_TOKEN`).
 ## Notas de convención
 
 - Combined: glob `Super Mario Odyssey-Combined-*.json` (no fijar fecha en el test).
-- Zone: asserts contra **`zonas_inventario.json`**.
+- Zone: asserts contra **`zonas_inventario.json`** (no `goal_lists`).
+- Colas locales gitignored (`zonas_revision`, `review_findings`): opcionales; tests hacen `skip` si faltan.
 
 Cambios y pendientes del repo: [`README.md`](../README.md#cambios-recientes-2026-09).

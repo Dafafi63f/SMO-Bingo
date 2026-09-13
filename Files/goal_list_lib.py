@@ -27,8 +27,6 @@ from fix_bingo_group_ranges import (
 
 LISTS_PATH = CATALOG_DIR / "goal_lists.json"
 ZONAS_INVENTARIO_PATH = CATALOG_DIR / "zonas_inventario.json"
-# Legado (migración): si aún existe, alimenta el índice una vez.
-ZONAS_REINO_LEGACY_PATH = CATALOG_DIR / "zonas_reino.json"
 # Capturas: capturas_lunas.json / CAPTURE_LIST (no lists.captures).
 # Pares Level Sub-Area: Files/sub_area_levels_data.py (no lists.*).
 REGIONAL_COINS_SMALL = 50
@@ -48,33 +46,6 @@ LARGE_KINGDOMS = ("sand", "wooded", "metro", "seaside", "luncheon", "bowser")
 SMALL_KINGDOMS = ("cap", "cascade", "lake", "lost", "snow", "moon")
 
 _zonas_zone_cache: dict[tuple[str, str, str], str] | None = None
-
-
-def _ingest_zone_rows(
-    out: dict[tuple[str, str, str], str],
-    *,
-    kingdom: str,
-    rows: list,
-) -> None:
-    for it in rows or []:
-        if not isinstance(it, dict) or not it.get("zone"):
-            continue
-        source = str(it.get("source") or "")
-        name = str(it.get("name") or "")
-        if kingdom and source and name:
-            out[(kingdom, source, name)] = str(it["zone"])
-
-
-def _load_zonas_from_reino_legacy(out: dict[tuple[str, str, str], str]) -> None:
-    """Legado primero si existe (migración → luego se borra al exportar)."""
-    if not ZONAS_REINO_LEGACY_PATH.is_file():
-        return
-    data = json.loads(ZONAS_REINO_LEGACY_PATH.read_text(encoding="utf-8"))
-    for block in data.get("kingdoms") or []:
-        if not isinstance(block, dict):
-            continue
-        kingdom = str(block.get("kingdom") or "")
-        _ingest_zone_rows(out, kingdom=kingdom, rows=block.get("list") or [])
 
 
 def _ingest_inventario_zone_row(
@@ -110,14 +81,12 @@ def _load_zonas_from_inventario(out: dict[tuple[str, str, str], str]) -> None:
 
 
 def load_zonas_zone_index() -> dict[tuple[str, str, str], str]:
-    """(kingdom, source, name) → zone. Fuente: zonas_inventario (+ legado reino)."""
+    """(kingdom, source, name) → zone. Fuente: zonas_inventario."""
     global _zonas_zone_cache
     if _zonas_zone_cache is not None:
         return _zonas_zone_cache
     out: dict[tuple[str, str, str], str] = {}
-    _load_zonas_from_reino_legacy(out)
-    if not out:
-        _load_zonas_from_inventario(out)
+    _load_zonas_from_inventario(out)
     _zonas_zone_cache = out
     return out
 
@@ -606,7 +575,8 @@ def refresh_goal_lists_header(data: dict) -> dict:
         "Ubicación (zone): solo Catalog/zonas_inventario.json (no aquí). "
         "id = global del file (1..n_items, lists alfa + orden del file); "
         "id_list = id dentro de la sublista. "
-        "n_items → Catalog/zonas_inventario.json n_items."
+        "n_items (este file) + binoculars (capturas_lunas) = "
+        "zonas_inventario.n_items (= bingo_groups.n_lista_total)."
     )
     ordered: dict = {}
     for key in (

@@ -774,9 +774,9 @@ def _group_tag_hints(entries: list[tuple[str, list[dict]]]) -> list[str]:
         if particular:
             hints.append(str(particular))
             continue
+        # apply_moon_tag=False sin moon_tag: pool/paraguas sin tag propia
+        # (nature = fauna+flora; no inventar tag = id del grupo).
         if g.get("apply_moon_tag") is False:
-            # Pool dedicado / paraguas: la tag de goal es el id del grupo.
-            hints.append(str(gid))
             continue
         hints.append(group_moon_tag(g))
     return hints
@@ -787,35 +787,39 @@ def resolve_goal_tags(
     entries: list[tuple[str, list[dict]]],
     registry: dict,
 ) -> list[str]:
-    """Tags comunes del pool de lunas (solo goals pool=moons).
+    """Tags del pool de lunas (solo goals pool=moons).
 
-    Intersección temática de tags de lunas; hints de grupo primero si encajan.
-    Vacío si no hay tags comunes. No aplica a pool lista.
+    Preferencia: hints de grupo que existen en ≥1 luna; luego intersección
+    temática. No inventa tags ausentes en el pool (p. ej. captures en Fire Bro
+    o nature). Vacío si no hay tags útiles. No aplica a pool lista.
     """
     hints = [t for t in _group_tag_hints(entries) if t]
     thematic_hints = [t for t in hints if t not in _KINGDOM_LIKE_TAGS]
 
-    thematic: set[str] = set()
     tag_sets = _moon_pool_tags(moon_refs, registry)
+    union: set[str] = set.union(*tag_sets) if tag_sets else set()
+    thematic_union = _thematic_tags(union)
+    thematic_inter: set[str] = set()
     if tag_sets:
-        thematic = _thematic_tags(set.intersection(*tag_sets))
+        thematic_inter = _thematic_tags(set.intersection(*tag_sets))
 
     ordered: list[str] = []
     seen: set[str] = set()
     for t in thematic_hints:
-        if t in thematic and t not in seen:
+        if t in thematic_union and t not in seen:
             ordered.append(t)
             seen.add(t)
-    for t in sorted(thematic, key=lambda x: (x in UMBRELLA_MOON_TAGS, len(x), x)):
+    for t in sorted(
+        thematic_inter, key=lambda x: (x in UMBRELLA_MOON_TAGS, len(x), x)
+    ):
         if t not in seen:
             ordered.append(t)
             seen.add(t)
     if ordered:
         return ordered
-    uniq = list(dict.fromkeys(thematic_hints))
-    if uniq:
-        return uniq
-    return list(dict.fromkeys(t for t in hints if t in STORY_ORDER))
+    return list(
+        dict.fromkeys(t for t in hints if t in STORY_ORDER and t in union)
+    )
 
 
 def moon_has_goal_tags(
@@ -827,7 +831,7 @@ def moon_has_goal_tags(
 
     Mirror inverso de moons[].goal en capturas/tags: aquí la luna ya está en el
     pool de la goal; tag=false = en el pool pero sin la tag del grupo (p. ej.
-    apply_moon_tag=False / nature / stairface, o sub_area caída por mini_rocket).
+    apply_moon_tag=False / stairface, o sub_area caída por mini_rocket).
     """
     from catalog_lib import ACCESS_DROPS_SUB_AREA
 

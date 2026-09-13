@@ -1,13 +1,13 @@
 {
-  "_definition": "Inventario por zone (alfa global). Fuente de ubicación (zone) del proyecto: cada list[].zone es la zone base; el slug del bloque (zones[].zone) es reino_zona si la zone se repite entre reinos (p. ej. cap_odyssey). Editar zone aquí (o vía regen preservando kingdom+source+name). Cabecera: n_total / n_moons / n_items; n_zoned = filas con zone; n_without_zone = resto. kingdom en el bloque solo si la zone es exclusiva de un reino.",
-  "_note": "Regenerar: python Files/export_zonas_inventario.py. Curar list[].zone aquí (preservado por kingdom+source+name).",
+  "_definition": "Inventario por zone (alfa global). Fuente de ubicación (zone) del proyecto: cada list[].zone es la zone base; el slug del bloque (zones[].zone) es reino_zona si la zone se repite entre reinos (p. ej. cap_odyssey). Editar zone aquí (o vía regen preservando kingdom+source+name). Cabecera: n_total / n_moons / n_items (lists + binoculars); n_zoned + n_without_zone = n_total (n_without_zone debe ser 0; binoculars/regionals sin curar previa → _ITEM_ZONE_FALLBACK). kingdom en el bloque solo si la zone es exclusiva de un reino.",
+  "_note": "Regenerar: python Files/export_zonas_inventario.py. Curar list[].zone aquí (preservado por kingdom+source+name). Cola de revisión local: zonas_revision.json (gitignored).",
   "n_kingdoms": 13,
   "n_moons": 434,
   "n_items": 582,
   "n_total": 1016,
   "n_zones": 95,
-  "n_zoned": 992,
-  "n_without_zone": 24,
+  "n_zoned": 1016,
+  "n_without_zone": 0,
   "zones": [
     {
       "zone": "basin",
@@ -47,8 +47,8 @@
       "zone": "beach_house",
       "kingdom": "seaside",
       "orden": 2,
-      "n_total": 28,
-      "by_source": {"moon": 11, "checkpoints": 1, "costume_sets": 3, "ground_pound_switches": 1, "hats": 3, "moon_rocks": 1, "pixel_cat_peaches": 1, "regionals": 2, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
+      "n_total": 31,
+      "by_source": {"moon": 11, "binoculars": 3, "checkpoints": 1, "costume_sets": 3, "ground_pound_switches": 1, "hats": 3, "moon_rocks": 1, "pixel_cat_peaches": 1, "regionals": 2, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
       "list": [
         {"kingdom": "seaside", "source": "moon", "id": 1, "id_kingdom": 1, "name": "The Stone Pillar Seal", "zone": "beach_house", "disponibilidad": "base"},
         {"kingdom": "seaside", "source": "moon", "id": 6, "id_kingdom": 6, "name": "On the Cliff Overlooking the Beach", "zone": "beach_house", "disponibilidad": "base"},
@@ -61,6 +61,9 @@
         {"kingdom": "seaside", "source": "moon", "id": 42, "id_kingdom": 42, "name": "A Relaxing Dance", "zone": "beach_house", "disponibilidad": "base"},
         {"kingdom": "seaside", "source": "moon", "id": 47, "id_kingdom": 47, "name": "Hurry and Stretch", "zone": "beach_house", "disponibilidad": "base"},
         {"kingdom": "seaside", "source": "moon", "id": 48, "id_kingdom": 48, "name": "Stretch on the Side Path", "zone": "beach_house", "disponibilidad": "base"},
+        {"kingdom": "seaside", "source": "binoculars", "id": 50, "id_kingdom": 1, "name": "Seaside binocular 1", "zone": "beach_house", "disponibilidad": "base"},
+        {"kingdom": "seaside", "source": "binoculars", "id": 51, "id_kingdom": 2, "name": "Seaside binocular 2", "zone": "beach_house", "disponibilidad": "base"},
+        {"kingdom": "seaside", "source": "binoculars", "id": 52, "id_kingdom": 3, "name": "Seaside binocular 3", "zone": "beach_house", "disponibilidad": "base"},
         {"kingdom": "seaside", "source": "checkpoints", "id": 54, "id_kingdom": 5, "name": "Beach House", "zone": "beach_house", "disponibilidad": ["base", "world_peace"]},
         {"kingdom": "seaside", "source": "costume_sets", "id": 62, "id_kingdom": 13, "name": "Resort Hat and Outfit", "zone": "beach_house", "disponibilidad": "base"},
         {"kingdom": "seaside", "source": "costume_sets", "id": 63, "id_kingdom": 14, "name": "Sailor Hat and Suit", "zone": "beach_house", "disponibilidad": "base"},
@@ -197,23 +200,25 @@
       "zone": "city_hall_interior",
       "kingdom": "metro",
       "orden": 8,
-      "n_total": 1,
-      "by_source": {"moon": 1},
+      "n_total": 2,
+      "by_source": {"moon": 1, "regionals": 1},
       "list": [
-        {"kingdom": "metro", "source": "moon", "id": 33, "id_kingdom": 33, "name": "Taking Notes: In the Private Room", "zone": "city_hall_interior", "disponibilidad": "mid_story"}
+        {"kingdom": "metro", "source": "moon", "id": 33, "id_kingdom": 33, "name": "Taking Notes: In the Private Room", "zone": "city_hall_interior", "disponibilidad": "mid_story"},
+        {"kingdom": "metro", "source": "regionals", "id": 113, "id_kingdom": 60, "name": "City Hall Interior (platforms and striped pole)", "zone": "city_hall_interior", "disponibilidad": "base", "total": 10}
       ]
     },
     {
       "zone": "courtyard",
       "kingdom": "lake",
       "orden": 9,
-      "n_total": 7,
-      "by_source": {"moon": 4, "checkpoints": 1, "pixel_cat_marios": 1, "regionals": 1},
+      "n_total": 8,
+      "by_source": {"moon": 4, "binoculars": 1, "checkpoints": 1, "pixel_cat_marios": 1, "regionals": 1},
       "list": [
         {"kingdom": "lake", "source": "moon", "id": 4, "id_kingdom": 4, "name": "End of the Hidden Passage", "zone": "courtyard", "disponibilidad": "base"},
         {"kingdom": "lake", "source": "moon", "id": 5, "id_kingdom": 5, "name": "What's in the Box?", "zone": "courtyard", "disponibilidad": "base"},
         {"kingdom": "lake", "source": "moon", "id": 17, "id_kingdom": 17, "name": "Our Secret Little Room", "zone": "courtyard", "disponibilidad": "base"},
         {"kingdom": "lake", "source": "moon", "id": 20, "id_kingdom": 20, "name": "A Successful Repair Job", "zone": "courtyard", "disponibilidad": "world_peace"},
+        {"kingdom": "lake", "source": "binoculars", "id": 28, "id_kingdom": 1, "name": "Lake binocular", "zone": "courtyard", "disponibilidad": "base"},
         {"kingdom": "lake", "source": "checkpoints", "id": 31, "id_kingdom": 4, "name": "Courtyard", "zone": "courtyard", "disponibilidad": ["base", "world_peace"]},
         {"kingdom": "lake", "source": "pixel_cat_marios", "id": 42, "id_kingdom": 15, "name": "Pixel Cat Mario", "zone": "courtyard", "disponibilidad": "base"},
         {"kingdom": "lake", "source": "regionals", "id": 49, "id_kingdom": 22, "name": "High ledge in the Courtyard", "zone": "courtyard", "disponibilidad": "base", "total": 4}
@@ -386,10 +391,11 @@
       "zone": "ice_cave",
       "kingdom": "sand",
       "orden": 19,
-      "n_total": 1,
-      "by_source": {"moon": 1},
+      "n_total": 2,
+      "by_source": {"moon": 1, "regionals": 1},
       "list": [
-        {"kingdom": "sand", "source": "moon", "id": 50, "id_kingdom": 50, "name": "Ice Cave Treasure", "zone": "ice_cave", "disponibilidad": "base"}
+        {"kingdom": "sand", "source": "moon", "id": 50, "id_kingdom": 50, "name": "Ice Cave Treasure", "zone": "ice_cave", "disponibilidad": "base"},
+        {"kingdom": "sand", "source": "regionals", "id": 119, "id_kingdom": 57, "name": "Inside the Ice Caves", "zone": "ice_cave", "disponibilidad": "base", "total": 4, "sub_area": true}
       ]
     },
     {
@@ -491,8 +497,8 @@
       "zone": "jaxi_ruins",
       "kingdom": "sand",
       "orden": 24,
-      "n_total": 7,
-      "by_source": {"moon": 3, "checkpoints": 1, "jaxi_stands": 2, "regionals": 1},
+      "n_total": 8,
+      "by_source": {"moon": 3, "checkpoints": 1, "jaxi_stands": 2, "regionals": 2},
       "list": [
         {"kingdom": "sand", "source": "moon", "id": 13, "id_kingdom": 13, "name": "On the Lone Pillar", "zone": "jaxi_ruins", "disponibilidad": "base"},
         {"kingdom": "sand", "source": "moon", "id": 58, "id_kingdom": 58, "name": "Jaxi Driver", "zone": "jaxi_ruins", "disponibilidad": "base"},
@@ -500,7 +506,8 @@
         {"kingdom": "sand", "source": "checkpoints", "id": 74, "id_kingdom": 12, "name": "Jaxi Ruins", "zone": "jaxi_ruins", "disponibilidad": ["base", "mid_story", "world_peace"]},
         {"kingdom": "sand", "source": "jaxi_stands", "id": 87, "id_kingdom": 25, "name": "Lone Pillar", "zone": "jaxi_ruins", "disponibilidad": "base"},
         {"kingdom": "sand", "source": "jaxi_stands", "id": 89, "id_kingdom": 27, "name": "Jaxi Ruins", "zone": "jaxi_ruins", "disponibilidad": "base"},
-        {"kingdom": "sand", "source": "regionals", "id": 113, "id_kingdom": 51, "name": "Above poison water at Jaxi Ruins", "zone": "jaxi_ruins", "disponibilidad": "base", "total": 4}
+        {"kingdom": "sand", "source": "regionals", "id": 113, "id_kingdom": 51, "name": "Above poison water at Jaxi Ruins", "zone": "jaxi_ruins", "disponibilidad": "base", "total": 4},
+        {"kingdom": "sand", "source": "regionals", "id": 114, "id_kingdom": 52, "name": "Inside cave at Jaxi Ruins", "zone": "jaxi_ruins", "disponibilidad": "base", "total": 8, "sub_area": true}
       ]
     },
     {
@@ -593,11 +600,12 @@
       "zone": "lighthouse_tunnel",
       "kingdom": "seaside",
       "orden": 30,
-      "n_total": 2,
-      "by_source": {"moon": 2},
+      "n_total": 3,
+      "by_source": {"moon": 2, "regionals": 1},
       "list": [
         {"kingdom": "seaside", "source": "moon", "id": 11, "id_kingdom": 11, "name": "Shh! It's a Shortcut!", "zone": "lighthouse_tunnel", "disponibilidad": "base"},
-        {"kingdom": "seaside", "source": "moon", "id": 39, "id_kingdom": 39, "name": "Looking Back in the Dark Waterway", "zone": "lighthouse_tunnel", "disponibilidad": "base"}
+        {"kingdom": "seaside", "source": "moon", "id": 39, "id_kingdom": 39, "name": "Looking Back in the Dark Waterway", "zone": "lighthouse_tunnel", "disponibilidad": "base"},
+        {"kingdom": "seaside", "source": "regionals", "id": 92, "id_kingdom": 43, "name": "Underwater Tunnel to the Lighthouse (through and end alcove)", "zone": "lighthouse_tunnel", "disponibilidad": "base", "total": 6}
       ]
     },
     {
@@ -627,8 +635,8 @@
       "zone": "main_courtyard",
       "kingdom": "bowser",
       "orden": 33,
-      "n_total": 17,
-      "by_source": {"moon": 7, "checkpoints": 2, "life_up_hearts": 1, "moon_rocks": 1, "pixel_cat_marios": 1, "regionals": 5},
+      "n_total": 18,
+      "by_source": {"moon": 7, "binoculars": 1, "checkpoints": 2, "life_up_hearts": 1, "moon_rocks": 1, "pixel_cat_marios": 1, "regionals": 5},
       "list": [
         {"kingdom": "bowser", "source": "moon", "id": 7, "id_kingdom": 7, "name": "From the Side Above the Castle Gate", "zone": "main_courtyard", "disponibilidad": "base"},
         {"kingdom": "bowser", "source": "moon", "id": 8, "id_kingdom": 8, "name": "Sunken Treasure in the Moat", "zone": "main_courtyard", "disponibilidad": "base"},
@@ -637,6 +645,7 @@
         {"kingdom": "bowser", "source": "moon", "id": 25, "id_kingdom": 25, "name": "Underground Jizo", "zone": "main_courtyard", "disponibilidad": "base"},
         {"kingdom": "bowser", "source": "moon", "id": 31, "id_kingdom": 31, "name": "Scene of Crossing the Poison Swamp", "zone": "main_courtyard", "disponibilidad": "base"},
         {"kingdom": "bowser", "source": "moon", "id": 32, "id_kingdom": 32, "name": "Taking Notes: In the Folding Screen", "zone": "main_courtyard", "disponibilidad": "base"},
+        {"kingdom": "bowser", "source": "binoculars", "id": 39, "id_kingdom": 1, "name": "Bowser's binocular", "zone": "main_courtyard", "disponibilidad": "base"},
         {"kingdom": "bowser", "source": "checkpoints", "id": 47, "id_kingdom": 9, "name": "Main Courtyard Entrance", "zone": "main_courtyard", "disponibilidad": ["base", "world_peace"]},
         {"kingdom": "bowser", "source": "checkpoints", "id": 48, "id_kingdom": 10, "name": "Main Courtyard", "zone": "main_courtyard", "disponibilidad": ["base", "world_peace"]},
         {"kingdom": "bowser", "source": "life_up_hearts", "id": 57, "id_kingdom": 19, "name": "Jizo glowing ground", "zone": "main_courtyard", "disponibilidad": ["base", "world_peace"]},
@@ -653,8 +662,8 @@
       "zone": "main_street",
       "kingdom": "metro",
       "orden": 34,
-      "n_total": 16,
-      "by_source": {"moon": 8, "checkpoints": 3, "pixel_cat_marios": 1, "pixel_luigis": 1, "regionals": 2, "talkatoos": 1},
+      "n_total": 18,
+      "by_source": {"moon": 8, "binoculars": 1, "checkpoints": 3, "pixel_cat_marios": 1, "pixel_luigis": 1, "regionals": 3, "talkatoos": 1},
       "list": [
         {"kingdom": "metro", "source": "moon", "id": 6, "id_kingdom": 6, "name": "Powering Up the Station", "zone": "main_street", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "moon", "id": 29, "id_kingdom": 29, "name": "Jump-Rope Hero", "zone": "main_street", "disponibilidad": "mid_story"},
@@ -664,6 +673,7 @@
         {"kingdom": "metro", "source": "moon", "id": 38, "id_kingdom": 38, "name": "High Over the Crowd", "zone": "main_street", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "moon", "id": 39, "id_kingdom": 39, "name": "Rewiring the Neighborhood", "zone": "main_street", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "moon", "id": 40, "id_kingdom": 40, "name": "Off the Beaten Wire", "zone": "main_street", "disponibilidad": "mid_story"},
+        {"kingdom": "metro", "source": "binoculars", "id": 54, "id_kingdom": 1, "name": "Metro binocular", "zone": "main_street", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "checkpoints", "id": 57, "id_kingdom": 4, "name": "Main Street Entrance", "zone": "main_street", "disponibilidad": ["mid_story", "world_peace"]},
         {"kingdom": "metro", "source": "checkpoints", "id": 59, "id_kingdom": 6, "name": "Construction Site", "zone": "main_street", "disponibilidad": ["base", "mid_story", "world_peace"]},
         {"kingdom": "metro", "source": "checkpoints", "id": 60, "id_kingdom": 7, "name": "Construction Access", "zone": "main_street", "disponibilidad": ["base"]},
@@ -671,6 +681,7 @@
         {"kingdom": "metro", "source": "pixel_luigis", "id": 82, "id_kingdom": 29, "name": "Pixel Luigi (coin Hint Art 2)", "zone": "main_street", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "regionals", "id": 88, "id_kingdom": 35, "name": "Under fire escape near Main Street Entrance", "zone": "main_street", "disponibilidad": "base", "total": 2},
         {"kingdom": "metro", "source": "regionals", "id": 97, "id_kingdom": 44, "name": "Building near City Gardening: Building Planter", "zone": "main_street", "disponibilidad": "base", "total": 3},
+        {"kingdom": "metro", "source": "regionals", "id": 100, "id_kingdom": 47, "name": "Motor Scooter: Escape! (right and center)", "zone": "main_street", "disponibilidad": "mid_story", "total": 6, "sub_area": true},
         {"kingdom": "metro", "source": "talkatoos", "id": 118, "id_kingdom": 65, "name": "Talkatoo", "zone": "main_street", "disponibilidad": "mid_story"}
       ]
     },
@@ -837,13 +848,15 @@
       "zone": "observation_deck",
       "kingdom": "wooded",
       "orden": 45,
-      "n_total": 7,
-      "by_source": {"moon": 4, "checkpoints": 1, "pixel_cat_marios": 1, "pixel_cat_peaches": 1},
+      "n_total": 9,
+      "by_source": {"moon": 4, "binoculars": 2, "checkpoints": 1, "pixel_cat_marios": 1, "pixel_cat_peaches": 1},
       "list": [
         {"kingdom": "wooded", "source": "moon", "id": 10, "id_kingdom": 10, "name": "Atop the Tall Tree", "zone": "observation_deck", "disponibilidad": "base"},
         {"kingdom": "wooded", "source": "moon", "id": 20, "id_kingdom": 20, "name": "Hey Out There, Captain Toad!", "zone": "observation_deck", "disponibilidad": "world_peace"},
         {"kingdom": "wooded", "source": "moon", "id": 47, "id_kingdom": 47, "name": "Walking on Clouds", "zone": "observation_deck", "disponibilidad": "world_peace"},
         {"kingdom": "wooded", "source": "moon", "id": 48, "id_kingdom": 48, "name": "Above the Clouds", "zone": "observation_deck", "disponibilidad": "world_peace"},
+        {"kingdom": "wooded", "source": "binoculars", "id": 51, "id_kingdom": 1, "name": "Wooded binocular 1", "zone": "observation_deck", "disponibilidad": "base"},
+        {"kingdom": "wooded", "source": "binoculars", "id": 52, "id_kingdom": 2, "name": "Wooded binocular 2", "zone": "observation_deck", "disponibilidad": "mid_story"},
         {"kingdom": "wooded", "source": "checkpoints", "id": 62, "id_kingdom": 12, "name": "Observation Deck", "zone": "observation_deck", "disponibilidad": ["world_peace"]},
         {"kingdom": "wooded", "source": "pixel_cat_marios", "id": 74, "id_kingdom": 24, "name": "Pixel Cat Mario", "zone": "observation_deck", "disponibilidad": "base"},
         {"kingdom": "wooded", "source": "pixel_cat_peaches", "id": 75, "id_kingdom": 25, "name": "Pixel Cat Peach", "zone": "observation_deck", "disponibilidad": "mid_story"}
@@ -941,8 +954,8 @@
       "zone": "park",
       "kingdom": "metro",
       "orden": 51,
-      "n_total": 7,
-      "by_source": {"moon": 5, "checkpoints": 1, "regionals": 1},
+      "n_total": 8,
+      "by_source": {"moon": 5, "checkpoints": 1, "regionals": 2},
       "list": [
         {"kingdom": "metro", "source": "moon", "id": 11, "id_kingdom": 11, "name": "Glittering Above the Pool", "zone": "park", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "moon", "id": 22, "id_kingdom": 22, "name": "City Gardening: Plaza Planter", "zone": "park", "disponibilidad": "mid_story"},
@@ -950,6 +963,7 @@
         {"kingdom": "metro", "source": "moon", "id": 31, "id_kingdom": 31, "name": "Remotely Captured Car", "zone": "park", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "moon", "id": 32, "id_kingdom": 32, "name": "RC Car Pro!", "zone": "park", "disponibilidad": "mid_story"},
         {"kingdom": "metro", "source": "checkpoints", "id": 63, "id_kingdom": 10, "name": "Mayor Pauline Commemorative Park", "zone": "park", "disponibilidad": ["mid_story", "world_peace"]},
+        {"kingdom": "metro", "source": "regionals", "id": 105, "id_kingdom": 52, "name": "Mini-Rocket tree and Hanging from a High-Rise", "zone": "park", "disponibilidad": "base", "total": 5},
         {"kingdom": "metro", "source": "regionals", "id": 108, "id_kingdom": 55, "name": "Top of tree in Mayor Pauline Commemorative Park", "zone": "park", "disponibilidad": "base", "total": 2}
       ]
     },
@@ -999,8 +1013,8 @@
       "zone": "plaza",
       "kingdom": "luncheon",
       "orden": 54,
-      "n_total": 36,
-      "by_source": {"moon": 14, "bosses": 1, "checkpoints": 1, "costume_sets": 3, "hats": 3, "pixel_cat_marios": 1, "pixel_luigis": 1, "regionals": 7, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
+      "n_total": 37,
+      "by_source": {"moon": 14, "binoculars": 1, "bosses": 1, "checkpoints": 1, "costume_sets": 3, "hats": 3, "pixel_cat_marios": 1, "pixel_luigis": 1, "regionals": 7, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
       "list": [
         {"kingdom": "luncheon", "source": "moon", "id": 1, "id_kingdom": 1, "name": "The Broodals Are After Some Cookin'", "zone": "plaza", "disponibilidad": "base"},
         {"kingdom": "luncheon", "source": "moon", "id": 7, "id_kingdom": 7, "name": "Lurking in the Pillar's Shadow", "zone": "plaza", "disponibilidad": "base"},
@@ -1016,6 +1030,7 @@
         {"kingdom": "luncheon", "source": "moon", "id": 45, "id_kingdom": 45, "name": "Spinning Athletics End Goal", "zone": "plaza", "disponibilidad": "base"},
         {"kingdom": "luncheon", "source": "moon", "id": 46, "id_kingdom": 46, "name": "Taking Notes: Spinning Athletics", "zone": "plaza", "disponibilidad": "base"},
         {"kingdom": "luncheon", "source": "moon", "id": 49, "id_kingdom": 49, "name": "Found with Luncheon Kingdom Art", "zone": "plaza", "disponibilidad": "mid_story"},
+        {"kingdom": "luncheon", "source": "binoculars", "id": 51, "id_kingdom": 1, "name": "Luncheon binocular", "zone": "plaza", "disponibilidad": "base"},
         {"kingdom": "luncheon", "source": "bosses", "id": 52, "id_kingdom": 2, "name": "Spewart (Broodal, rematch)", "zone": "plaza", "disponibilidad": "base"},
         {"kingdom": "luncheon", "source": "checkpoints", "id": 54, "id_kingdom": 4, "name": "Peronza Plaza", "zone": "plaza", "disponibilidad": ["base", "mid_story", "world_peace"]},
         {"kingdom": "luncheon", "source": "costume_sets", "id": 63, "id_kingdom": 13, "name": "Chef Hat and Suit", "zone": "plaza", "disponibilidad": "base"},
@@ -1044,13 +1059,15 @@
       "zone": "propeller",
       "kingdom": "lost",
       "orden": 55,
-      "n_total": 4,
-      "by_source": {"moon": 3, "regionals": 1},
+      "n_total": 6,
+      "by_source": {"moon": 3, "regionals": 3},
       "list": [
         {"kingdom": "lost", "source": "moon", "id": 1, "id_kingdom": 1, "name": "Atop a Propeller Pillar", "zone": "propeller", "disponibilidad": "base"},
         {"kingdom": "lost", "source": "moon", "id": 7, "id_kingdom": 7, "name": "Inside the Rising Stone Pillar", "zone": "propeller", "disponibilidad": "base"},
         {"kingdom": "lost", "source": "moon", "id": 10, "id_kingdom": 10, "name": "A Propeller Pillar's Secret", "zone": "propeller", "disponibilidad": "base"},
-        {"kingdom": "lost", "source": "regionals", "id": 42, "id_kingdom": 21, "name": "Under top of second propeller pillar", "zone": "propeller", "disponibilidad": "base", "total": 2}
+        {"kingdom": "lost", "source": "regionals", "id": 41, "id_kingdom": 20, "name": "Alcoves near Atop a Propeller Pillar", "zone": "propeller", "disponibilidad": "base", "total": 6},
+        {"kingdom": "lost", "source": "regionals", "id": 42, "id_kingdom": 21, "name": "Under top of second propeller pillar", "zone": "propeller", "disponibilidad": "base", "total": 2},
+        {"kingdom": "lost", "source": "regionals", "id": 44, "id_kingdom": 23, "name": "First propeller pillar (top and underside)", "zone": "propeller", "disponibilidad": "base", "total": 6}
       ]
     },
     {
@@ -1429,11 +1446,12 @@
       "zone": "start",
       "kingdom": "lost",
       "orden": 77,
-      "n_total": 3,
-      "by_source": {"moon": 2, "regionals": 1},
+      "n_total": 4,
+      "by_source": {"moon": 2, "binoculars": 1, "regionals": 1},
       "list": [
         {"kingdom": "lost", "source": "moon", "id": 2, "id_kingdom": 2, "name": "Below the Cliff's Edge", "zone": "start", "disponibilidad": "base"},
         {"kingdom": "lost", "source": "moon", "id": 3, "id_kingdom": 3, "name": "Inside the Stone Cage", "zone": "start", "disponibilidad": "base"},
+        {"kingdom": "lost", "source": "binoculars", "id": 22, "id_kingdom": 1, "name": "Lost binocular", "zone": "start", "disponibilidad": "base"},
         {"kingdom": "lost", "source": "regionals", "id": 36, "id_kingdom": 15, "name": "Low ledge south of starting location", "zone": "start", "disponibilidad": "base", "total": 3}
       ]
     },
@@ -1514,8 +1532,8 @@
       "zone": "surface",
       "kingdom": "moon",
       "orden": 82,
-      "n_total": 23,
-      "by_source": {"moon": 9, "checkpoints": 1, "regionals": 12, "sphynxes": 1},
+      "n_total": 24,
+      "by_source": {"moon": 9, "binoculars": 1, "checkpoints": 1, "regionals": 12, "sphynxes": 1},
       "list": [
         {"kingdom": "moon", "source": "moon", "id": 1, "id_kingdom": 1, "name": "Shining Above the Moon", "zone": "surface", "disponibilidad": "base"},
         {"kingdom": "moon", "source": "moon", "id": 2, "id_kingdom": 2, "name": "Along the Cliff Face", "zone": "surface", "disponibilidad": "base"},
@@ -1526,6 +1544,7 @@
         {"kingdom": "moon", "source": "moon", "id": 11, "id_kingdom": 11, "name": "Around the Barrier Wall", "zone": "surface", "disponibilidad": "base"},
         {"kingdom": "moon", "source": "moon", "id": 12, "id_kingdom": 12, "name": "On Top of the Cannon", "zone": "surface", "disponibilidad": "base"},
         {"kingdom": "moon", "source": "moon", "id": 13, "id_kingdom": 13, "name": "Fly to the Treasure Chest and Back", "zone": "surface", "disponibilidad": "base"},
+        {"kingdom": "moon", "source": "binoculars", "id": 16, "id_kingdom": 1, "name": "Moon binocular", "zone": "surface", "disponibilidad": "base"},
         {"kingdom": "moon", "source": "checkpoints", "id": 20, "id_kingdom": 5, "name": "Ever-After Hill", "zone": "surface", "disponibilidad": ["base"]},
         {"kingdom": "moon", "source": "regionals", "id": 31, "id_kingdom": 16, "name": "Tall rock behind the Odyssey", "zone": "surface", "disponibilidad": "base", "total": 3},
         {"kingdom": "moon", "source": "regionals", "id": 32, "id_kingdom": 17, "name": "8-bit section, high platform", "zone": "surface", "disponibilidad": "base", "total": 3},
@@ -1634,8 +1653,8 @@
       "zone": "tostarena",
       "kingdom": "sand",
       "orden": 87,
-      "n_total": 37,
-      "by_source": {"moon": 14, "boxer_shorts": 1, "checkpoints": 1, "costume_sets": 3, "hats": 3, "jaxi_stands": 1, "moon_rocks": 1, "pixel_luigis": 1, "regionals": 7, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
+      "n_total": 41,
+      "by_source": {"moon": 14, "binoculars": 3, "boxer_shorts": 1, "checkpoints": 1, "costume_sets": 3, "hats": 3, "jaxi_stands": 1, "moon_rocks": 1, "pixel_luigis": 1, "regionals": 8, "shops": 1, "souvenirs": 2, "stickers": 1, "talkatoos": 1},
       "list": [
         {"kingdom": "sand", "source": "moon", "id": 5, "id_kingdom": 5, "name": "Overlooking the Desert Town", "zone": "tostarena", "disponibilidad": "base"},
         {"kingdom": "sand", "source": "moon", "id": 15, "id_kingdom": 15, "name": "Hang Your Hat on the Fountain", "zone": "tostarena", "disponibilidad": "world_peace"},
@@ -1651,6 +1670,9 @@
         {"kingdom": "sand", "source": "moon", "id": 53, "id_kingdom": 53, "name": "Dancing with New Friends", "zone": "tostarena", "disponibilidad": "base"},
         {"kingdom": "sand", "source": "moon", "id": 60, "id_kingdom": 60, "name": "Strange Neighborhood", "zone": "tostarena", "disponibilidad": "world_peace"},
         {"kingdom": "sand", "source": "moon", "id": 61, "id_kingdom": 61, "name": "Above a Strange Neighborhood", "zone": "tostarena", "disponibilidad": "world_peace"},
+        {"kingdom": "sand", "source": "binoculars", "id": 63, "id_kingdom": 1, "name": "Sand binocular 1", "zone": "tostarena", "disponibilidad": "base"},
+        {"kingdom": "sand", "source": "binoculars", "id": 64, "id_kingdom": 2, "name": "Sand binocular 2", "zone": "tostarena", "disponibilidad": "base"},
+        {"kingdom": "sand", "source": "binoculars", "id": 65, "id_kingdom": 3, "name": "Sand binocular 3", "zone": "tostarena", "disponibilidad": "base"},
         {"kingdom": "sand", "source": "boxer_shorts", "id": 68, "id_kingdom": 6, "name": "Boxer Shorts", "zone": "tostarena"},
         {"kingdom": "sand", "source": "checkpoints", "id": 69, "id_kingdom": 7, "name": "Tostarena Town", "zone": "tostarena", "disponibilidad": ["base", "mid_story", "world_peace"]},
         {"kingdom": "sand", "source": "costume_sets", "id": 78, "id_kingdom": 16, "name": "Sombrero and Poncho", "zone": "tostarena", "disponibilidad": "base"},
@@ -1666,6 +1688,7 @@
         {"kingdom": "sand", "source": "regionals", "id": 104, "id_kingdom": 42, "name": "On umbrella next to Crazy Cap", "zone": "tostarena", "disponibilidad": "base", "total": 3},
         {"kingdom": "sand", "source": "regionals", "id": 105, "id_kingdom": 43, "name": "On top of Crazy Cap shop", "zone": "tostarena", "disponibilidad": "base", "total": 6},
         {"kingdom": "sand", "source": "regionals", "id": 106, "id_kingdom": 44, "name": "In the fountain in Tostarena Town", "zone": "tostarena", "disponibilidad": "base", "total": 4},
+        {"kingdom": "sand", "source": "regionals", "id": 107, "id_kingdom": 45, "name": "Strange Neighborhood (area and rotating building)", "zone": "tostarena", "disponibilidad": "world_peace", "total": 5, "sub_area": true},
         {"kingdom": "sand", "source": "regionals", "id": 108, "id_kingdom": 46, "name": "On building, southeast Tostarena Town", "zone": "tostarena", "disponibilidad": "base", "total": 3},
         {"kingdom": "sand", "source": "regionals", "id": 109, "id_kingdom": 47, "name": "Behind building, east Tostarena Town", "zone": "tostarena", "disponibilidad": "base", "total": 3},
         {"kingdom": "sand", "source": "regionals", "id": 110, "id_kingdom": 48, "name": "Behind dome of Overlooking the Desert Town building", "zone": "tostarena", "disponibilidad": "base", "total": 3},
@@ -1692,15 +1715,16 @@
       "zone": "underground_temple",
       "kingdom": "sand",
       "orden": 89,
-      "n_total": 6,
-      "by_source": {"moon": 4, "bosses": 1, "life_up_hearts": 1},
+      "n_total": 7,
+      "by_source": {"moon": 4, "bosses": 1, "life_up_hearts": 1, "regionals": 1},
       "list": [
         {"kingdom": "sand", "source": "moon", "id": 4, "id_kingdom": 4, "name": "The Hole in the Desert", "zone": "underground_temple", "disponibilidad": "mid_story"},
         {"kingdom": "sand", "source": "moon", "id": 47, "id_kingdom": 47, "name": "Underground Treasure Chest", "zone": "underground_temple", "disponibilidad": "mid_story"},
         {"kingdom": "sand", "source": "moon", "id": 48, "id_kingdom": 48, "name": "Goomba Tower Assembly", "zone": "underground_temple", "disponibilidad": "mid_story"},
         {"kingdom": "sand", "source": "moon", "id": 49, "id_kingdom": 49, "name": "Under the Mummy's Curse", "zone": "underground_temple", "disponibilidad": "world_peace"},
         {"kingdom": "sand", "source": "bosses", "id": 67, "id_kingdom": 5, "name": "Knucklotec (Boss)", "zone": "underground_temple", "disponibilidad": "mid_story"},
-        {"kingdom": "sand", "source": "life_up_hearts", "id": 96, "id_kingdom": 34, "name": "Underground Temple (candle)", "zone": "underground_temple", "disponibilidad": ["mid_story", "world_peace"]}
+        {"kingdom": "sand", "source": "life_up_hearts", "id": 96, "id_kingdom": 34, "name": "Underground Temple (candle)", "zone": "underground_temple", "disponibilidad": ["mid_story", "world_peace"]},
+        {"kingdom": "sand", "source": "regionals", "id": 126, "id_kingdom": 64, "name": "Inside the Underground Temple", "zone": "underground_temple", "disponibilidad": "mid_story", "total": 7}
       ]
     },
     {

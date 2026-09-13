@@ -5,11 +5,10 @@ y lo proyecta a `zonas_inventario.json`:
   - ítems de goal_lists (source = nombre de lista) + binoculars
   - lunas in-scope (source = moon; desde lunas-objetivos.json)
 
-Cabecera: n_moons / n_items / n_total; n_zoned / n_without_zone.
-Zone: fuente de ubicación (POIs + lunas); se preserva al regenerar
+Cabecera: n_moons / n_items / n_total; n_zoned / n_without_zone
+(n_without_zone debe ser 0; seeds en _ITEM_ZONE_FALLBACK).
+Zone: fuente de ubicación (POIs + lunas + binoculars); se preserva al regenerar
 (clave kingdom+source+name). No vive en goal_lists / goals_referencia.
-
-Si existe el legado `zonas_reino.json`, se elimina al exportar.
 
 Uso:
   python Files/export_zonas_inventario.py
@@ -32,7 +31,6 @@ from goal_list_lib import (
     write_goal_lists,
 )
 
-ZONAS_REINO_LEGACY_PATH = CATALOG_DIR / "zonas_reino.json"
 ZONAS_INVENTARIO_PATH = CATALOG_DIR / "zonas_inventario.json"
 LUNAS_PATH = CATALOG_DIR / "lunas-objetivos.json"
 
@@ -151,6 +149,58 @@ def _by_source_counts(items: list[dict]) -> dict[str, int]:
     }
 
 
+# Seeds de zone (binoculars + regionals sin curación previa). Si faltan en
+# el índice, se aplican al export y quedan en zonas_inventario.
+_ITEM_ZONE_FALLBACK: dict[tuple[str, str, str], str] = {
+    # binoculars → hub / mirador del reino
+    ("sand", "binoculars", "Sand binocular 1"): "tostarena",
+    ("sand", "binoculars", "Sand binocular 2"): "tostarena",
+    ("sand", "binoculars", "Sand binocular 3"): "tostarena",
+    ("lake", "binoculars", "Lake binocular"): "courtyard",
+    ("wooded", "binoculars", "Wooded binocular 1"): "observation_deck",
+    ("wooded", "binoculars", "Wooded binocular 2"): "observation_deck",
+    ("lost", "binoculars", "Lost binocular"): "start",
+    ("metro", "binoculars", "Metro binocular"): "main_street",
+    ("seaside", "binoculars", "Seaside binocular 1"): "beach_house",
+    ("seaside", "binoculars", "Seaside binocular 2"): "beach_house",
+    ("seaside", "binoculars", "Seaside binocular 3"): "beach_house",
+    ("luncheon", "binoculars", "Luncheon binocular"): "plaza",
+    ("bowser", "binoculars", "Bowser's binocular"): "main_courtyard",
+    ("moon", "binoculars", "Moon binocular"): "surface",
+    # regionals que no entraban en zones[]
+    (
+        "sand",
+        "regionals",
+        "Strange Neighborhood (area and rotating building)",
+    ): "tostarena",
+    ("sand", "regionals", "Inside cave at Jaxi Ruins"): "jaxi_ruins",
+    ("sand", "regionals", "Inside the Ice Caves"): "ice_cave",
+    ("sand", "regionals", "Inside the Underground Temple"): "underground_temple",
+    ("lost", "regionals", "Alcoves near Atop a Propeller Pillar"): "propeller",
+    ("lost", "regionals", "First propeller pillar (top and underside)"): "propeller",
+    (
+        "metro",
+        "regionals",
+        "Motor Scooter: Escape! (right and center)",
+    ): "main_street",
+    (
+        "metro",
+        "regionals",
+        "Mini-Rocket tree and Hanging from a High-Rise",
+    ): "park",
+    (
+        "metro",
+        "regionals",
+        "City Hall Interior (platforms and striped pole)",
+    ): "city_hall_interior",
+    (
+        "seaside",
+        "regionals",
+        "Underwater Tunnel to the Lighthouse (through and end alcove)",
+    ): "lighthouse_tunnel",
+}
+
+
 def _resolve_zone(
     *,
     kingdom: str,
@@ -159,12 +209,15 @@ def _resolve_zone(
     zone_map: dict[tuple[str, str, str], str],
     seed: str | None = None,
 ) -> str | None:
-    """Prioridad: mapa de zonas_inventario → seed legado (p. ej. goal_lists)."""
+    """Prioridad: mapa de zonas_inventario → seed → fallback ítem."""
     key = _zone_key(kingdom, source, name)
     if key in zone_map:
         return zone_map[key]
     if seed:
         return str(seed)
+    fb = _ITEM_ZONE_FALLBACK.get(key)
+    if fb:
+        return fb
     return None
 
 
@@ -1021,13 +1074,16 @@ def _build_zonas_inventario_catalog(payload: dict | None = None) -> dict:
             "proyecto: cada list[].zone es la zone base; el slug del bloque "
             "(zones[].zone) es reino_zona si la zone se repite entre reinos "
             "(p. ej. cap_odyssey). Editar zone aquí (o vía regen preservando "
-            "kingdom+source+name). Cabecera: n_total / n_moons / n_items; "
-            "n_zoned = filas con zone; n_without_zone = resto. "
-            "kingdom en el bloque solo si la zone es exclusiva de un reino."
+            "kingdom+source+name). Cabecera: n_total / n_moons / n_items "
+            "(lists + binoculars); n_zoned + n_without_zone = n_total "
+            "(n_without_zone debe ser 0; binoculars/regionals sin curar previa "
+            "→ _ITEM_ZONE_FALLBACK). kingdom en el bloque solo si la zone es "
+            "exclusiva de un reino."
         ),
         "_note": (
             "Regenerar: python Files/export_zonas_inventario.py. "
-            "Curar list[].zone aquí (preservado por kingdom+source+name)."
+            "Curar list[].zone aquí (preservado por kingdom+source+name). "
+            "Cola de revisión local: zonas_revision.json (gitignored)."
         ),
         **header_counts,
         "n_zones": len(zones_out),
@@ -1045,9 +1101,6 @@ def main() -> int:
     # 3) Vista / fuente de zone por zone (alfa).
     detalle = _build_zonas_inventario_catalog(payload)
     write_catalog_json(ZONAS_INVENTARIO_PATH, detalle)
-    # 4) Quitar legado zonas_reino.json si existe.
-    if ZONAS_REINO_LEGACY_PATH.is_file():
-        ZONAS_REINO_LEGACY_PATH.unlink()
     print(
         f"Exportado: {ZONAS_INVENTARIO_PATH.relative_to(CATALOG_DIR.parent).as_posix()} "
         f"(zones={detalle.get('n_zones')})"

@@ -1,5 +1,8 @@
 """Genera Catalog/zonas_revision.json — cola de revisión por 3 ejes.
 
+Archivo **local / temporal** (gitignored): no forma parte del catálogo
+permanente; regenerar al curar y borrar al terminar la revisión.
+
 Cada ítem aparece a la vez en 3 grupos (kind=kingdom|zone|source), todos en
 un solo ``groups[]``. kind=zone no lleva kingdom (el slug de zone basta).
 
@@ -478,7 +481,9 @@ def _revision_method_for_item(
             zone_sugerida = zone_infer
         return method, detail, zone_sugerida
     if source == BINOCULARS_SOURCE:
-        return "sin_zone", detail, zone_sugerida
+        if not zone:
+            return "sin_zone", detail, zone_sugerida
+        return "lista_curada", detail, zone_sugerida
     raw_gl = goal_raw_by_key.get((kingdom, source, name))
     method, detail = _lista_method(
         list_name=source,
@@ -555,7 +560,8 @@ def build_zona_revision() -> dict:
 
     return {
         "_definition": (
-            "Cola de revisión de zones. groups[] mezcla kind=kingdom|zone|source "
+            "Cola LOCAL de revisión de zones (gitignored; no catálogo "
+            "permanente). groups[] mezcla kind=kingdom|zone|source "
             "(cada ítem en 3 grupos). kind=zone no incluye kingdom. Ítems: id "
             "(reino/source/nº) + name + status + method; zone solo en grupos "
             "kingdom/source. Orden de ítems = moons → goal_lists + binoculars "
@@ -564,7 +570,9 @@ def build_zona_revision() -> dict:
             "revisado. Curar zone en zonas_inventario y marcar status=ok aquí. "
             "Zone compartida → slug reino_zona."
         ),
-        "_note": "Regenerar: python Files/export_zona_revision.py",
+        "_note": (
+            "Local / gitignored. Regenerar: python Files/export_zona_revision.py"
+        ),
         "n_total_items": len(items),
         "n_ok": n_ok,
         "n_pendiente": n_pendiente,

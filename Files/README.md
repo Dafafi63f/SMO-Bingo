@@ -14,8 +14,6 @@ python Files/regenerate_all.py --dry-run    # ver qué pasos correrían
 Estado incremental en `Files/.regenerate_state.json` (gitignored). Borrarlo para
 volver a forzar una corrida completa sin `--force`.
 
-Auditoría opcional: `python Files/audit_catalog_consistency.py`
-
 ## Pipeline (`regenerate_all.py` / `regenerate_lib.py`)
 
 | Script | Rol |
@@ -32,21 +30,31 @@ Auditoría opcional: `python Files/audit_catalog_consistency.py`
 | `export_goals_individuales.py` | `goals_individuales.json` (+ enriquece el hub) |
 | `export_zonas_inventario.py` | `zonas_inventario.json` |
 | `export_items_goals.py` | `items_goals.json` (ítem → goals Combined) |
-| `export_zona_revision.py` | `zonas_revision.json` (cola de curación de zones) |
 | `export_palabras_inventario.py` | `palabras_inventario.json` (slugs × usos) |
 | `enrich_goals_referencia.py` | `individuales[]` en el hub (también al exportar individuales) |
 | `regenerate_lib.py` | Pipeline incremental (huellas blake2b) |
 | `mariowiki_guides.py` | Caché `mariowiki_capture_guides.json` |
 
-## Ocasionales
+## Ocasionales / revisión local
+
+No van en `regenerate_all`. Salidas gitignored (temporales).
+
+```bash
+python Files/audit_catalog_consistency.py
+python Files/export_zona_revision.py
+python Files/review_findings.py --front zones,items
+python Files/review_findings.py --write
+```
 
 | Script | Rol |
 |--------|-----|
+| `export_zona_revision.py` | Cola local `zonas_revision.json` |
+| `review_findings.py` | Detectores → `review_findings.json` |
+| `audit_catalog_consistency.py` | CRITICAL/WARN entre catálogos derivados |
 | `fill_captures_cappy.py` | Tags captures/cappy/mario desde Mario Wiki |
 | `rebuild_sub_area_bingo.py` | Grupo `sub_area` + pares Level |
 | `sub_area_levels_data.py` | Datos de pares Level (no viven en `goal_lists`) |
 | `fix_bingo_group_ranges.py` | Recalcula `range` de objectives en `bingo_groups` |
 | `lockout_merch_icons.py` | Icons souvenirs/stickers lockout |
-| `audit_catalog_consistency.py` | CRITICAL/WARN entre catálogos derivados |
 
-Cambios y pendientes del repo: [`README.md`](../README.md#cambios-recientes-2026-09).
+Cambios, pendientes y mapa de revisión: [`README.md`](../README.md#revisar-híbrido-auto--manual).

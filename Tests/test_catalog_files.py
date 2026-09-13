@@ -148,8 +148,8 @@ class CatalogFilesExistTests(unittest.TestCase):
                             self.assertEqual(n, parsed["luna"])
                     else:
                         self.assertEqual(n, 0)
-                    if "grupo" in parsed and uso in ("goal", "luna", "lista"):
-                        # Conteos de grupo se validan más abajo con bingo_groups.
+                    if "grupo" in parsed and uso in ("goal", "lista"):
+                        # goal/lista de grupo ↔ bingo_groups; luna = tag real.
                         pass
         by_word = {w["palabra"]: w for w in words}
         sand_usos = parse_usos(by_word["sand"]["usos"])
@@ -193,11 +193,12 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertIn("grupo", parse_usos(by_word["npc"]["usos"]))
         self.assertEqual(
             by_word["artistic"]["usos"],
-            {"bingo": 15, "goal": 15, "grupo": 1, "luna": 13},
+            {"bingo": 15, "goal": 15, "grupo": 1},
         )
         artistic = parse_usos(by_word["artistic"]["usos"])
         self.assertNotIn("tag", artistic)
-        self.assertEqual(by_word["artistic"]["n_usos"], 44)
+        self.assertNotIn("luna", artistic)
+        self.assertEqual(by_word["artistic"]["n_usos"], 31)
         # Capturas: 46 filas; uso captura omitido si pool=0 (taxi/tree); Σ = hub 163 + sin luna.
         self.assertIn("captura", parse_usos(by_word["chain_chomp"]["usos"]))
         self.assertIn("grupo", parse_usos(by_word["chain_chomp"]["usos"]))
@@ -205,10 +206,17 @@ class CatalogFilesExistTests(unittest.TestCase):
             parse_usos(by_word["chain_chomp"]["usos"]),
             {"captura": 5, "goal": 1, "grupo": 1, "luna": 5, "tag": 5},
         )
-        self.assertEqual(
-            parse_usos(by_word["captures"]["usos"]),
-            {"goal": 48, "grupo": 1, "lista": 22, "luna": 163, "tag": 163},
-        )
+        # captures: luna/tag = lunas con tag captures (no pool Unique Captures).
+        cap_usos = parse_usos(by_word["captures"]["usos"])
+        self.assertEqual(cap_usos.get("goal"), 48)
+        self.assertEqual(cap_usos.get("grupo"), 1)
+        self.assertEqual(cap_usos.get("lista"), 22)
+        self.assertEqual(cap_usos.get("luna"), cap_usos.get("tag"))
+        self.assertGreater(cap_usos.get("luna", 0), 0)
+        nature_usos = parse_usos(by_word["nature"]["usos"])
+        self.assertEqual(nature_usos, {"goal": 1, "grupo": 1})
+        self.assertNotIn("luna", nature_usos)
+        self.assertNotIn("tag", nature_usos)
         self.assertIn("captura", parse_usos(by_word["big_chain_chomp"]["usos"]))
         self.assertIn("goal", parse_usos(by_word["big_chain_chomp"]["usos"]))
         self.assertIn("captura", parse_usos(by_word["broodes_chain_chomp"]["usos"]))
@@ -301,6 +309,7 @@ class CatalogFilesExistTests(unittest.TestCase):
             "grupo": 130,
             "lista": 50,
             "tag": 99,
+            "luna": 99,
             "zona": 95,
         }.items():
             self.assertEqual(n_palabras_by_uso[uso], want)
@@ -403,18 +412,17 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertIn("zona", parse_usos(by_word["cap_odyssey"]["usos"]))
         self.assertIn("zona", parse_usos(by_word["sand_southwest"]["usos"]))
         self.assertNotIn("odyssey", by_word)
-        # Capturas: goal/luna/lista + captura (pool captures repartido por slug).
+        # Capturas especiales: goal+captura; luna solo si el slug es tag en lunas.
         self.assertIn("captura", parse_usos(by_word["binoculars"]["usos"]))
         self.assertIn("lista", parse_usos(by_word["binoculars"]["usos"]))
         self.assertIn("goal", parse_usos(by_word["binoculars"]["usos"]))
         self.assertNotIn("luna", parse_usos(by_word["binoculars"]["usos"]))
-        self.assertIn("luna", parse_usos(by_word["meat"]["usos"]))
         self.assertEqual(
             by_word["meat"]["usos"],
-            {"captura": 1, "goal": 1, "luna": 1},
+            {"captura": 1, "goal": 1},
         )
-        self.assertEqual(by_word["meat"]["n_usos"], 3)
-        self.assertIn("luna", parse_usos(by_word["bowser_statue"]["usos"]))
+        self.assertEqual(by_word["meat"]["n_usos"], 2)
+        self.assertNotIn("luna", parse_usos(by_word["bowser_statue"]["usos"]))
         self.assertIn("goal", parse_usos(by_word["bowser_statue"]["usos"]))
         self.assertEqual(len(lineas_data.get("groups") or []), 24)
         self.assertEqual(
@@ -435,15 +443,15 @@ class CatalogFilesExistTests(unittest.TestCase):
         )
         self.assertEqual(
             parse_usos(by_word["broodes_chain_chomp"]["usos"]),
-            {"captura": 1, "goal": 1, "lista": 2, "luna": 1},
+            {"captura": 1, "goal": 1, "lista": 2},
         )
         self.assertEqual(
             parse_usos(by_word["cactus"]["usos"]),
-            {"captura": 3, "goal": 1, "luna": 3},
+            {"captura": 3, "goal": 1},
         )
         self.assertEqual(
             parse_usos(by_word["tree"]["usos"]),
-            {"goal": 1, "luna": 3},
+            {"goal": 1},
         )
         self.assertEqual(
             parse_usos(by_word["checkpoint"]["usos"]),
@@ -468,9 +476,16 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertEqual(by_word["8bit"]["n_usos"], 80)
         self.assertEqual(
             parse_usos(by_word["uproot"]["usos"]),
-            {"captura": 11, "goal": 1, "grupo": 1, "lista": 1, "luna": 2, "tag": 2},
+            {"captura": 11, "goal": 1, "grupo": 1, "lista": 1, "luna": 3, "tag": 3},
         )
-        # Grupo: goal/luna/lista = n del bingo_groups (lista efectiva si omitida).
+        # Grupo: goal/lista = n del bingo_groups; luna solo si es tag real.
+        tags_inv = {
+            t["tag"]
+            for t in json.loads(
+                (CATALOG_DIR / "tags_inventario.json").read_text(encoding="utf-8")
+            ).get("tags")
+            or []
+        }
         groups_by_id = {g["id"]: g for g in groups_data}
         for g in groups_data:
             gid = g["id"]
@@ -480,8 +495,13 @@ class CatalogFilesExistTests(unittest.TestCase):
             with self.subTest(grupo_items=gid):
                 if int(n_counts.get("objectives") or 0) > 0:
                     self.assertEqual(parsed.get("goal"), n_counts["objectives"])
-                if int(n_counts.get("moons") or 0) > 0:
-                    self.assertEqual(parsed.get("luna"), n_counts["moons"])
+                if gid in tags_inv:
+                    self.assertIn("luna", parsed)
+                    self.assertIn("tag", parsed)
+                    self.assertEqual(parsed.get("luna"), parsed.get("tag"))
+                else:
+                    self.assertNotIn("luna", parsed)
+                    self.assertNotIn("tag", parsed)
                 if "lista" in parsed:
                     want_lista_n = _resolve_lista_n(
                         gid,
@@ -549,7 +569,7 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertIn("pixel_luigis", tost_sources)
         self.assertIn("jaxi_stands", tost_sources)
         self.assertEqual(
-            sum(1 for it in tost["list"] if it["source"] == "regionals"), 7
+            sum(1 for it in tost["list"] if it["source"] == "regionals"), 8
         )
         for it in tost["list"]:
             self.assertEqual(it["kingdom"], "sand")
@@ -612,15 +632,16 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertNotIn("n_with_zone", gl)
         self.assertNotIn("n_without_zone", gl)
         self.assertNotIn("binoculars", gl["lists"])
-        # Binoculars cuentan en n_items pero no van a zones[] (sin zone).
+        # Binoculars cuentan en n_items y llevan zone provisional (hub del reino).
         bin_in_zones = [
             it
             for z in data["zones"]
             for it in z["list"]
             if it.get("source") == "binoculars"
         ]
-        self.assertEqual(bin_in_zones, [])
-        self.assertGreaterEqual(data["n_without_zone"], n_binoculars)
+        self.assertEqual(len(bin_in_zones), n_binoculars)
+        self.assertTrue(all(it.get("zone") for it in bin_in_zones))
+        self.assertEqual(data["n_without_zone"], 0)
         pixel_sources = {
             it["source"]
             for z in data["zones"]
@@ -1307,7 +1328,7 @@ class BingoGroupsSyncTests(unittest.TestCase):
         self.assertEqual(
             data["n_lista_total"],
             int(gl["n_items"]) + n_binoculars,
-            "n_lista_total = goal_lists.n_items + ubicaciones Binoculars",
+            "n_lista_total = goal_lists.n_items + binoculars (capturas_lunas)",
         )
         self.assertNotIn("n_groups_both", data)
         self.assertNotIn("n_groups_empty", data)
@@ -1863,14 +1884,29 @@ class ProjectAndLunasTests(unittest.TestCase):
 
 
 class ItemsGoalsTests(unittest.TestCase):
-    def test_without_goals_only_crazy_cap(self) -> None:
-        """Solo las 11 Crazy Cap quedan sin goal (P-Switches multi-reino sí cuentan)."""
+    def test_all_items_have_goals(self) -> None:
+        """Ningún ítem del universo zonas queda sin goal (Crazy Cap → Shop Moon)."""
         data = json.loads((CATALOG_DIR / "items_goals.json").read_text(encoding="utf-8"))
         without = [it for it in data["items"] if not (it.get("goals") or [])]
-        self.assertEqual(data.get("n_without_goals"), 11)
-        self.assertEqual(len(without), 11)
-        self.assertTrue(all(it.get("name") == "Crazy Cap" for it in without))
+        self.assertEqual(data.get("n_without_goals"), 0)
+        self.assertEqual(without, [])
         by_id = {it["id"]: it for it in data["items"]}
+        cap_shop = by_id["cap/shops/26"]
+        for goal in (
+            "Cap Shop Moon",
+            "Purchase {{X}} Costume Sets",
+            "Purchase {{X}} Hats",
+            "{{X}} Souvenirs",
+            "{{X}} Stickers",
+        ):
+            self.assertIn(goal, cap_shop.get("goals") or [], goal)
+        self.assertNotIn("{{X}} Shop Moons", cap_shop.get("goals") or [])
+        sand_shop = by_id["sand/shops/67"]
+        self.assertIn("Sand Shop Moon", sand_shop.get("goals") or [])
+        self.assertNotIn("Snow Boxer Shorts Moon", sand_shop.get("goals") or [])
+        self.assertNotIn("{{X}} Shop Moons", sand_shop.get("goals") or [])
+        self.assertEqual(len(cap_shop.get("goals") or []), 5)
+        self.assertEqual(len(sand_shop.get("goals") or []), 5)
         for pid in (
             "sand/p_switches/36",
             "lake/p_switches/13",
@@ -2014,11 +2050,11 @@ class GoalReferenciaHubTests(unittest.TestCase):
                     self.assertEqual(list(row)[-1], "tag")
 
     def test_moon_tag_false_when_pool_without_concrete_tag(self) -> None:
-        """Pool con tag de grupo no aplicada a lunas → moons[].tag=false."""
+        """Nature = paraguas fauna+flora (sin tag nature); Sub-Area sí marca tag."""
         g = self.by_goal["{{X}} Nature Moons"]
-        self.assertEqual(g.get("tags"), ["nature"])
+        self.assertNotIn("tags", g)
         self.assertTrue(g.get("moons"))
-        self.assertTrue(all(row.get("tag") is False for row in g["moons"]))
+        self.assertTrue(all("tag" not in row for row in g["moons"]))
         # Sub-Area de reino: mini_rocket / beanstalk caen sub_area (sin tag).
         # Outfit door (Folding #31+#32) ya no está en el pool Sub-Area.
         sub = self.by_goal["{{X}} Bowser's Sub-Area Moons"]
@@ -2174,6 +2210,45 @@ class GoalListsTests(unittest.TestCase):
         item = g["lista"][0]
         self.assertEqual(item.get("source"), "sphynxes")
         self.assertEqual(item.get("name"), "Wooded Sphynx")
+
+
+class ReviewFindingsTests(unittest.TestCase):
+    def test_fronts_run_and_shape(self) -> None:
+        from review_findings import FRONTS, findings_payload, run_fronts
+
+        self.assertIn("zones", FRONTS)
+        self.assertIn("items", FRONTS)
+        findings = run_fronts(["items", "combined"])
+        self.assertGreater(len(findings), 0)
+        for f in findings:
+            self.assertIn(f.severity, {"info", "review", "warn"})
+            self.assertTrue(f.front)
+            self.assertTrue(f.code)
+            self.assertTrue(f.summary)
+        payload = findings_payload(findings, ["items", "combined"])
+        self.assertEqual(payload["n_findings"], len(findings))
+        self.assertIn("n_by_severity", payload)
+
+    def test_zones_front_skips_null_and_sin_zone(self) -> None:
+        from review_findings import findings_payload, run_fronts
+
+        zr = CATALOG_DIR / "zonas_revision.json"
+        if not zr.is_file():
+            self.skipTest("zonas_revision.json local ausente")
+        findings = run_fronts(["zones"])
+        codes = {f.code for f in findings}
+        self.assertNotIn("method:sin_zone", codes)
+        payload = findings_payload(findings, ["zones"])
+        summary = next(f for f in payload["findings"] if f["code"] == "summary")
+        self.assertNotIn("n_without_zone", summary.get("detail") or {})
+        self.assertNotIn("sin_zone", (summary.get("detail") or {}).get("by_method") or {})
+        self.assertNotIn("sin zone", summary["summary"].lower())
+        for f in payload["findings"]:
+            for sample in (f.get("detail") or {}).get("samples") or []:
+                self.assertTrue(sample.get("kingdom"), sample)
+                if "zone" in sample:
+                    self.assertTrue(sample["zone"])
+                self.assertNotIn(None, sample.values())
 
 
 class RegionalCategoriesTests(unittest.TestCase):
