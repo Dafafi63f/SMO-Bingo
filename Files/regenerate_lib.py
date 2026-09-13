@@ -449,6 +449,86 @@ def is_first_run(state: dict[str, Any]) -> bool:
     return not (state.get("steps") or {})
 
 
+def _maybe_print_first_run(state: dict[str, Any], *, force: bool, dry_run: bool) -> None:
+    if is_first_run(state) and not force and not dry_run:
+        print(
+            "Primera corrida (sin .regenerate_state.json): "
+            "pipeline completo; las siguientes serán incrementales."
+        )
+
+
+def _step_run_needs(
+    step: RegenerateStep,
+    *,
+    state: dict[str, Any],
+    force: bool,
+    dirty: bool,
+    fp_cache: dict[str, str],
+) -> tuple[bool, str]:
+    needs, reason = step_needs_run(
+        step,
+        state=state,
+        force=force,
+        upstream_dirty=dirty,
+        fp_cache=fp_cache,
+    )
+    if step.id == "clear_caches" and not dirty and not force:
+        return False, "nothing changed"
+    return needs, reason
+
+
+def _dry_run_would_dirty(step: RegenerateStep) -> bool:
+    if step.id != "stamp_combined":
+        return True
+    from datetime import date
+
+    from catalog_lib import COMBINED_NAME_PREFIX, discover_combined_path
+
+    today_name = f"{COMBINED_NAME_PREFIX}{date.today().isoformat()}.json"
+    return discover_combined_path().name != today_name
+
+
+def _combined_path_before_step(step: RegenerateStep) -> Path | None:
+    if step.id != "stamp_combined":
+        return None
+    from catalog_lib import discover_combined_path
+
+    return discover_combined_path().resolve()
+
+
+def _step_success_marks_dirty(step: RegenerateStep, before_combined: Path | None) -> bool:
+    if step.id != "stamp_combined":
+        return True
+    from catalog_lib import discover_combined_path
+
+    after_combined = discover_combined_path().resolve()
+    return before_combined is None or before_combined != after_combined
+
+
+def _execute_pipeline_step(
+    step: RegenerateStep,
+    *,
+    state: dict[str, Any],
+    fp_cache: dict[str, str],
+) -> tuple[int | None, bool]:
+    """Ejecuta un paso. Devuelve (exit_code si falla, marca dirty)."""
+    t0 = time.perf_counter()
+    before_combined = _combined_path_before_step(step)
+    try:
+        code = int(step.run() or 0)
+    except Exception as exc:
+        print(f"  ERROR: {exc}", flush=True)
+        return 1, False
+    elapsed = time.perf_counter() - t0
+    if code != 0:
+        print(f"  FALLO ({code}) tras {elapsed:.1f}s")
+        return code, False
+    record_step_success(step, state, fp_cache)
+    save_state(state)
+    print(f"  ok ({elapsed:.1f}s)")
+    return None, _step_success_marks_dirty(step, before_combined)
+
+
 def run_pipeline(
     *,
     force: bool = False,
@@ -463,22 +543,12 @@ def run_pipeline(
     skipped = 0
     total = len(steps)
 
-    if is_first_run(state) and not force and not dry_run:
-        print(
-            "Primera corrida (sin .regenerate_state.json): "
-            "pipeline completo; las siguientes serán incrementales."
-        )
+    _maybe_print_first_run(state, force=force, dry_run=dry_run)
 
     for step in steps:
-        needs, reason = step_needs_run(
-            step,
-            state=state,
-            force=force,
-            upstream_dirty=dirty,
-            fp_cache=fp_cache,
+        needs, reason = _step_run_needs(
+            step, state=state, force=force, dirty=dirty, fp_cache=fp_cache
         )
-        if step.id == "clear_caches" and not dirty and not force:
-            needs, reason = False, "nothing changed"
 
         if not needs:
             skipped += 1
@@ -489,46 +559,17 @@ def run_pipeline(
         print(f"\n=== {step.label} ===")
         if dry_run:
             print(f"  ejecutaría ({reason})")
-            if step.id == "stamp_combined":
-                from datetime import date
-
-                from catalog_lib import COMBINED_NAME_PREFIX, discover_combined_path
-
-                today_name = f"{COMBINED_NAME_PREFIX}{date.today().isoformat()}.json"
-                if discover_combined_path().name != today_name:
-                    dirty = True
-            else:
-                dirty = True
+            dirty = dirty or _dry_run_would_dirty(step)
             ran += 1
             continue
 
-        t0 = time.perf_counter()
-        before_combined: Path | None = None
-        if step.id == "stamp_combined":
-            from catalog_lib import discover_combined_path
-
-            before_combined = discover_combined_path().resolve()
-        try:
-            code = int(step.run() or 0)
-        except Exception as exc:
-            print(f"  ERROR: {exc}", flush=True)
-            return 1, ran, skipped, total
-        elapsed = time.perf_counter() - t0
-        if code != 0:
-            print(f"  FALLO ({code}) tras {elapsed:.1f}s")
-            return code, ran, skipped, total
-        record_step_success(step, state, fp_cache)
-        save_state(state)
-        if step.id == "stamp_combined":
-            from catalog_lib import discover_combined_path
-
-            after_combined = discover_combined_path().resolve()
-            if before_combined is None or before_combined != after_combined:
-                dirty = True
-        else:
-            dirty = True
+        exit_code, step_dirty = _execute_pipeline_step(
+            step, state=state, fp_cache=fp_cache
+        )
+        if exit_code is not None:
+            return exit_code, ran, skipped, total
+        dirty = dirty or step_dirty
         ran += 1
-        print(f"  ok ({elapsed:.1f}s)")
 
     if not dry_run and ran:
         save_state(state)

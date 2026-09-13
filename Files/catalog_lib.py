@@ -264,6 +264,53 @@ def apply_lunas_catalog_tags(
     return out
 
 
+def _remap_cloud_story_order(value: list) -> list:
+    seen: set[str] = set()
+    order: list[str] = []
+    for item in value:
+        slug = catalog_kingdom(item) if isinstance(item, str) else item
+        if isinstance(slug, str):
+            if slug in seen:
+                continue
+            seen.add(slug)
+            order.append(slug)
+        else:
+            order.append(slug)
+    return order
+
+
+def _remap_cloud_boss_only_kingdoms(value: object) -> object:
+    if isinstance(value, dict):
+        return {
+            catalog_kingdom(k): v
+            for k, v in value.items()
+            if k != _CLOUD_KINGDOM
+        }
+    if isinstance(value, list):
+        return [
+            catalog_kingdom(x)
+            for x in value
+            if catalog_kingdom(x) != "lost"
+        ]
+    return remap_cloud_slugs_for_export(value)
+
+
+def _remap_cloud_dict_value(key: str, value: object) -> object:
+    if key == "kingdom" and isinstance(value, str):
+        return catalog_kingdom(value)
+    if key == "id" and value == _CLOUD_KINGDOM:
+        return "lost"
+    if key == "story_order" and isinstance(value, list):
+        return _remap_cloud_story_order(value)
+    if key == "_boss_only_kingdoms":
+        return _remap_cloud_boss_only_kingdoms(value)
+    if key == "reinos" and isinstance(value, list):
+        return [
+            catalog_kingdom(x) if isinstance(x, str) else x for x in value
+        ]
+    return remap_cloud_slugs_for_export(value)
+
+
 def remap_cloud_slugs_for_export(data: object) -> object:
     """Al escribir JSON: alias cloud→lost (no reescribe kingdom de lunas metro)."""
     if isinstance(data, dict):
@@ -271,44 +318,7 @@ def remap_cloud_slugs_for_export(data: object) -> object:
         for key, value in data.items():
             if key == _CLOUD_KINGDOM:
                 continue
-            if key == "kingdom" and isinstance(value, str):
-                out[key] = catalog_kingdom(value)
-            elif key == "id" and value == _CLOUD_KINGDOM:
-                out[key] = "lost"
-            elif key == "story_order" and isinstance(value, list):
-                seen: set[str] = set()
-                order: list[str] = []
-                for item in value:
-                    slug = catalog_kingdom(item) if isinstance(item, str) else item
-                    if isinstance(slug, str):
-                        if slug in seen:
-                            continue
-                        seen.add(slug)
-                        order.append(slug)
-                    else:
-                        order.append(slug)
-                out[key] = order
-            elif key == "_boss_only_kingdoms":
-                if isinstance(value, dict):
-                    out[key] = {
-                        catalog_kingdom(k): v
-                        for k, v in value.items()
-                        if k != _CLOUD_KINGDOM
-                    }
-                elif isinstance(value, list):
-                    out[key] = [
-                        catalog_kingdom(x)
-                        for x in value
-                        if catalog_kingdom(x) != "lost"
-                    ]
-                else:
-                    out[key] = remap_cloud_slugs_for_export(value)
-            elif key == "reinos" and isinstance(value, list):
-                out[key] = [
-                    catalog_kingdom(x) if isinstance(x, str) else x for x in value
-                ]
-            else:
-                out[key] = remap_cloud_slugs_for_export(value)
+            out[key] = _remap_cloud_dict_value(key, value)
         return out
     if isinstance(data, list):
         return [remap_cloud_slugs_for_export(x) for x in data]
@@ -1358,6 +1368,22 @@ EXCLUDED_NAME_MARKERS = (
 )
 
 
+def _parse_wiki_moon_entry(value: object) -> dict[str, str]:
+    if isinstance(value, str):
+        return {
+            "name": value,
+            "type": "",
+            "prerequisite": "",
+            "description": "",
+        }
+    return {
+        "name": str(value.get("name") or ""),
+        "type": str(value.get("type") or ""),
+        "prerequisite": str(value.get("prerequisite") or ""),
+        "description": str(value.get("description") or ""),
+    }
+
+
 def _parse_wiki_moon_table(raw: dict) -> dict[str, dict[int, dict[str, str]]]:
     """Tabla kingdom → moon → {name,type,prerequisite,description}."""
     result: dict[str, dict[int, dict[str, str]]] = {}
@@ -1370,20 +1396,7 @@ def _parse_wiki_moon_table(raw: dict) -> dict[str, dict[int, dict[str, str]]]:
                 moon_num = int(num)
             except (TypeError, ValueError):
                 continue
-            if isinstance(value, str):
-                parsed[moon_num] = {
-                    "name": value,
-                    "type": "",
-                    "prerequisite": "",
-                    "description": "",
-                }
-            else:
-                parsed[moon_num] = {
-                    "name": str(value.get("name") or ""),
-                    "type": str(value.get("type") or ""),
-                    "prerequisite": str(value.get("prerequisite") or ""),
-                    "description": str(value.get("description") or ""),
-                }
+            parsed[moon_num] = _parse_wiki_moon_entry(value)
         result[kingdom] = parsed
     return result
 
@@ -2187,9 +2200,9 @@ _GROUP_GOAL_TAG_KIND_HEADER_ORDER: tuple[str, ...] = tuple(
 )
 
 
-def finalize_bingo_groups_doc(bingo: dict) -> dict:
-    """Cabecera n_groups + conteos por kind / gaps / totales de pool."""
-    groups = list(bingo.get("groups") or [])
+def _count_bingo_group_kinds(
+    groups: list[dict],
+) -> tuple[dict[str, int], dict[str, int]]:
     kind_counts = dict.fromkeys(_GROUP_KIND_HEADER, 0)
     goal_tag_counts = dict.fromkeys(_GROUP_GOAL_TAG_KIND_HEADER, 0)
     for g in groups:
@@ -2201,15 +2214,21 @@ def finalize_bingo_groups_doc(bingo: dict) -> dict:
         gtk = str(g.get("kind_goal_tag") or group_goal_tag_kind(g))
         if gtk in goal_tag_counts:
             goal_tag_counts[gtk] += 1
+    return kind_counts, goal_tag_counts
 
-    bingo["n_groups"] = len(groups)
+
+def _apply_bingo_kind_header_counts(
+    bingo: dict,
+    *,
+    kind_counts: dict[str, int],
+    goal_tag_counts: dict[str, int],
+) -> None:
     for kind, header_key in _GROUP_KIND_HEADER.items():
         n = kind_counts[kind]
         if n:
             bingo[header_key] = n
         else:
             bingo.pop(header_key, None)
-
     for gtk, header_key in _GROUP_GOAL_TAG_KIND_HEADER.items():
         n = goal_tag_counts[gtk]
         if n:
@@ -2218,7 +2237,8 @@ def finalize_bingo_groups_doc(bingo: dict) -> dict:
             bingo.pop(header_key, None)
     bingo.pop("n_groups_goal_lt_tag", None)
 
-    # Legacy keys ya no se escriben.
+
+def _cleanup_bingo_groups_legacy_keys(bingo: dict) -> None:
     for legacy in (
         "n_groups_both",
         "n_groups_empty",
@@ -2226,31 +2246,51 @@ def finalize_bingo_groups_doc(bingo: dict) -> dict:
         "n_groups_without_goals",
         "n_groups_without_moons",
         "n_groups_without_lista",
+        "n_groups_with_goals",
+        "n_groups_with_tag",
+        "n_groups_tag_false",
     ):
         bingo.pop(legacy, None)
 
-    # Mismo criterio que filtrar has.objectives / has.moons / has.lista.
+
+def _apply_bingo_groups_pool_headers(bingo: dict, groups: list[dict]) -> None:
     bingo["n_groups_with_objectives"] = sum(
         1 for g in groups if group_has_pool(g, "objectives")
     )
-    bingo.pop("n_groups_with_goals", None)
     bingo["n_groups_with_moons"] = sum(
         1 for g in groups if group_has_pool(g, "moons")
     )
     bingo["n_groups_with_lista"] = sum(
         1 for g in groups if group_has_pool(g, "lista")
     )
-    bingo.pop("n_groups_with_tag", None)
     n_sin_tag_inv = sum(1 for g in groups if g.get("tag_inventario") is False)
     if n_sin_tag_inv:
         bingo["n_groups_sin_tag_inventario"] = n_sin_tag_inv
     else:
         bingo.pop("n_groups_sin_tag_inventario", None)
-    bingo.pop("n_groups_tag_false", None)
 
-    # Totales únicos en todo el file (una goal/luna/ítem lista no se cuenta 2×).
+
+def _collect_unique_lista_keys(
+    group: dict, combined_by_goal: dict[str, dict]
+) -> set[tuple]:
     from goal_list_lib import list_item_match_key
 
+    uniq_lista: set[tuple] = set()
+    src_hint = str(group.get("lista_source") or "") or None
+    lista_items, _ = _resolve_bingo_group_lista_items(group, combined_by_goal)
+    for it in lista_items:
+        list_name = str(it.get("source") or "") or None
+        if not list_name and src_hint and "+" not in src_hint:
+            list_name = src_hint
+        if not list_name:
+            continue
+        uniq_lista.add(list_item_match_key(it, list_name=list_name))
+    return uniq_lista
+
+
+def _count_unique_bingo_pool_totals(
+    groups: list[dict],
+) -> tuple[int, int, int]:
     uniq_goals: set[str] = set()
     uniq_moons: set[tuple[str, int]] = set()
     uniq_lista: set[tuple] = set()
@@ -2261,23 +2301,11 @@ def finalize_bingo_groups_doc(bingo: dict) -> dict:
                 uniq_goals.add(str(o["goal"]))
         for m in _resolve_bingo_group_moons_raw(g):
             uniq_moons.add((str(m["kingdom"]), int(m["moon"])))
-        src_hint = str(g.get("lista_source") or "") or None
-        lista_items, _ = _resolve_bingo_group_lista_items(g, combined_by_goal)
-        for it in lista_items:
-            list_name = str(it.get("source") or "") or None
-            if not list_name and src_hint and "+" not in src_hint:
-                list_name = src_hint
-            # Cuenta ítems únicos con source (goal_lists + binoculars en captures).
-            if not list_name:
-                continue
-            uniq_lista.add(list_item_match_key(it, list_name=list_name))
-    bingo["n_objectives_total"] = len(uniq_goals)
-    bingo["n_moons_total"] = len(uniq_moons)
-    bingo["n_lista_total"] = len(uniq_lista)
+        uniq_lista.update(_collect_unique_lista_keys(g, combined_by_goal))
+    return len(uniq_goals), len(uniq_moons), len(uniq_lista)
 
-    bingo["_definition"] = BINGO_GROUPS_DEFINITION
-    bingo["_note"] = BINGO_GROUPS_NOTE
 
+def _order_bingo_groups_doc(bingo: dict) -> dict:
     header_keys = (
         "_definition",
         "_note",
@@ -2301,6 +2329,25 @@ def finalize_bingo_groups_doc(bingo: dict) -> dict:
         if key not in ordered:
             ordered[key] = value
     return ordered
+
+
+def finalize_bingo_groups_doc(bingo: dict) -> dict:
+    """Cabecera n_groups + conteos por kind / gaps / totales de pool."""
+    groups = list(bingo.get("groups") or [])
+    kind_counts, goal_tag_counts = _count_bingo_group_kinds(groups)
+    bingo["n_groups"] = len(groups)
+    _apply_bingo_kind_header_counts(
+        bingo, kind_counts=kind_counts, goal_tag_counts=goal_tag_counts
+    )
+    _cleanup_bingo_groups_legacy_keys(bingo)
+    _apply_bingo_groups_pool_headers(bingo, groups)
+    n_objectives, n_moons, n_lista = _count_unique_bingo_pool_totals(groups)
+    bingo["n_objectives_total"] = n_objectives
+    bingo["n_moons_total"] = n_moons
+    bingo["n_lista_total"] = n_lista
+    bingo["_definition"] = BINGO_GROUPS_DEFINITION
+    bingo["_note"] = BINGO_GROUPS_NOTE
+    return _order_bingo_groups_doc(bingo)
 
 
 def load_bingo_group_moon_keys() -> set[tuple[str, int]]:
@@ -2711,37 +2758,39 @@ def group_id_has_catalog_tag(group_id: str | None) -> bool:
     return gid in catalog_tag_ids()
 
 
+def _group_has_objectives(group: dict) -> bool:
+    objs = group.get("objectives")
+    if isinstance(objs, list):
+        return bool(objs)
+    return group_has_pool(group, "objectives") or bool(
+        group_n_pool(group, "objectives")
+    )
+
+
+def _group_has_moons(group: dict) -> bool:
+    if "moons" in group or isinstance(group.get("moons"), list):
+        return bool(group_moons(group))
+    return group_has_pool(group, "moons") or bool(group_n_pool(group, "moons"))
+
+
+def _group_has_lista(group: dict) -> bool:
+    if "lista" in group or isinstance(group.get("lista"), list):
+        return bool(group_lista(group))
+    return group_has_pool(group, "lista") or bool(group_n_pool(group, "lista"))
+
+
 def group_kind(group: dict) -> str:
     """Tipo de grupo según pools presentes.
 
     goals | moons | lista | goals+moons | goals+lista | moons+lista |
     todo | nada.
     """
-    objs = group.get("objectives")
-    if isinstance(objs, list):
-        has_objectives = bool(objs)
-    else:
-        has_objectives = group_has_pool(group, "objectives") or bool(
-            group_n_pool(group, "objectives")
-        )
-    if "moons" in group or isinstance(group.get("moons"), list):
-        has_moons = bool(group_moons(group))
-    else:
-        has_moons = group_has_pool(group, "moons") or bool(
-            group_n_pool(group, "moons")
-        )
-    if "lista" in group or isinstance(group.get("lista"), list):
-        has_lista = bool(group_lista(group))
-    else:
-        has_lista = group_has_pool(group, "lista") or bool(
-            group_n_pool(group, "lista")
-        )
     parts: list[str] = []
-    if has_objectives:
+    if _group_has_objectives(group):
         parts.append("goals")
-    if has_moons:
+    if _group_has_moons(group):
         parts.append("moons")
-    if has_lista:
+    if _group_has_lista(group):
         parts.append("lista")
     if not parts:
         return "nada"
@@ -2979,32 +3028,43 @@ def _spec_for_bingo_group(group_id: str) -> dict:
     return dict(OBJECTIVE_MOON_GROUP_SPECS.get(spec_key, {}) or {})
 
 
-def _tag_only_moon_keys(group: dict) -> set[tuple[str, int]]:
-    """Claves (kingdom, moon) de tag_only: en el grupo o en el SPEC."""
+def _tag_only_key_from_raw(raw: dict) -> tuple[str, int] | None:
+    try:
+        return (str(raw["kingdom"]), int(raw["moon"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _tag_only_keys_from_spec_pairs(pairs: list) -> set[tuple[str, int]]:
     out: set[tuple[str, int]] = set()
-    for raw in group.get("tag_only_moons") or []:
-        if not isinstance(raw, dict):
-            continue
-        try:
-            out.add((str(raw["kingdom"]), int(raw["moon"])))
-        except (KeyError, TypeError, ValueError):
-            continue
-    if out:
-        return out
-    for pair in _spec_for_bingo_group(str(group.get("id") or "")).get(
-        "tag_only_moons"
-    ) or []:
+    for pair in pairs:
         if isinstance(pair, (list, tuple)) and len(pair) >= 2:
             try:
                 out.add((str(pair[0]), int(pair[1])))
             except (TypeError, ValueError):
                 continue
         elif isinstance(pair, dict):
-            try:
-                out.add((str(pair["kingdom"]), int(pair["moon"])))
-            except (KeyError, TypeError, ValueError):
-                continue
+            key = _tag_only_key_from_raw(pair)
+            if key:
+                out.add(key)
     return out
+
+
+def _tag_only_moon_keys(group: dict) -> set[tuple[str, int]]:
+    """Claves (kingdom, moon) de tag_only: en el grupo o en el SPEC."""
+    out: set[tuple[str, int]] = set()
+    for raw in group.get("tag_only_moons") or []:
+        if not isinstance(raw, dict):
+            continue
+        key = _tag_only_key_from_raw(raw)
+        if key:
+            out.add(key)
+    if out:
+        return out
+    spec_pairs = _spec_for_bingo_group(str(group.get("id") or "")).get(
+        "tag_only_moons"
+    ) or []
+    return _tag_only_keys_from_spec_pairs(spec_pairs)
 
 
 def _group_moon_tag_flag_keys(group: dict) -> set[str]:
@@ -3129,65 +3189,120 @@ def annotate_bingo_group_moons(
     return out
 
 
-def normalize_bingo_group(
+def _normalize_bingo_group_goals_only(
     group: dict,
-    combined_by_goal: dict[str, dict] | None = None,
-) -> dict:
-    """Normaliza un grupo: objectives, moons y lista (goal_lists) separados."""
-    if combined_by_goal is None:
-        combined_by_goal = load_combined_objectives_by_goal()
-    objectives = group_objective_refs(group, combined_by_goal)
-    # Reinos: orden curado (Moons → Regional → Checkpoints → …).
-    # Resto: {{X}} primero + alfabetico (como Combined).
-    if group.get("id") not in KINGDOM_COLUMNS:
-        objectives.sort(key=lambda o: objective_goal_sort_key(str(o.get("goal") or "")))
-    goals_only = _bingo_group_goals_only(group)
-    has_catalog_tag = group_id_has_catalog_tag(group.get("id"))
+    objectives: list[dict],
+    combined_by_goal: dict[str, dict],
+) -> tuple[list[dict], list[dict], list[dict], int, int, int, int, str | None]:
     from goal_list_lib import build_bingo_group_lista
 
-    # Lunas: se conserva el orden; enriquecer name/disponibilidad/odyssey.
-    # goals_only: moons[] vacío; lista[] omitida en JSON pero n.lista calculado.
-    if goals_only:
-        moons: list[dict] = []
-        odyssey_units = 0
-        n_goal = 0
-        n_tag = 0
-        lista_computed, lista_source = build_bingo_group_lista(
-            group,
-            objectives,
-            combined_by_goal=combined_by_goal,
+    lista_computed, lista_source = build_bingo_group_lista(
+        group,
+        objectives,
+        combined_by_goal=combined_by_goal,
+    )
+    return [], [], lista_computed, 0, 0, 0, len(lista_computed), lista_source
+
+
+def _normalize_bingo_group_with_moons(
+    group: dict,
+    objectives: list[dict],
+    combined_by_goal: dict[str, dict],
+    *,
+    has_catalog_tag: bool,
+) -> tuple[list[dict], list[dict], list[dict], int, int, int, int, str | None]:
+    from goal_list_lib import build_bingo_group_lista
+
+    moons_raw = _resolve_bingo_group_moons_raw(group)
+    registry = build_matrix_moon_registry()
+    spec = _spec_for_bingo_group(str(group.get("id") or ""))
+    work = dict(group)
+    if "apply_moon_tag" not in work and "apply_moon_tag" in spec:
+        work["apply_moon_tag"] = spec["apply_moon_tag"]
+    if "moon_tag" not in work and spec.get("moon_tag"):
+        work["moon_tag"] = spec["moon_tag"]
+    moons_full = annotate_bingo_group_moons(
+        work,
+        moons_raw,
+        registry,
+        has_catalog_tag=has_catalog_tag,
+    )
+    odyssey_units = sum_moon_odyssey_units(moons_full, registry)
+    n_goal = sum(1 for m in moons_full if m.get("goal"))
+    n_tag = sum(1 for m in moons_full if m.get("tag"))
+    lista_computed, lista_source = build_bingo_group_lista(
+        group,
+        objectives,
+        combined_by_goal=combined_by_goal,
+    )
+    omit_moons = _bingo_group_omit_moons(group)
+    moons = [] if omit_moons else moons_full
+    return (
+        moons_full,
+        moons,
+        lista_computed,
+        odyssey_units,
+        n_goal,
+        n_tag,
+        len(lista_computed),
+        lista_source,
+    )
+
+
+def _attach_normalized_moons_output(
+    out: dict,
+    *,
+    group: dict,
+    goals_only: bool,
+    moons_full: list[dict],
+    moons: list[dict],
+    odyssey_units: int,
+) -> None:
+    omit_moons = _bingo_group_omit_moons(group) if not goals_only else False
+    if not goals_only and omit_moons and moons_full:
+        out["moons_summary"] = summarize_bingo_moons_pool(
+            moons_full, odyssey_units=odyssey_units
         )
-        n_lista = len(lista_computed)
-        lista: list[dict] = []
     else:
-        moons_raw = _resolve_bingo_group_moons_raw(group)
-        registry = build_matrix_moon_registry()
-        # Inyectar flags de SPEC (apply_moon_tag) si el JSON ya los perdió.
-        spec = _spec_for_bingo_group(str(group.get("id") or ""))
-        work = dict(group)
-        if "apply_moon_tag" not in work and "apply_moon_tag" in spec:
-            work["apply_moon_tag"] = spec["apply_moon_tag"]
-        if "moon_tag" not in work and spec.get("moon_tag"):
-            work["moon_tag"] = spec["moon_tag"]
-        moons_full = annotate_bingo_group_moons(
-            work,
-            moons_raw,
-            registry,
-            has_catalog_tag=has_catalog_tag,
-        )
-        odyssey_units = sum_moon_odyssey_units(moons_full, registry)
-        n_goal = sum(1 for m in moons_full if m.get("goal"))
-        n_tag = sum(1 for m in moons_full if m.get("tag"))
-        lista_computed, lista_source = build_bingo_group_lista(
-            group,
-            objectives,
-            combined_by_goal=combined_by_goal,
-        )
-        n_lista = len(lista_computed)
-        lista = lista_computed
-        omit_moons = _bingo_group_omit_moons(group)
-        moons = [] if omit_moons else moons_full
+        out["moons"] = moons
+
+
+def _attach_normalized_lista_output(
+    out: dict,
+    *,
+    goals_only: bool,
+    lista: list[dict],
+    lista_computed: list[dict],
+    lista_source: str | None,
+    n_lista: int,
+) -> None:
     omit_lista = goals_only and n_lista > 0
+    if lista_source and lista:
+        out["lista_source"] = lista_source
+    if omit_lista and lista_computed:
+        out["lista_summary"] = summarize_bingo_lista_pool(
+            lista_computed,
+            regional_total=_lista_regional_total(lista_computed, lista_source),
+        )
+    else:
+        out["lista"] = lista
+
+
+def _assemble_normalized_bingo_group(
+    group: dict,
+    *,
+    objectives: list[dict],
+    goals_only: bool,
+    moons_full: list[dict],
+    moons: list[dict],
+    lista_computed: list[dict],
+    lista_source: str | None,
+    odyssey_units: int,
+    n_goal: int,
+    n_tag: int,
+    n_lista: int,
+) -> dict:
+    lista = [] if goals_only else lista_computed
     kind = group_kind(
         {
             "objectives": objectives,
@@ -3203,13 +3318,10 @@ def normalize_bingo_group(
         n_goal=n_goal,
         n_tag=n_tag,
     )
-    kind_goal_tag = group_goal_tag_kind({"n": n, "moons": moons_full if not goals_only else moons})
-
-    # Orden: id, orden, kind, kind_goal_tag, has, n, objectives/…
-    # Meta (moon_tag/capture/_note/…) no se persiste: specs en sync.
-    out: dict = {
-        "id": group["id"],
-    }
+    kind_goal_tag = group_goal_tag_kind(
+        {"n": n, "moons": moons_full if not goals_only else moons}
+    )
+    out: dict = {"id": group["id"]}
     if group.get("orden") is not None:
         out["orden"] = int(group["orden"])
     out["kind"] = kind
@@ -3218,24 +3330,79 @@ def normalize_bingo_group(
     out["has"] = has
     out["n"] = n
     out["objectives"] = objectives
-    if not goals_only and omit_moons and moons_full:
-        out["moons_summary"] = summarize_bingo_moons_pool(
-            moons_full, odyssey_units=odyssey_units
-        )
-        # Pool omitido: n.moons / moons_summary; sin moons: [].
-    else:
-        out["moons"] = moons
-    if lista_source and lista:
-        out["lista_source"] = lista_source
-    if omit_lista and lista_computed:
-        out["lista_summary"] = summarize_bingo_lista_pool(
-            lista_computed,
-            regional_total=_lista_regional_total(lista_computed, lista_source),
-        )
-        # Pool omitido (goals_only): n.lista / lista_summary; sin lista: [].
-    else:
-        out["lista"] = lista
+    _attach_normalized_moons_output(
+        out,
+        group=group,
+        goals_only=goals_only,
+        moons_full=moons_full,
+        moons=moons,
+        odyssey_units=odyssey_units,
+    )
+    _attach_normalized_lista_output(
+        out,
+        goals_only=goals_only,
+        lista=lista,
+        lista_computed=lista_computed,
+        lista_source=lista_source,
+        n_lista=n_lista,
+    )
     return out
+
+
+def normalize_bingo_group(
+    group: dict,
+    combined_by_goal: dict[str, dict] | None = None,
+) -> dict:
+    """Normaliza un grupo: objectives, moons y lista (goal_lists) separados."""
+    if combined_by_goal is None:
+        combined_by_goal = load_combined_objectives_by_goal()
+    objectives = group_objective_refs(group, combined_by_goal)
+    if group.get("id") not in KINGDOM_COLUMNS:
+        objectives.sort(key=lambda o: objective_goal_sort_key(str(o.get("goal") or "")))
+    goals_only = _bingo_group_goals_only(group)
+    has_catalog_tag = group_id_has_catalog_tag(group.get("id"))
+    if goals_only:
+        (
+            moons_full,
+            moons,
+            lista_computed,
+            odyssey_units,
+            n_goal,
+            n_tag,
+            n_lista,
+            lista_source,
+        ) = _normalize_bingo_group_goals_only(
+            group, objectives, combined_by_goal
+        )
+    else:
+        (
+            moons_full,
+            moons,
+            lista_computed,
+            odyssey_units,
+            n_goal,
+            n_tag,
+            n_lista,
+            lista_source,
+        ) = _normalize_bingo_group_with_moons(
+            group,
+            objectives,
+            combined_by_goal,
+            has_catalog_tag=has_catalog_tag,
+        )
+    return _assemble_normalized_bingo_group(
+        group,
+        objectives=objectives,
+        goals_only=goals_only,
+        moons_full=moons_full,
+        moons=moons,
+        lista_computed=lista_computed,
+        lista_source=lista_source,
+        odyssey_units=odyssey_units,
+        n_goal=n_goal,
+        n_tag=n_tag,
+        n_lista=n_lista,
+    )
 
 
 def assign_bingo_group_orden(groups: list[dict]) -> list[dict]:
@@ -3356,6 +3523,56 @@ def upsert_moon_tag_group(
     return len(moon_refs)
 
 
+def _group_moon_tag_count(group: dict, moons_raw: list) -> int:
+    if moons_raw and isinstance(moons_raw[0], dict) and any(
+        "goal" in m for m in moons_raw if isinstance(m, dict)
+    ):
+        return sum(
+            1
+            for m in moons_raw
+            if isinstance(m, dict) and m.get("goal") is not False
+        )
+    n = len(moons_raw)
+    if n <= 0:
+        return group_n_pool(group, "moons")
+    return n
+
+
+def _resolve_umbrella_moon_tags(
+    *,
+    n: int,
+    concrete: str,
+    particular: object,
+) -> set[str]:
+    if particular not in UMBRELLA_MOON_TAGS:
+        return set()
+    has_concrete = bool(
+        n >= CAPTURE_TAG_MIN and concrete and concrete != particular
+    )
+    if has_concrete:
+        return {concrete}
+    return {str(particular)}
+
+
+def _resolve_explicit_moon_tag(
+    group: dict,
+    *,
+    n: int,
+    concrete: str,
+    particular: object,
+) -> set[str] | None:
+    if not particular or particular == GROUP_MOON_TAG:
+        return None
+    if (
+        particular != concrete
+        or n >= GROUP_LARGE_MIN
+        or group.get("large") is True
+        or group.get("umbrella") is True
+    ):
+        return {str(particular)}
+    return None
+
+
 def group_moon_tags(group: dict) -> set[str]:
     """Tags de luna que aporta este grupo a cada miembro.
 
@@ -3368,39 +3585,19 @@ def group_moon_tags(group: dict) -> set[str]:
     if group.get("apply_moon_tag") is False:
         return set()
     moons_raw = group.get("moons") or []
-    # Umbral fauna/flora: solo lunas de goal (tag_only no sube el conteo →
-    # p. ej. dog n=2 + sheep tag_only sigue siendo fauna, no dog).
-    if moons_raw and isinstance(moons_raw[0], dict) and any(
-        "goal" in m for m in moons_raw if isinstance(m, dict)
-    ):
-        n = sum(
-            1
-            for m in moons_raw
-            if isinstance(m, dict) and m.get("goal") is not False
-        )
-    else:
-        n = len(moons_raw)
-        if n <= 0:
-            n = group_n_pool(group, "moons")
+    n = _group_moon_tag_count(group, moons_raw)
     concrete = strip_kingdom_prefix_from_id(str(group["id"]))
     particular = group.get("moon_tag") or group.get("tag")
-    if particular in UMBRELLA_MOON_TAGS:
-        has_concrete = bool(
-            n >= CAPTURE_TAG_MIN and concrete and concrete != particular
-        )
-        if has_concrete:
-            return {concrete}
-        return {str(particular)}
-    if particular and particular != GROUP_MOON_TAG:
-        # moon_tag explícito distinto del sufijo del id (p. ej. metro_minigames → minigame)
-        # o grupos large/umbrella / catálogos grandes.
-        if (
-            particular != concrete
-            or n >= GROUP_LARGE_MIN
-            or group.get("large") is True
-            or group.get("umbrella") is True
-        ):
-            return {str(particular)}
+    umbrella = _resolve_umbrella_moon_tags(
+        n=n, concrete=concrete, particular=particular
+    )
+    if umbrella:
+        return umbrella
+    explicit = _resolve_explicit_moon_tag(
+        group, n=n, concrete=concrete, particular=particular
+    )
+    if explicit:
+        return explicit
     return {concrete}
 
 
@@ -3713,6 +3910,42 @@ def sync_kingdom_groups() -> dict[str, int]:
     return counts
 
 
+def _tag_only_ref_from_pair(
+    pair: object, wiki: dict[str, dict[int, dict[str, str]]]
+) -> dict | None:
+    if isinstance(pair, (list, tuple)) and len(pair) >= 2:
+        kingdom = str(pair[0])
+        moon = int(pair[1])
+        wiki_name = (wiki.get(kingdom, {}) or {}).get(moon, {}).get("name")
+        return {
+            "kingdom": kingdom,
+            "moon": moon,
+            "name": wiki_name or f"Moon {moon}",
+        }
+    if isinstance(pair, dict) and "kingdom" in pair and "moon" in pair:
+        kingdom = str(pair["kingdom"])
+        moon = int(pair["moon"])
+        raw_name = pair.get("name")
+        wiki_name = (wiki.get(kingdom, {}) or {}).get(moon, {}).get("name")
+        if not raw_name or _is_moon_number_placeholder(str(raw_name)):
+            name = wiki_name or raw_name or f"Moon {moon}"
+        else:
+            name = raw_name
+        return {"kingdom": kingdom, "moon": moon, "name": name}
+    return None
+
+
+def _tag_only_moons_from_spec(
+    spec: dict, wiki: dict[str, dict[int, dict[str, str]]]
+) -> list[dict]:
+    tag_only: list[dict] = []
+    for pair in spec.get("tag_only_moons") or []:
+        ref = _tag_only_ref_from_pair(pair, wiki)
+        if ref:
+            tag_only.append(ref)
+    return tag_only
+
+
 def attach_bingo_group_spec_meta(group: dict) -> dict:
     """Reinyecta meta operativa desde OBJECTIVE_MOON_GROUP_SPECS (no en JSON)."""
     from sync_objective_moon_groups import (
@@ -3728,34 +3961,7 @@ def attach_bingo_group_spec_meta(group: dict) -> dict:
     if not spec:
         return out
     _apply_spec_flags(out, spec)
-    # tag_only: pairs del spec (sin registry; evita recursión con merge/tags).
-    # Nombres desde wiki si el placeholder sería "Moon N".
-    wiki = load_wiki_moon_meta()
-    tag_only: list[dict] = []
-    for pair in spec.get("tag_only_moons") or []:
-        if isinstance(pair, (list, tuple)) and len(pair) >= 2:
-            kingdom = str(pair[0])
-            moon = int(pair[1])
-            wiki_name = (wiki.get(kingdom, {}) or {}).get(moon, {}).get("name")
-            tag_only.append(
-                {
-                    "kingdom": kingdom,
-                    "moon": moon,
-                    "name": wiki_name or f"Moon {moon}",
-                }
-            )
-        elif isinstance(pair, dict) and "kingdom" in pair and "moon" in pair:
-            kingdom = str(pair["kingdom"])
-            moon = int(pair["moon"])
-            raw_name = pair.get("name")
-            wiki_name = (wiki.get(kingdom, {}) or {}).get(moon, {}).get("name")
-            if not raw_name or _is_moon_number_placeholder(str(raw_name)):
-                name = wiki_name or raw_name or f"Moon {moon}"
-            else:
-                name = raw_name
-            tag_only.append(
-                {"kingdom": kingdom, "moon": moon, "name": name}
-            )
+    tag_only = _tag_only_moons_from_spec(spec, load_wiki_moon_meta())
     if tag_only:
         out["tag_only_moons"] = tag_only
     return out

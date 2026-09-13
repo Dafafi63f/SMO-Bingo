@@ -148,6 +148,17 @@ def _guides_to_json(guides: dict[str, dict[int, dict[str, str]]]) -> dict:
     }
 
 
+def _parse_guide_moon_entry(value: object) -> dict[str, str] | None:
+    if not isinstance(value, dict):
+        return None
+    return {
+        "name": str(value.get("name") or ""),
+        "type": str(value.get("type") or ""),
+        "prerequisite": str(value.get("prerequisite") or ""),
+        "description": str(value.get("description") or ""),
+    }
+
+
 def _guides_from_json(raw: dict) -> dict[str, dict[int, dict[str, str]]]:
     guides: dict[str, dict[int, dict[str, str]]] = {}
     for kingdom, table in raw.items():
@@ -159,15 +170,40 @@ def _guides_from_json(raw: dict) -> dict[str, dict[int, dict[str, str]]]:
                 moon = int(num)
             except (TypeError, ValueError):
                 continue
-            if isinstance(value, dict):
-                parsed[moon] = {
-                    "name": str(value.get("name") or ""),
-                    "type": str(value.get("type") or ""),
-                    "prerequisite": str(value.get("prerequisite") or ""),
-                    "description": str(value.get("description") or ""),
-                }
+            entry = _parse_guide_moon_entry(value)
+            if entry is not None:
+                parsed[moon] = entry
         guides[kingdom] = parsed
     return guides
+
+
+def _merge_legacy_moon_entry(entry: dict[str, str], value: object) -> dict[str, str]:
+    if isinstance(value, str):
+        if value and not entry.get("name"):
+            entry["name"] = value
+        return entry
+    if not isinstance(value, dict):
+        return entry
+    for field in ("name", "type", "prerequisite"):
+        legacy_val = str(value.get(field) or "")
+        if legacy_val and not entry.get(field):
+            entry[field] = legacy_val
+    return entry
+
+
+def _merge_legacy_kingdom_table(
+    table: dict[int, dict[str, str]],
+    moons: dict,
+) -> dict[int, dict[str, str]]:
+    merged_table = dict(table)
+    for num, value in moons.items():
+        try:
+            moon = int(num)
+        except (TypeError, ValueError):
+            continue
+        entry = _merge_legacy_moon_entry(dict(merged_table.get(moon, {})), value)
+        merged_table[moon] = entry
+    return merged_table
 
 
 def merge_legacy_wiki_meta(
@@ -183,22 +219,7 @@ def merge_legacy_wiki_meta(
         if str(kingdom).startswith("_") or not isinstance(moons, dict):
             continue
         table = dict(merged.get(kingdom, {}))
-        for num, value in moons.items():
-            try:
-                moon = int(num)
-            except (TypeError, ValueError):
-                continue
-            entry = dict(table.get(moon, {}))
-            if isinstance(value, str):
-                if value and not entry.get("name"):
-                    entry["name"] = value
-            else:
-                for field in ("name", "type", "prerequisite"):
-                    legacy_val = str(value.get(field) or "")
-                    if legacy_val and not entry.get(field):
-                        entry[field] = legacy_val
-            table[moon] = entry
-        merged[kingdom] = table
+        merged[kingdom] = _merge_legacy_kingdom_table(table, moons)
     return merged
 
 

@@ -155,21 +155,15 @@ def _build_lineas_group(
     }
 
 
-def export_lineas() -> None:
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    limits = data.get("limits") or {}
-    board_limits: dict[str, int] = dict(limits.get("board") or {})
-    line_limits: dict[str, int] = dict(limits.get("line") or {})
-    combined = load_combined_objectives_by_goal(include_disabled=True)
-
-    board_goals, line_goals, board_disabled, line_disabled = _collect_lineas_goals(
-        data.get("objectives") or []
-    )
-    board_to, line_to, _pairs = _pair_lookup()
-    all_board = set(board_limits) | set(board_goals) | set(board_disabled)
-    all_line = set(line_limits) | set(line_goals) | set(line_disabled)
-    group_sides = _build_group_sides(all_board, all_line, board_to, line_to)
-
+def _build_lineas_groups(
+    group_sides: dict[str, dict[str, str | None]],
+    *,
+    board_goals: dict[str, list[str]],
+    line_goals: dict[str, list[str]],
+    board_disabled: dict[str, list[str]],
+    line_disabled: dict[str, list[str]],
+    combined: dict,
+) -> list[dict]:
     groups: list[dict] = []
     for orden, gid in enumerate(sorted(group_sides), start=1):
         side = group_sides[gid]
@@ -186,22 +180,34 @@ def export_lineas() -> None:
                 combined=combined,
             )
         )
+    return groups
 
+
+def _collect_lineas_goal_hits(groups: list[dict]) -> Counter[str]:
     goal_hits: Counter[str] = Counter()
     for group in groups:
         for obj in group.get("objectives") or []:
             goal = str((obj or {}).get("goal") or "")
             if goal:
                 goal_hits[goal] += 1
+    return goal_hits
+
+
+def _lineas_goal_cat_counts(
+    goal_hits: Counter[str],
+) -> tuple[int, int, int, int]:
     n_goals = len(goal_hits)
     # En Combined: 1 board+1 line → 1 cat en este archivo; 2+2 → 2 cats.
     # Totales de tags board+line impares (1/3/5) no deberían existir.
     n_goals_1_cat = sum(1 for n in goal_hits.values() if n == 1)
     n_goals_2_cats = sum(1 for n in goal_hits.values() if n == 2)
     n_goals_bad_cats = sum(1 for n in goal_hits.values() if n not in (1, 2))
+    return n_goals, n_goals_1_cat, n_goals_2_cats, n_goals_bad_cats
 
+
+def _find_bad_board_line_parity(objectives: list) -> list[str]:
     bad_parity: list[str] = []
-    for obj in data.get("objectives") or []:
+    for obj in objectives:
         if obj.get("disabled"):
             continue
         goal = str(obj.get("goal") or "")
@@ -211,7 +217,18 @@ def export_lineas() -> None:
         line = obj.get("line_categories") or []
         if sorted(board) != sorted(line) or len(board) not in (1, 2):
             bad_parity.append(goal)
+    return bad_parity
 
+
+def _assemble_lineas_catalog(
+    groups: list[dict],
+    *,
+    n_goals: int,
+    n_goals_1_cat: int,
+    n_goals_2_cats: int,
+    n_goals_bad_cats: int,
+    bad_parity: list[str],
+) -> dict:
     catalog: dict = {
         "_definition": (
             "Inventario de categorias board/line de Combined: por cada "
@@ -234,26 +251,66 @@ def export_lineas() -> None:
         "n_goals_2_cats": n_goals_2_cats,
         "groups": groups,
     }
-    if n_goals_bad_cats or bad_parity:
-        catalog["n_goals_bad_cats"] = n_goals_bad_cats
-        if bad_parity:
-            catalog["goals_bad_board_line"] = sorted(bad_parity)
-        # Reordenar: bad flags antes de groups.
-        catalog = {
-            k: catalog[k]
-            for k in (
-                "_definition",
-                "_note",
-                "n_categories",
-                "n_goals",
-                "n_goals_1_cat",
-                "n_goals_2_cats",
-                "n_goals_bad_cats",
-                "goals_bad_board_line",
-                "groups",
-            )
-            if k in catalog
-        }
+    if not n_goals_bad_cats and not bad_parity:
+        return catalog
+    catalog["n_goals_bad_cats"] = n_goals_bad_cats
+    if bad_parity:
+        catalog["goals_bad_board_line"] = sorted(bad_parity)
+    return {
+        k: catalog[k]
+        for k in (
+            "_definition",
+            "_note",
+            "n_categories",
+            "n_goals",
+            "n_goals_1_cat",
+            "n_goals_2_cats",
+            "n_goals_bad_cats",
+            "goals_bad_board_line",
+            "groups",
+        )
+        if k in catalog
+    }
+
+
+def export_lineas() -> None:
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    limits = data.get("limits") or {}
+    board_limits: dict[str, int] = dict(limits.get("board") or {})
+    line_limits: dict[str, int] = dict(limits.get("line") or {})
+    combined = load_combined_objectives_by_goal(include_disabled=True)
+
+    board_goals, line_goals, board_disabled, line_disabled = _collect_lineas_goals(
+        data.get("objectives") or []
+    )
+    board_to, line_to, _pairs = _pair_lookup()
+    all_board = set(board_limits) | set(board_goals) | set(board_disabled)
+    all_line = set(line_limits) | set(line_goals) | set(line_disabled)
+    group_sides = _build_group_sides(all_board, all_line, board_to, line_to)
+
+    groups = _build_lineas_groups(
+        group_sides,
+        board_goals=board_goals,
+        line_goals=line_goals,
+        board_disabled=board_disabled,
+        line_disabled=line_disabled,
+        combined=combined,
+    )
+
+    goal_hits = _collect_lineas_goal_hits(groups)
+    n_goals, n_goals_1_cat, n_goals_2_cats, n_goals_bad_cats = _lineas_goal_cat_counts(
+        goal_hits
+    )
+    bad_parity = _find_bad_board_line_parity(data.get("objectives") or [])
+
+    catalog = _assemble_lineas_catalog(
+        groups,
+        n_goals=n_goals,
+        n_goals_1_cat=n_goals_1_cat,
+        n_goals_2_cats=n_goals_2_cats,
+        n_goals_bad_cats=n_goals_bad_cats,
+        bad_parity=bad_parity,
+    )
     write_catalog_json(LINEAS_OUT_JSON, catalog)
 
     print(

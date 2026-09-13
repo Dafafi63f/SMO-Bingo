@@ -515,6 +515,40 @@ def _kingdom_zones_from_map(
     return out
 
 
+def _append_int_moon(raw_value: object, nums: list[int]) -> None:
+    try:
+        nums.append(int(raw_value))
+    except (TypeError, ValueError):
+        pass
+
+
+def _moon_nums_from_raw(raw: dict) -> list[int]:
+    nums: list[int] = []
+    for m in raw.get("moons") or []:
+        _append_int_moon(m, nums)
+    if raw.get("moon") is not None:
+        _append_int_moon(raw["moon"], nums)
+    return nums
+
+
+def _append_moon_link_ref(
+    out: dict[tuple[str, int], list[tuple[str, str]]],
+    *,
+    raw: dict,
+    kingdom: str,
+    src: str,
+    zone: str,
+) -> None:
+    link = raw.get("moon_link")
+    if not isinstance(link, dict) or link.get("moon") is None:
+        return
+    try:
+        mk = str(link.get("kingdom") or kingdom)
+        out[(mk, int(link["moon"]))].append((src, zone))
+    except (TypeError, ValueError):
+        pass
+
+
 def _build_moon_ref_zones(
     lists: dict, zone_map: dict[tuple[str, str, str], str]
 ) -> dict[tuple[str, int], list[tuple[str, str]]]:
@@ -530,27 +564,103 @@ def _build_moon_ref_zones(
             zone = _list_item_zone(kingdom, src, name, zone_map)
             if not zone:
                 continue
-            nums: list[int] = []
-            for m in raw.get("moons") or []:
-                try:
-                    nums.append(int(m))
-                except (TypeError, ValueError):
-                    pass
-            if raw.get("moon") is not None:
-                try:
-                    nums.append(int(raw["moon"]))
-                except (TypeError, ValueError):
-                    pass
-            link = raw.get("moon_link")
-            if isinstance(link, dict) and link.get("moon") is not None:
-                try:
-                    mk = str(link.get("kingdom") or kingdom)
-                    out[(mk, int(link["moon"]))].append((src, zone))
-                except (TypeError, ValueError):
-                    pass
+            nums = _moon_nums_from_raw(raw)
+            _append_moon_link_ref(
+                out, raw=raw, kingdom=kingdom, src=src, zone=zone
+            )
             for n in nums:
                 out[(kingdom, n)].append((src, zone))
     return out
+
+
+def _zone_from_moon_refs(refs: list[tuple[str, str]]) -> str | None:
+    if not refs:
+        return None
+    sub = [z for src, z in refs if src == "sub_area_levels"]
+    if len(set(sub)) == 1:
+        return sub[0]
+    uniq = list(dict.fromkeys(z for _s, z in refs))
+    if len(uniq) == 1:
+        return uniq[0]
+    if sub:
+        return sub[0]
+    return None
+
+
+def _zone_from_tag_set(tag_set: set[str], k_zones: set[str]) -> str | None:
+    tag_hits: list[str] = []
+    for tag in tag_set:
+        slug = _TAG_ZONE_ALIAS.get(tag, tag)
+        if slug in k_zones:
+            tag_hits.append(slug)
+    uniq_tags = list(dict.fromkeys(tag_hits))
+    if len(uniq_tags) == 1:
+        return uniq_tags[0]
+    return None
+
+
+def _zone_from_art_hint(
+    kingdom: str, nl: str, zone_map: dict[tuple[str, str, str], str]
+) -> str | None:
+    if "found with" not in nl or "art" not in nl:
+        return None
+    for src in ("pixel_luigis", "pixel_cat_marios"):
+        for (kk, source, _nm), z in zone_map.items():
+            if kk == kingdom and source == src:
+                return z
+    return None
+
+
+def _zone_from_moon_heuristics(
+    *,
+    kingdom: str,
+    tag_set: set[str],
+    name: str,
+    nl: str,
+    zone_map: dict[tuple[str, str, str], str],
+) -> str | None:
+    if "shop" in tag_set:
+        z = _list_item_zone(kingdom, "shops", "Crazy Cap", zone_map)
+        if z:
+            return z
+    if "captain_toad" in tag_set and kingdom in _TOAD_ZONE:
+        return _TOAD_ZONE[kingdom]
+    if "talkatoo" in nl or name.startswith("A Relaxing Dance"):
+        z = _list_item_zone(kingdom, "talkatoos", "Talkatoo", zone_map)
+        if z:
+            return z
+    z = _zone_from_art_hint(kingdom, nl, zone_map)
+    if z:
+        return z
+    if "moon rock" in nl:
+        z = _list_item_zone(kingdom, "moon_rocks", "Moon Rock", zone_map)
+        if z:
+            return z
+    return None
+
+
+def _zone_from_name_in_map(
+    kingdom: str, nl: str, zone_map: dict[tuple[str, str, str], str]
+) -> str | None:
+    skip_sources = {
+        "costume_sets",
+        "hats",
+        "souvenirs",
+        "stickers",
+        "boxer_shorts",
+    }
+    for (kk, source, nm), z in zone_map.items():
+        if kk != kingdom or source == MOON_SOURCE or not z:
+            continue
+        if source in skip_sources:
+            continue
+        nml = nm.lower()
+        if len(nml) >= 6 and nml in nl:
+            return z
+        slug = z.replace("_", " ")
+        if len(slug) >= 5 and slug in nl:
+            return z
+    return None
 
 
 def infer_moon_zone(
@@ -567,64 +677,29 @@ def infer_moon_zone(
     """Zone de una luna: listas cercanas, tags, fallback curado."""
     k_zones = (kingdom_zones or _kingdom_zones_from_map(zone_map)).get(kingdom) or set()
     refs = (moon_refs or {}).get((kingdom, moon)) or []
-    if refs:
-        sub = [z for src, z in refs if src == "sub_area_levels"]
-        if len(set(sub)) == 1:
-            return sub[0]
-        uniq = list(dict.fromkeys(z for _s, z in refs))
-        if len(uniq) == 1:
-            return uniq[0]
-        if sub:
-            return sub[0]
+    zone = _zone_from_moon_refs(refs)
+    if zone:
+        return zone
 
     tag_set = {str(t) for t in tags[1:]} if tags else set()
-    tag_hits: list[str] = []
-    for tag in tag_set:
-        slug = _TAG_ZONE_ALIAS.get(tag, tag)
-        if slug in k_zones:
-            tag_hits.append(slug)
-    uniq_tags = list(dict.fromkeys(tag_hits))
-    if len(uniq_tags) == 1:
-        return uniq_tags[0]
+    zone = _zone_from_tag_set(tag_set, k_zones)
+    if zone:
+        return zone
 
-    if "shop" in tag_set:
-        z = _list_item_zone(kingdom, "shops", "Crazy Cap", zone_map)
-        if z:
-            return z
-    if "captain_toad" in tag_set and kingdom in _TOAD_ZONE:
-        return _TOAD_ZONE[kingdom]
     nl = name.lower()
-    if "talkatoo" in nl or name.startswith("A Relaxing Dance"):
-        z = _list_item_zone(kingdom, "talkatoos", "Talkatoo", zone_map)
-        if z:
-            return z
-    if "found with" in nl and "art" in nl:
-        for src in ("pixel_luigis", "pixel_cat_marios"):
-            for (kk, source, nm), z in zone_map.items():
-                if kk == kingdom and source == src:
-                    return z
-    if "moon rock" in nl:
-        z = _list_item_zone(kingdom, "moon_rocks", "Moon Rock", zone_map)
-        if z:
-            return z
+    zone = _zone_from_moon_heuristics(
+        kingdom=kingdom,
+        tag_set=tag_set,
+        name=name,
+        nl=nl,
+        zone_map=zone_map,
+    )
+    if zone:
+        return zone
 
-    for (kk, source, nm), z in zone_map.items():
-        if kk != kingdom or source == MOON_SOURCE or not z:
-            continue
-        if source in {
-            "costume_sets",
-            "hats",
-            "souvenirs",
-            "stickers",
-            "boxer_shorts",
-        }:
-            continue
-        nml = nm.lower()
-        if len(nml) >= 6 and nml in nl:
-            return z
-        slug = z.replace("_", " ")
-        if len(slug) >= 5 and slug in nl:
-            return z
+    zone = _zone_from_name_in_map(kingdom, nl, zone_map)
+    if zone:
+        return zone
 
     fb = _MOON_ZONE_FALLBACK.get((kingdom, moon))
     if fb:
@@ -634,23 +709,12 @@ def infer_moon_zone(
     return None
 
 
-def build_zonas_reino(
-    *, zone_map: dict[tuple[str, str, str], str] | None = None
-) -> dict:
-    """kingdoms[]: kingdom, by_zone, by_source, n_moons, n_items, n_total, list."""
-    data = load_goal_lists()
-    zones = zone_map if zone_map is not None else load_zonas_zone_index()
-
-    # kingdom → [(item_dict, source, sort_key)]
-    buckets: dict[str, list[tuple[dict, str, tuple]]] = defaultdict(list)
-    lists = data.get("lists") or {}
-    # Pares Level viven fuera de goal_lists; solo para inferir zone de lunas.
-    lists_for_moon_refs = {
-        **lists,
-        "sub_area_levels": load_sub_area_levels(),
-    }
-    moon_refs = _build_moon_ref_zones(lists_for_moon_refs, zones)
-    k_zones = _kingdom_zones_from_map(zones)
+def _fill_buckets_from_goal_lists(
+    buckets: dict[str, list[tuple[dict, str, tuple]]],
+    *,
+    lists: dict,
+    zones: dict[tuple[str, str, str], str],
+) -> None:
     for list_name in sorted(lists):
         source = str(list_name)
         for idx, raw in enumerate(lists.get(list_name) or []):
@@ -670,6 +734,12 @@ def build_zonas_reino(
                 item["zone"] = zone
             buckets[kingdom].append((item, source, (1, source, idx)))
 
+
+def _fill_buckets_from_binoculars(
+    buckets: dict[str, list[tuple[dict, str, tuple]]],
+    *,
+    zones: dict[tuple[str, str, str], str],
+) -> None:
     for idx, raw in enumerate(binoculars_lista()):
         if not isinstance(raw, dict) or not raw.get("kingdom"):
             continue
@@ -688,6 +758,15 @@ def build_zonas_reino(
             (item, BINOCULARS_SOURCE, (1, BINOCULARS_SOURCE, idx))
         )
 
+
+def _fill_buckets_from_moons(
+    buckets: dict[str, list[tuple[dict, str, tuple]]],
+    *,
+    lists_for_moon_refs: dict,
+    moon_refs: dict[tuple[str, int], list[tuple[str, str]]],
+    k_zones: dict[str, set[str]],
+    zones: dict[tuple[str, str, str], str],
+) -> None:
     lunas = load_catalog(LUNAS_PATH) if LUNAS_PATH.is_file() else {}
     for raw in lunas.get("moons") or []:
         if not isinstance(raw, dict):
@@ -719,37 +798,36 @@ def build_zonas_reino(
             item["zone"] = zone
         buckets[kingdom].append((item, MOON_SOURCE, (0, moon_num)))
 
-    ordered = [k for k in STORY_ORDER if k in buckets] + sorted(
-        k for k in buckets if k not in STORY_ORDER
-    )
-    kingdoms: list[dict] = []
-    for kingdom in ordered:
-        rows = sorted(buckets[kingdom], key=lambda t: t[2])
-        items: list[dict] = []
-        item_id = 0
-        for row_id, (item, source, _key) in enumerate(rows, start=1):
-            if source == MOON_SOURCE:
-                items.append(_finalize_item(item, row_id=row_id))
-            else:
-                item_id += 1
-                items.append(
-                    _finalize_item(item, row_id=row_id, kingdom_id=item_id)
-                )
-        n_moons_k = sum(1 for it in items if it.get("source") == MOON_SOURCE)
-        n_items_k = len(items) - n_moons_k
-        kingdoms.append(
-            {
-                "kingdom": kingdom,
-                "by_zone": _by_zone_counts(items),
-                "by_source": _by_source_counts(items),
-                "n_moons": n_moons_k,
-                "n_items": n_items_k,
-                "n_total": n_moons_k + n_items_k,
-                "list": items,
-            }
-        )
 
-    n_moons = sum(k["n_moons"] for k in kingdoms)
+def _finalize_kingdom_block(
+    kingdom: str, rows: list[tuple[dict, str, tuple]]
+) -> dict:
+    items: list[dict] = []
+    item_id = 0
+    for row_id, (item, source, _key) in enumerate(rows, start=1):
+        if source == MOON_SOURCE:
+            items.append(_finalize_item(item, row_id=row_id))
+        else:
+            item_id += 1
+            items.append(
+                _finalize_item(item, row_id=row_id, kingdom_id=item_id)
+            )
+    n_moons_k = sum(1 for it in items if it.get("source") == MOON_SOURCE)
+    n_items_k = len(items) - n_moons_k
+    return {
+        "kingdom": kingdom,
+        "by_zone": _by_zone_counts(items),
+        "by_source": _by_source_counts(items),
+        "n_moons": n_moons_k,
+        "n_items": n_items_k,
+        "n_total": n_moons_k + n_items_k,
+        "list": items,
+    }
+
+
+def _validate_zonas_reino_item_counts(
+    kingdoms: list[dict], *, n_items_goal_lists: int
+) -> None:
     n_items = sum(k["n_items"] for k in kingdoms)
     n_binoculars = sum(
         1
@@ -757,12 +835,62 @@ def build_zonas_reino(
         for it in k["list"]
         if it.get("source") == BINOCULARS_SOURCE
     )
-    n_items_goal_lists = int(data.get("n_items") or 0)
     if n_items != n_items_goal_lists + n_binoculars:
         raise ValueError(
             f"n_items={n_items} != goal_lists ({n_items_goal_lists}) + "
             f"binoculars ({n_binoculars})"
         )
+
+
+def build_zonas_reino(
+    *, zone_map: dict[tuple[str, str, str], str] | None = None
+) -> dict:
+    """kingdoms[]: kingdom, by_zone, by_source, n_moons, n_items, n_total, list."""
+    data = load_goal_lists()
+    zones = zone_map if zone_map is not None else load_zonas_zone_index()
+
+    # kingdom → [(item_dict, source, sort_key)]
+    buckets: dict[str, list[tuple[dict, str, tuple]]] = defaultdict(list)
+    lists = data.get("lists") or {}
+    # Pares Level viven fuera de goal_lists; solo para inferir zone de lunas.
+    lists_for_moon_refs = {
+        **lists,
+        "sub_area_levels": load_sub_area_levels(),
+    }
+    moon_refs = _build_moon_ref_zones(lists_for_moon_refs, zones)
+    k_zones = _kingdom_zones_from_map(zones)
+    _fill_buckets_from_goal_lists(buckets, lists=lists, zones=zones)
+    _fill_buckets_from_binoculars(buckets, zones=zones)
+    _fill_buckets_from_moons(
+        buckets,
+        lists_for_moon_refs=lists_for_moon_refs,
+        moon_refs=moon_refs,
+        k_zones=k_zones,
+        zones=zones,
+    )
+
+    ordered = [k for k in STORY_ORDER if k in buckets] + sorted(
+        k for k in buckets if k not in STORY_ORDER
+    )
+    kingdoms = [
+        _finalize_kingdom_block(
+            kingdom, sorted(buckets[kingdom], key=lambda t: t[2])
+        )
+        for kingdom in ordered
+    ]
+
+    n_moons = sum(k["n_moons"] for k in kingdoms)
+    n_items = sum(k["n_items"] for k in kingdoms)
+    n_items_goal_lists = int(data.get("n_items") or 0)
+    _validate_zonas_reino_item_counts(
+        kingdoms, n_items_goal_lists=n_items_goal_lists
+    )
+    n_binoculars = sum(
+        1
+        for k in kingdoms
+        for it in k["list"]
+        if it.get("source") == BINOCULARS_SOURCE
+    )
     return {
         "_note": (
             "Inventario por kingdom (story order). "
@@ -822,11 +950,9 @@ def _inventario_zone_label(kingdom: str, zone: str, *, shared: bool) -> str:
     return zone
 
 
-def build_zonas_inventario(payload: dict | None = None) -> dict:
-    """Vista de inventario: una entrada por (zone, kingdom); slug único en zones[]."""
-    if payload is None:
-        payload = build_zonas_reino()
-
+def _collect_inventario_buckets(
+    payload: dict,
+) -> dict[tuple[str, str], list[dict]]:
     buckets: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for kblock in payload.get("kingdoms") or []:
         kingdom = str(kblock.get("kingdom") or "")
@@ -841,11 +967,15 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
             buckets[(str(zone), kingdom)].append(
                 _detalle_item(kingdom, raw, zone=str(zone))
             )
+    return buckets
 
+
+def _build_inventario_zone_rows(
+    buckets: dict[tuple[str, str], list[dict]],
+) -> list[dict]:
     zone_reino_counts: Counter[str] = Counter(
         zone for (zone, _kingdom), _items in buckets.items()
     )
-
     entries: list[tuple[str, str, str, bool]] = []
     for (zone, kingdom), _items in buckets.items():
         shared = zone_reino_counts[zone] > 1
@@ -867,6 +997,16 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
         row["by_source"] = by_source
         row["list"] = items
         zones_out.append(row)
+    return zones_out
+
+
+def build_zonas_inventario(payload: dict | None = None) -> dict:
+    """Vista de inventario: una entrada por (zone, kingdom); slug único en zones[]."""
+    if payload is None:
+        payload = build_zonas_reino()
+
+    buckets = _collect_inventario_buckets(payload)
+    zones_out = _build_inventario_zone_rows(buckets)
 
     n_zoned = sum(z["n_total"] for z in zones_out)
     n_without_zone = int(payload.get("n_total") or 0) - n_zoned

@@ -2494,6 +2494,99 @@ def _should_drop_story_moon(
     return bool(tags & {"story_moon", "multi_moon"})
 
 
+def _build_moon_ref(
+    kingdom: str,
+    moon: int,
+    registry: dict[tuple[str, int], dict],
+    wiki: dict,
+    *,
+    drop_story: bool,
+    allow_story: set[tuple[str, int]],
+) -> dict | None:
+    key = (kingdom, moon)
+    entry = _resolve_moon_entry(kingdom, moon, registry, wiki)
+    if not entry:
+        return None
+    if _should_drop_story_moon(
+        key, entry, drop_story=drop_story, allow_story=allow_story
+    ):
+        return None
+    return {
+        "kingdom": kingdom,
+        "moon": moon,
+        "name": entry["name"],
+    }
+
+
+def _resolve_explicit_moon_refs(
+    spec: dict[str, Any],
+    registry: dict[tuple[str, int], dict],
+    wiki: dict,
+    *,
+    drop_story: bool,
+    allow_story: set[tuple[str, int]],
+) -> tuple[list[dict], set[tuple[str, int]]]:
+    refs: list[dict] = []
+    seen: set[tuple[str, int]] = set()
+    for pair in spec.get("moons") or []:
+        kingdom, moon = str(pair[0]), int(pair[1])
+        key = (kingdom, moon)
+        if key in seen:
+            continue
+        ref = _build_moon_ref(
+            kingdom,
+            moon,
+            registry,
+            wiki,
+            drop_story=drop_story,
+            allow_story=allow_story,
+        )
+        if not ref:
+            continue
+        seen.add(key)
+        refs.append(ref)
+    return refs, seen
+
+
+def _resolve_pattern_moon_refs(
+    spec: dict[str, Any],
+    registry: dict[tuple[str, int], dict],
+    wiki: dict,
+    seen: set[tuple[str, int]],
+    *,
+    drop_story: bool,
+    allow_story: set[tuple[str, int]],
+) -> list[dict]:
+    patterns = _compile_patterns(list(spec.get("name_patterns") or []))
+    if not patterns:
+        return []
+    kingdom_filter = spec.get("kingdom")
+    extra: list[tuple[str, int]] = []
+    for (kingdom, moon), entry in registry.items():
+        if kingdom_filter and kingdom != kingdom_filter:
+            continue
+        if (kingdom, moon) in seen:
+            continue
+        name = entry.get("name") or ""
+        if any(p.search(name) for p in patterns):
+            extra.append((kingdom, moon))
+    refs: list[dict] = []
+    for kingdom, moon in sorted(extra, key=_moon_registry_sort_key):
+        ref = _build_moon_ref(
+            kingdom,
+            moon,
+            registry,
+            wiki,
+            drop_story=drop_story,
+            allow_story=allow_story,
+        )
+        if not ref:
+            continue
+        seen.add((kingdom, moon))
+        refs.append(ref)
+    return refs
+
+
 def resolve_moons(
     spec: dict[str, Any],
     registry: dict[tuple[str, int], dict],
@@ -2512,52 +2605,23 @@ def resolve_moons(
     drop_story = bool(spec.get("capture")) and not spec.get("include_all_story_moons")
     wiki = load_wiki_moon_meta()
 
-    def _ref(kingdom: str, moon: int) -> dict | None:
-        key = (kingdom, moon)
-        entry = _resolve_moon_entry(kingdom, moon, registry, wiki)
-        if not entry:
-            return None
-        if _should_drop_story_moon(
-            key, entry, drop_story=drop_story, allow_story=allow_story
-        ):
-            return None
-        return {
-            "kingdom": kingdom,
-            "moon": moon,
-            "name": entry["name"],
-        }
-
-    refs: list[dict] = []
-    seen: set[tuple[str, int]] = set()
-    for pair in spec.get("moons") or []:
-        kingdom, moon = str(pair[0]), int(pair[1])
-        key = (kingdom, moon)
-        if key in seen:
-            continue
-        ref = _ref(kingdom, moon)
-        if not ref:
-            continue
-        seen.add(key)
-        refs.append(ref)
-
-    patterns = _compile_patterns(list(spec.get("name_patterns") or []))
-    if patterns:
-        kingdom_filter = spec.get("kingdom")
-        extra: list[tuple[str, int]] = []
-        for (kingdom, moon), entry in registry.items():
-            if kingdom_filter and kingdom != kingdom_filter:
-                continue
-            if (kingdom, moon) in seen:
-                continue
-            name = entry.get("name") or ""
-            if any(p.search(name) for p in patterns):
-                extra.append((kingdom, moon))
-        for kingdom, moon in sorted(extra, key=_moon_registry_sort_key):
-            ref = _ref(kingdom, moon)
-            if not ref:
-                continue
-            seen.add((kingdom, moon))
-            refs.append(ref)
+    refs, seen = _resolve_explicit_moon_refs(
+        spec,
+        registry,
+        wiki,
+        drop_story=drop_story,
+        allow_story=allow_story,
+    )
+    refs.extend(
+        _resolve_pattern_moon_refs(
+            spec,
+            registry,
+            wiki,
+            seen,
+            drop_story=drop_story,
+            allow_story=allow_story,
+        )
+    )
     return refs
 
 

@@ -72,6 +72,76 @@ def _kingdom_zones_from_map(
     return out
 
 
+def _moon_method_refs(
+    refs: list[tuple[str, str]], zone_actual: str
+) -> tuple[str, str | None] | None:
+    if not refs:
+        return None
+    sub = [z for src, z in refs if src == "sub_area_levels"]
+    uniq = list(dict.fromkeys(z for _s, z in refs))
+    if len(set(sub)) == 1 and zone_actual == sub[0]:
+        return "listas_sub_area", None
+    if len(uniq) == 1 and zone_actual == uniq[0]:
+        return "listas_unica", None
+    if len(uniq) > 1:
+        return "listas_varias", f"refs ambiguas: {uniq}"
+    return None
+
+
+def _moon_method_tags(
+    tag_set: set[str], k_zones: set[str], zone_actual: str
+) -> tuple[str, str | None] | None:
+    tag_hits = list(
+        dict.fromkeys(
+            _TAG_ZONE_ALIAS.get(t, t)
+            for t in tag_set
+            if _TAG_ZONE_ALIAS.get(t, t) in k_zones
+        )
+    )
+    if len(tag_hits) == 1 and zone_actual == tag_hits[0]:
+        return "tag_unico", f"tag={tag_hits[0]}"
+    if len(tag_hits) > 1:
+        return "tag_varios", f"tags→zones {tag_hits}"
+    return None
+
+
+def _moon_method_heuristics(tag_set: set[str], name: str) -> tuple[str, str | None] | None:
+    if "shop" in tag_set:
+        return "heuristic_shop", None
+    if "captain_toad" in tag_set:
+        return "heuristic_toad", None
+    nl = name.lower()
+    if "talkatoo" in nl:
+        return "heuristic_talkatoo", None
+    if "found with" in nl and "art" in nl:
+        return "heuristic_art", None
+    if "moon rock" in nl:
+        return "heuristic_moon_rock", None
+    return None
+
+
+def _moon_method_fallback(
+    *,
+    kingdom: str,
+    moon: int,
+    zone_actual: str,
+    zone_infer: str | None,
+) -> tuple[str, str | None]:
+    fb = _MOON_ZONE_FALLBACK.get((kingdom, moon))
+    if fb and zone_actual == fb:
+        return "fallback_curado", None
+    if kingdom == "ruined" and zone_actual == "odyssey":
+        return "ruined_default", None
+    if zone_infer and zone_actual and zone_infer != zone_actual:
+        return (
+            "distinto_curado",
+            f"inferido={zone_infer} curado={zone_actual}",
+        )
+    if zone_infer and zone_actual == zone_infer:
+        return "curado", None
+    return "fallback_curado", None
+
+
 def _moon_method(
     *,
     kingdom: str,
@@ -87,56 +157,38 @@ def _moon_method(
     if not zone_actual:
         return "sin_zone", None
 
-    if refs:
-        sub = [z for src, z in refs if src == "sub_area_levels"]
-        uniq = list(dict.fromkeys(z for _s, z in refs))
-        if len(set(sub)) == 1 and zone_actual == sub[0]:
-            return "listas_sub_area", None
-        if len(uniq) == 1 and zone_actual == uniq[0]:
-            return "listas_unica", None
-        if len(uniq) > 1:
-            return "listas_varias", f"refs ambiguas: {uniq}"
+    result = _moon_method_refs(refs, zone_actual)
+    if result:
+        return result
 
     tag_set = {str(t) for t in tags[1:]} if tags else set()
     k_zones = kingdom_zones.get(kingdom) or set()
-    tag_hits = list(
-        dict.fromkeys(
-            _TAG_ZONE_ALIAS.get(t, t)
-            for t in tag_set
-            if _TAG_ZONE_ALIAS.get(t, t) in k_zones
-        )
+    result = _moon_method_tags(tag_set, k_zones, zone_actual)
+    if result:
+        return result
+
+    result = _moon_method_heuristics(tag_set, name)
+    if result:
+        return result
+
+    return _moon_method_fallback(
+        kingdom=kingdom,
+        moon=moon,
+        zone_actual=zone_actual,
+        zone_infer=zone_infer,
     )
-    if len(tag_hits) == 1 and zone_actual == tag_hits[0]:
-        return "tag_unico", f"tag={tag_hits[0]}"
-    if len(tag_hits) > 1:
-        return "tag_varios", f"tags→zones {tag_hits}"
 
-    if "shop" in tag_set:
-        return "heuristic_shop", None
-    if "captain_toad" in tag_set:
-        return "heuristic_toad", None
-    nl = name.lower()
-    if "talkatoo" in nl:
-        return "heuristic_talkatoo", None
-    if "found with" in nl and "art" in nl:
-        return "heuristic_art", None
-    if "moon rock" in nl:
-        return "heuristic_moon_rock", None
 
-    fb = _MOON_ZONE_FALLBACK.get((kingdom, moon))
-    if fb and zone_actual == fb:
-        return "fallback_curado", None
-    if kingdom == "ruined" and zone_actual == "odyssey":
-        return "ruined_default", None
-
-    if zone_infer and zone_actual and zone_infer != zone_actual:
-        return (
-            "distinto_curado",
-            f"inferido={zone_infer} curado={zone_actual}",
-        )
-    if zone_infer and zone_actual == zone_infer:
-        return "curado", None
-    return "fallback_curado", None
+def _lista_method_merch(
+    *,
+    zone_actual: str,
+    shop_zone: str | None,
+) -> tuple[str, str | None]:
+    if shop_zone and zone_actual == shop_zone:
+        return "lista_merch_tienda", None
+    if shop_zone and zone_actual != shop_zone:
+        return "lista_tienda_distinto", f"merch en tienda → {shop_zone}"
+    return "lista_merch_tienda", None
 
 
 def _lista_method(
@@ -163,11 +215,7 @@ def _lista_method(
     if list_name == "moon_rocks":
         return "lista_moon_rock", None
     if list_name in _LISTA_MERCH:
-        if shop_zone and zone_actual == shop_zone:
-            return "lista_merch_tienda", None
-        if shop_zone and zone_actual != shop_zone:
-            return "lista_tienda_distinto", f"merch en tienda → {shop_zone}"
-        return "lista_merch_tienda", None
+        return _lista_method_merch(zone_actual=zone_actual, shop_zone=shop_zone)
     if list_name in _LISTA_ALWAYS_REVIEW:
         return "lista_poi", None
     return "lista_curada", None
@@ -180,33 +228,39 @@ def _item_row_id(kingdom: str, item: dict) -> str:
     return f"{kingdom}/{src}/{item.get('id_kingdom')}"
 
 
+def _normalize_revision_status(raw_status: object) -> str:
+    st = str(raw_status or STATUS_PENDIENTE)
+    if st not in (STATUS_OK, STATUS_PENDIENTE):
+        return STATUS_PENDIENTE
+    return st
+
+
+def _ingest_revision_status_rows(out: dict[str, str], rows: list) -> None:
+    for row in rows or []:
+        if not isinstance(row, dict) or not row.get("id"):
+            continue
+        rid = str(row["id"])
+        if out.get(rid) == STATUS_OK:
+            continue
+        out[rid] = _normalize_revision_status(row.get("status"))
+
+
+def _ingest_revision_status_groups(out: dict[str, str], groups: list) -> None:
+    for group in groups or []:
+        if isinstance(group, dict):
+            _ingest_revision_status_rows(out, group.get("items") or [])
+
+
 def _load_status_by_id() -> dict[str, str]:
     """id → status desde groups[] / ejes legados / ok[]."""
     if not OUT_PATH.is_file():
         return {}
     data = json.loads(OUT_PATH.read_text(encoding="utf-8"))
     out: dict[str, str] = {}
-
-    def _ingest_rows(rows: list) -> None:
-        for row in rows or []:
-            if not isinstance(row, dict) or not row.get("id"):
-                continue
-            st = str(row.get("status") or STATUS_PENDIENTE)
-            if st not in (STATUS_OK, STATUS_PENDIENTE):
-                st = STATUS_PENDIENTE
-            rid = str(row["id"])
-            if out.get(rid) == STATUS_OK:
-                continue
-            out[rid] = st
-
-    for group in data.get("groups") or []:
-        if isinstance(group, dict):
-            _ingest_rows(group.get("items") or [])
+    _ingest_revision_status_groups(out, data.get("groups") or [])
     for axis in ("by_kingdom", "by_zone", "by_source"):
-        for group in data.get(axis) or []:
-            if isinstance(group, dict):
-                _ingest_rows(group.get("items") or [])
-    _ingest_rows(data.get("ok") or [])
+        _ingest_revision_status_groups(out, data.get(axis) or [])
+    _ingest_revision_status_rows(out, data.get("ok") or [])
     return out
 
 
@@ -330,22 +384,16 @@ def _build_unified_groups(items: list[dict]) -> list[dict]:
     return groups
 
 
-def build_zona_revision() -> dict:
-    zone_map = load_zonas_zone_index()
-    payload = build_zonas_reino(zone_map=zone_map)
-    data = load_goal_lists()
-    lists = data.get("lists") or {}
-
-    lists_for_moon_refs = {**lists, "sub_area_levels": load_sub_area_levels()}
-    moon_refs = _build_moon_ref_zones(lists_for_moon_refs, zone_map)
-    k_zones = _kingdom_zones_from_map(zone_map)
-
+def _build_lunas_by_key() -> dict[tuple[str, int], dict]:
     lunas_by_key: dict[tuple[str, int], dict] = {}
     for raw in load_catalog(CATALOG_DIR / "lunas-objetivos.json").get("moons") or []:
         kingdom = _kingdom_from_lunas_row(raw)
         if kingdom and raw.get("moon") is not None:
             lunas_by_key[(kingdom, int(raw["moon"]))] = raw
+    return lunas_by_key
 
+
+def _build_goal_raw_by_key(lists: dict) -> dict[tuple[str, str, str], dict]:
     goal_raw_by_key: dict[tuple[str, str, str], dict] = {}
     for list_name, rows in lists.items():
         for raw in rows or []:
@@ -355,12 +403,22 @@ def build_zona_revision() -> dict:
             nm = _item_display_name(raw)
             if kingdom_raw and nm:
                 goal_raw_by_key[(kingdom_raw, str(list_name), nm)] = raw
+    return goal_raw_by_key
 
+
+def _build_shop_zone_by_kingdom(
+    zone_map: dict[tuple[str, str, str], str],
+) -> dict[str, str]:
     shop_zone_by_kingdom: dict[str, str] = {}
     for (k, src, _n), z in zone_map.items():
         if src == "shops" and z and k not in shop_zone_by_kingdom:
             shop_zone_by_kingdom[k] = z
+    return shop_zone_by_kingdom
 
+
+def _flatten_zonas_payload(
+    payload: dict,
+) -> tuple[list[tuple[str, dict]], dict[str, set[str]]]:
     zone_kingdoms: dict[str, set[str]] = defaultdict(set)
     flat_rows: list[tuple[str, dict]] = []
     for block in payload.get("kingdoms") or []:
@@ -372,6 +430,78 @@ def build_zona_revision() -> dict:
             z_raw = it.get("zone")
             if z_raw:
                 zone_kingdoms[str(z_raw)].add(kdom)
+    return flat_rows, zone_kingdoms
+
+
+def _revision_method_for_item(
+    *,
+    kingdom: str,
+    source: str,
+    name: str,
+    zone: str | None,
+    item: dict,
+    lunas_by_key: dict[tuple[str, int], dict],
+    lists_for_moon_refs: dict,
+    zone_map: dict[tuple[str, str, str], str],
+    moon_refs: dict[tuple[str, int], list[tuple[str, str]]],
+    k_zones: dict[str, set[str]],
+    goal_raw_by_key: dict[tuple[str, str, str], dict],
+    shop_zone_by_kingdom: dict[str, str],
+) -> tuple[str, str | None, str | None]:
+    detail: str | None = None
+    zone_sugerida: str | None = None
+    if source == MOON_SOURCE:
+        moon_num = int(item.get("id_kingdom") or 0)
+        raw = lunas_by_key.get((kingdom, moon_num), {})
+        tags = list(raw.get("tags") or [])
+        zone_infer = infer_moon_zone(
+            kingdom=kingdom,
+            moon=moon_num,
+            name=name,
+            tags=tags,
+            _lists=lists_for_moon_refs,
+            zone_map=zone_map,
+            moon_refs=moon_refs,
+            kingdom_zones=k_zones,
+        )
+        method, detail = _moon_method(
+            kingdom=kingdom,
+            moon=moon_num,
+            name=name,
+            tags=tags,
+            zone_actual=zone,
+            zone_infer=zone_infer,
+            moon_refs=moon_refs,
+            kingdom_zones=k_zones,
+        )
+        if zone_infer and zone_infer != zone:
+            zone_sugerida = zone_infer
+        return method, detail, zone_sugerida
+    if source == BINOCULARS_SOURCE:
+        return "sin_zone", detail, zone_sugerida
+    raw_gl = goal_raw_by_key.get((kingdom, source, name))
+    method, detail = _lista_method(
+        list_name=source,
+        zone_actual=zone,
+        shop_zone=shop_zone_by_kingdom.get(kingdom),
+        raw=raw_gl,
+    )
+    return method, detail, zone_sugerida
+
+
+def build_zona_revision() -> dict:
+    zone_map = load_zonas_zone_index()
+    payload = build_zonas_reino(zone_map=zone_map)
+    data = load_goal_lists()
+    lists = data.get("lists") or {}
+
+    lists_for_moon_refs = {**lists, "sub_area_levels": load_sub_area_levels()}
+    moon_refs = _build_moon_ref_zones(lists_for_moon_refs, zone_map)
+    k_zones = _kingdom_zones_from_map(zone_map)
+    lunas_by_key = _build_lunas_by_key()
+    goal_raw_by_key = _build_goal_raw_by_key(lists)
+    shop_zone_by_kingdom = _build_shop_zone_by_kingdom(zone_map)
+    flat_rows, zone_kingdoms = _flatten_zonas_payload(payload)
 
     status_by_id = _load_status_by_id()
     items: list[dict] = []
@@ -382,45 +512,20 @@ def build_zona_revision() -> dict:
         name = str(item.get("name") or "")
         zone = str(item["zone"]) if item.get("zone") else None
         row_id = _item_row_id(kingdom, item)
-        detail: str | None = None
-        zone_sugerida: str | None = None
-
-        if source == MOON_SOURCE:
-            moon_num = int(item.get("id_kingdom") or 0)
-            raw = lunas_by_key.get((kingdom, moon_num), {})
-            tags = list(raw.get("tags") or [])
-            zone_infer = infer_moon_zone(
-                kingdom=kingdom,
-                moon=moon_num,
-                name=name,
-                tags=tags,
-                _lists=lists_for_moon_refs,
-                zone_map=zone_map,
-                moon_refs=moon_refs,
-                kingdom_zones=k_zones,
-            )
-            method, detail = _moon_method(
-                kingdom=kingdom,
-                moon=moon_num,
-                name=name,
-                tags=tags,
-                zone_actual=zone,
-                zone_infer=zone_infer,
-                moon_refs=moon_refs,
-                kingdom_zones=k_zones,
-            )
-            if zone_infer and zone_infer != zone:
-                zone_sugerida = zone_infer
-        elif source == BINOCULARS_SOURCE:
-            method = "sin_zone"
-        else:
-            raw_gl = goal_raw_by_key.get((kingdom, source, name))
-            method, detail = _lista_method(
-                list_name=source,
-                zone_actual=zone,
-                shop_zone=shop_zone_by_kingdom.get(kingdom),
-                raw=raw_gl,
-            )
+        method, detail, zone_sugerida = _revision_method_for_item(
+            kingdom=kingdom,
+            source=source,
+            name=name,
+            zone=zone,
+            item=item,
+            lunas_by_key=lunas_by_key,
+            lists_for_moon_refs=lists_for_moon_refs,
+            zone_map=zone_map,
+            moon_refs=moon_refs,
+            k_zones=k_zones,
+            goal_raw_by_key=goal_raw_by_key,
+            shop_zone_by_kingdom=shop_zone_by_kingdom,
+        )
 
         shared = len(zone_kingdoms.get(zone or "", ())) > 1
         zone_label = (

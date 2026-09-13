@@ -491,6 +491,42 @@ def expand_zones_for_kingdom(
     return hit if hit else list(border)
 
 
+def _uniform_kingdoms_from_pool(
+    g: dict, unique: set[str], n: int
+) -> list[str] | None:
+    if len(unique) == 1:
+        return [next(iter(unique))] * n
+    if len(unique) == 0:
+        return [fallback_single_kingdom(g)] * n
+    named = kingdom_from_name(g["goal"])
+    if (
+        named == "metro"
+        and unique <= {"metro", "lost"}
+        and "Multi-Moon" not in g["goal"]
+    ):
+        return ["metro"] * n
+    return None
+
+
+def _kingdoms_per_range(items: list, ranges: list[int]) -> list[str]:
+    if pool_is_weighted(items):
+        return [
+            kingdom_at_weight(items, int(x))
+            if prefix_unique_weighted(items, int(x)) == 1
+            else ""
+            for x in ranges
+        ]
+    bounds = kingdom_run_boundaries(items)
+    out: list[str] = []
+    for x in ranges:
+        xi = int(x)
+        if prefix_unique_count(items, xi) == 1 or xi in bounds:
+            out.append(kingdom_at_index(items, xi))
+        else:
+            out.append("")
+    return out
+
+
 def kingdoms_for_ranges(g: dict, ranges: list[int] | None) -> list[str]:
     """Un reino por umbral de range (o uno si no hay range).
 
@@ -512,21 +548,9 @@ def kingdoms_for_ranges(g: dict, ranges: list[int] | None) -> list[str]:
     keyed = [m for m in items if m.get("kingdom")]
     unique = {m["kingdom"] for m in keyed}
 
-    if len(unique) == 1:
-        k = next(iter(unique))
-        return [k] * n
-
-    if len(unique) == 0:
-        k = fallback_single_kingdom(g)
-        return [k] * n
-
-    named = kingdom_from_name(g["goal"])
-    if (
-        named == "metro"
-        and unique <= {"metro", "lost"}
-        and "Multi-Moon" not in g["goal"]
-    ):
-        return ["metro"] * n
+    uniform = _uniform_kingdoms_from_pool(g, unique, n)
+    if uniform is not None:
+        return uniform
 
     if not ranges:
         return [""]
@@ -539,23 +563,7 @@ def kingdoms_for_ranges(g: dict, ranges: list[int] | None) -> list[str]:
     if size and max(int(x) for x in ranges) < size:
         return [""] * n
 
-    if pool_is_weighted(items):
-        return [
-            kingdom_at_weight(items, int(x))
-            if prefix_unique_weighted(items, int(x)) == 1
-            else ""
-            for x in ranges
-        ]
-
-    bounds = kingdom_run_boundaries(items)
-    out = []
-    for x in ranges:
-        xi = int(x)
-        if prefix_unique_count(items, xi) == 1 or xi in bounds:
-            out.append(kingdom_at_index(items, xi))
-        else:
-            out.append("")
-    return out
+    return _kingdoms_per_range(items, ranges)
 
 
 def expand_goal(template: str, value: int) -> str:
@@ -868,6 +876,177 @@ def build_groups(goals: list[dict]) -> list[dict]:
     return groups
 
 
+def _append_individual_row(
+    rows: list[dict],
+    *,
+    goal_text: str,
+    kingdom_v: str,
+    prog_v: str | list[str],
+    lockout_prog: str | list[str],
+) -> None:
+    lo = lockout_prog
+    if lockout_inverted_vs_progression(prog_v, lo):
+        lo = prog_v
+    rows.append(
+        {
+            "goal": goal_text,
+            "kingdom": kingdom_v,
+            "progression": prog_v,
+            "lockout": lo,
+        }
+    )
+
+
+def _refine_individual_zones(
+    *,
+    kingdom: str,
+    zones: list[str],
+    curated_prog: bool,
+    items: list,
+    template: str,
+    goal_text: str,
+    value: int | None,
+    multi_kingdom: bool,
+    weighted: bool,
+) -> list[str]:
+    zones = list(zones)
+    if (
+        kingdom
+        and items
+        and not curated_prog
+        and pool_has_moon_availability(items)
+    ):
+        letter = refine_progression_from_availability(
+            kingdom=kingdom,
+            template=template,
+            goal_text=goal_text,
+            threshold=value,
+            items=items,
+            multi_kingdom=multi_kingdom,
+        )
+        if letter:
+            return [letter]
+    if len(zones) == 1 and not curated_prog and pool_has_moon_availability(items):
+        return [
+            refine_multi_kingdom_progression(
+                kingdom=kingdom,
+                prog=zones[0],
+                template=template,
+                goal_text=goal_text,
+                threshold=value,
+                items=items,
+                multi_kingdom=multi_kingdom,
+                weighted=weighted,
+            )
+        ]
+    return zones
+
+
+def _emit_blank_kingdom_row(
+    rows: list[dict],
+    *,
+    goal_text: str,
+    zones: list[str],
+    lockout_prog: str | list[str],
+) -> None:
+    if len(zones) == 1:
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v="",
+            prog_v=zones[0],
+            lockout_prog=lockout_prog,
+        )
+    elif goal_text in WARP_PAINTING_KEEP_ENTRANCE_PROG and zones:
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v="",
+            prog_v=compact_progression_value(zones),
+            lockout_prog=lockout_prog,
+        )
+    else:
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v="",
+            prog_v="",
+            lockout_prog=lockout_prog,
+        )
+
+
+def _emit_kingdom_row(
+    rows: list[dict],
+    *,
+    kingdom: str,
+    zones: list[str],
+    goal_text: str,
+    lockout_prog: str | list[str],
+    curated: bool,
+    curated_prog: bool,
+    template_prog: list[str],
+    n_range: int,
+    mapped_any: bool,
+) -> None:
+    if not curated_prog:
+        zones = expand_zones_for_kingdom(
+            kingdom, zones, _template_prog=template_prog
+        )
+    if not zones:
+        k2, prog = kingdom, ""
+        if not curated:
+            k2, prog = resolve_blank_progression(
+                kingdom,
+                "",
+                goal_text=goal_text,
+                template_prog=template_prog,
+                _n_range=n_range,
+                _template_has_mapped_prog=mapped_any,
+            )
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v=k2,
+            prog_v=prog,
+            lockout_prog=lockout_prog,
+        )
+        return
+
+    final: list[str] = []
+    k2 = kingdom
+    for prog in zones:
+        prog = clamp_prog_to_kingdom_border(
+            kingdom, prog, curated=curated or curated_prog
+        )
+        if not curated and not prog:
+            k2, prog = resolve_blank_progression(
+                kingdom,
+                "",
+                goal_text=goal_text,
+                template_prog=template_prog,
+                _n_range=n_range,
+                _template_has_mapped_prog=mapped_any,
+            )
+        if prog and prog not in final:
+            final.append(prog)
+    if not final:
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v=k2,
+            prog_v="",
+            lockout_prog=lockout_prog,
+        )
+    else:
+        _append_individual_row(
+            rows,
+            goal_text=goal_text,
+            kingdom_v=k2,
+            prog_v=compact_progression_value(final),
+            lockout_prog=lockout_prog,
+        )
+
+
 def build_template_individual_rows(g: dict) -> list[dict]:
     """Filas compactas (goal, kingdom, progression, lockout) para un template."""
     template = g["goal"]
@@ -909,100 +1088,39 @@ def build_template_individual_rows(g: dict) -> list[dict]:
         goal_text = template if value is None else expand_goal(template, value)
         lockout_prog = compact_progression_value(list(lockout_zs))
         curated_prog = value is not None and int(value) in ov_prog
-        zones = list(zones)
-        if (
-            kingdom
-            and items
-            and not curated_prog
-            and pool_has_moon_availability(items)
-        ):
-            letter = refine_progression_from_availability(
-                kingdom=kingdom,
-                template=template,
-                goal_text=goal_text,
-                threshold=value,
-                items=items,
-                multi_kingdom=multi_kingdom,
-            )
-            if letter:
-                zones = [letter]
-        elif len(zones) == 1 and not curated_prog and pool_has_moon_availability(
-            items
-        ):
-            zones = [
-                refine_multi_kingdom_progression(
-                    kingdom=kingdom,
-                    prog=zones[0],
-                    template=template,
-                    goal_text=goal_text,
-                    threshold=value,
-                    items=items,
-                    multi_kingdom=multi_kingdom,
-                    weighted=weighted,
-                )
-            ]
-
-        def _emit(kingdom_v: str, prog_v: str | list[str]) -> None:
-            lo = lockout_prog
-            if lockout_inverted_vs_progression(prog_v, lo):
-                lo = prog_v
-            rows.append(
-                {
-                    "goal": goal_text,
-                    "kingdom": kingdom_v,
-                    "progression": prog_v,
-                    "lockout": lo,
-                }
-            )
+        zones = _refine_individual_zones(
+            kingdom=kingdom,
+            zones=zones,
+            curated_prog=curated_prog,
+            items=items,
+            template=template,
+            goal_text=goal_text,
+            value=value,
+            multi_kingdom=multi_kingdom,
+            weighted=weighted,
+        )
 
         if not kingdom:
-            if len(zones) == 1:
-                _emit("", zones[0])
-            elif goal_text in WARP_PAINTING_KEEP_ENTRANCE_PROG and zones:
-                _emit("", compact_progression_value(zones))
-            else:
-                _emit("", "")
+            _emit_blank_kingdom_row(
+                rows,
+                goal_text=goal_text,
+                zones=zones,
+                lockout_prog=lockout_prog,
+            )
             continue
 
-        if not curated_prog:
-            zones = expand_zones_for_kingdom(
-                kingdom, zones, _template_prog=template_prog
-            )
-        if not zones:
-            k2, prog = kingdom, ""
-            if not curated:
-                k2, prog = resolve_blank_progression(
-                    kingdom,
-                    "",
-                    goal_text=goal_text,
-                    template_prog=template_prog,
-                    _n_range=n_range,
-                    _template_has_mapped_prog=mapped_any,
-                )
-            _emit(k2, prog)
-            continue
-
-        final: list[str] = []
-        k2 = kingdom
-        for prog in zones:
-            prog = clamp_prog_to_kingdom_border(
-                kingdom, prog, curated=curated or curated_prog
-            )
-            if not curated and not prog:
-                k2, prog = resolve_blank_progression(
-                    kingdom,
-                    "",
-                    goal_text=goal_text,
-                    template_prog=template_prog,
-                    _n_range=n_range,
-                    _template_has_mapped_prog=mapped_any,
-                )
-            if prog and prog not in final:
-                final.append(prog)
-        if not final:
-            _emit(k2, "")
-        else:
-            _emit(k2, compact_progression_value(final))
+        _emit_kingdom_row(
+            rows,
+            kingdom=kingdom,
+            zones=zones,
+            goal_text=goal_text,
+            lockout_prog=lockout_prog,
+            curated=curated,
+            curated_prog=curated_prog,
+            template_prog=template_prog,
+            n_range=n_range,
+            mapped_any=mapped_any,
+        )
     return rows
 
 

@@ -210,6 +210,59 @@ def naive_souvenir_icon(id_list: int) -> str:
     return f"smo/souvenir{id_list}.webp"
 
 
+def _sticker_goal_list_mismatches(entry: dict) -> list[str]:
+    id_list = int(entry["id_list"])
+    name = entry.get("name")
+    if id_list in STICKER_POSTGAME_ID_LISTS:
+        return [
+            f"stickers id_list={id_list} ({name}): "
+            "postgame; no debe estar en goal_lists"
+        ]
+    out: list[str] = []
+    expected = sticker_icon(id_list)
+    actual = str(entry.get("icon") or "")
+    if actual != expected:
+        out.append(
+            f"stickers id_list={id_list} ({name}): "
+            f"icon={actual!r}, esperado {expected!r}"
+        )
+    expected_kingdom = sticker_kingdom(id_list)
+    actual_kingdom = str(entry.get("kingdom") or "")
+    if actual_kingdom != expected_kingdom:
+        out.append(
+            f"stickers id_list={id_list} ({name}): "
+            f"kingdom={actual_kingdom!r}, esperado {expected_kingdom!r}"
+        )
+    return out
+
+
+def _souvenir_goal_list_mismatches(entry: dict) -> list[str]:
+    id_list = int(entry["id_list"])
+    name = entry.get("name")
+    kingdom = str(entry.get("kingdom") or "")
+    actual_icon = str(entry.get("icon") or "")
+    if id_list not in SOUVENIR_GOAL_LIST_ICON_ID_LISTS:
+        if not actual_icon:
+            return []
+        return [
+            f"souvenirs id_list={id_list} ({name}): "
+            f"solo un icon por reino en goal_lists; quitar {actual_icon!r}"
+        ]
+    expected_id = SOUVENIR_GOAL_LIST_ICON_BY_KINGDOM.get(kingdom)
+    if expected_id != id_list:
+        return [
+            f"souvenirs id_list={id_list} ({name}): "
+            f"icon solo en id_list {expected_id} del reino {kingdom!r}"
+        ]
+    expected = souvenir_kingdom_icon(kingdom)
+    if actual_icon == expected:
+        return []
+    return [
+        f"souvenirs id_list={id_list} ({name}): "
+        f"icon={actual_icon!r}, esperado {expected!r}"
+    ]
+
+
 def collect_goal_lists_icon_mismatches(
     goal_lists_path: Path | None = None,
 ) -> list[str]:
@@ -222,54 +275,12 @@ def collect_goal_lists_icon_mismatches(
     for entry in lists.get("stickers") or []:
         if not isinstance(entry, dict):
             continue
-        id_list = int(entry["id_list"])
-        if id_list in STICKER_POSTGAME_ID_LISTS:
-            out.append(
-                f"stickers id_list={id_list} ({entry.get('name')}): "
-                "postgame; no debe estar en goal_lists"
-            )
-            continue
-        expected = sticker_icon(id_list)
-        actual = str(entry.get("icon") or "")
-        if actual != expected:
-            out.append(
-                f"stickers id_list={id_list} ({entry.get('name')}): "
-                f"icon={actual!r}, esperado {expected!r}"
-            )
-        expected_kingdom = sticker_kingdom(id_list)
-        actual_kingdom = str(entry.get("kingdom") or "")
-        if actual_kingdom != expected_kingdom:
-            out.append(
-                f"stickers id_list={id_list} ({entry.get('name')}): "
-                f"kingdom={actual_kingdom!r}, esperado {expected_kingdom!r}"
-            )
+        out.extend(_sticker_goal_list_mismatches(entry))
 
     for entry in lists.get("souvenirs") or []:
         if not isinstance(entry, dict):
             continue
-        id_list = int(entry["id_list"])
-        kingdom = str(entry.get("kingdom") or "")
-        actual_icon = str(entry.get("icon") or "")
-        if id_list not in SOUVENIR_GOAL_LIST_ICON_ID_LISTS:
-            if actual_icon:
-                out.append(
-                    f"souvenirs id_list={id_list} ({entry.get('name')}): "
-                    f"solo un icon por reino en goal_lists; quitar {actual_icon!r}"
-                )
-            continue
-        expected_id = SOUVENIR_GOAL_LIST_ICON_BY_KINGDOM.get(kingdom)
-        if expected_id != id_list:
-            out.append(
-                f"souvenirs id_list={id_list} ({entry.get('name')}): "
-                f"icon solo en id_list {expected_id} del reino {kingdom!r}"
-            )
-            continue
-        expected = souvenir_kingdom_icon(kingdom)
-        if actual_icon != expected:
-            out.append(
-                f"souvenirs id_list={id_list} ({entry.get('name')}): "
-                f"icon={actual_icon!r}, esperado {expected!r}"
-            )
+        out.extend(_souvenir_goal_list_mismatches(entry))
 
     return out
 

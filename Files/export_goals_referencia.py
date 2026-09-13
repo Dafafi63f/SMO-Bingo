@@ -1117,6 +1117,48 @@ def _insert_after_n_moons(summary: dict, n_odyssey_units: int) -> dict:
     return _insert_after_key(summary, "n_moons", "n_odyssey_units", n_odyssey_units)
 
 
+def _referencia_pool_summary(
+    moon_detail: list[dict],
+    moon_meta: dict,
+    n_ody: object,
+) -> dict | None:
+    if moon_detail:
+        summary = summarize_moon_pool(moon_detail)
+        if n_ody:
+            summary = _insert_after_n_moons(summary, int(n_ody))
+        return summary
+    if moon_meta.get("n_moons"):
+        summary = {"n_moons": moon_meta["n_moons"]}
+        if n_ody:
+            summary["n_odyssey_units"] = int(n_ody)
+        return summary
+    return None
+
+
+def _referencia_lista_summary(
+    lista: list[dict],
+    moon_meta: dict,
+    moon_detail: list[dict],
+    regional: dict | None,
+    n_ody: object,
+) -> dict:
+    regional_total = (
+        int(regional["regional_total"])
+        if regional and regional.get("regional_total") is not None
+        else None
+    )
+    summary = summarize_lista_pool(lista, regional_total=regional_total)
+    if moon_meta and not moon_detail:
+        # Conteos juntos al inicio: n_items → n_moons → n_odyssey → by_*
+        if "n_moons" in moon_meta:
+            summary = _insert_after_key(
+                summary, "n_items", "n_moons", moon_meta["n_moons"]
+            )
+        if n_ody:
+            summary = _insert_after_n_moons(summary, int(n_ody))
+    return summary
+
+
 def attach_referencia_summaries(
     record: dict,
     *,
@@ -1135,32 +1177,13 @@ def attach_referencia_summaries(
     if src:
         record["lista_source"] = src
     n_ody = moon_meta.get("n_odyssey_units")
-    if moon_detail:
-        summary = summarize_moon_pool(moon_detail)
-        if n_ody:
-            summary = _insert_after_n_moons(summary, int(n_ody))
-        record["pool_summary"] = summary
-    elif moon_meta.get("n_moons"):
-        summary = {"n_moons": moon_meta["n_moons"]}
-        if n_ody:
-            summary["n_odyssey_units"] = int(n_ody)
-        record["pool_summary"] = summary
+    pool_summary = _referencia_pool_summary(moon_detail, moon_meta, n_ody)
+    if pool_summary is not None:
+        record["pool_summary"] = pool_summary
     if lista:
-        regional_total = (
-            int(regional["regional_total"])
-            if regional and regional.get("regional_total") is not None
-            else None
+        record["lista_summary"] = _referencia_lista_summary(
+            lista, moon_meta, moon_detail, regional, n_ody
         )
-        summary = summarize_lista_pool(lista, regional_total=regional_total)
-        if moon_meta and not moon_detail:
-            # Conteos juntos al inicio: n_items → n_moons → n_odyssey → by_*
-            if "n_moons" in moon_meta:
-                summary = _insert_after_key(
-                    summary, "n_items", "n_moons", moon_meta["n_moons"]
-                )
-            if n_ody:
-                summary = _insert_after_n_moons(summary, int(n_ody))
-        record["lista_summary"] = summary
 
 
 def _sorted_lista_for_goal(goal: str, lista: list[dict]) -> list[dict]:

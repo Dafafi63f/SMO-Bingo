@@ -702,6 +702,31 @@ def attach_group_capture_moons(
             by_capture[cap_id].sort(key=_moon_label_sort_key)
 
 
+def _skip_goal_pool_attachment(
+    key: tuple[str, int], cap_id: int, existing: set[tuple[str, int]]
+) -> bool:
+    if key in existing:
+        return True
+    if cap_id in CAPTURE_GOAL_POOL_CURATED_ONLY:
+        return CURATED_PRIMARY.get(key) != cap_id
+    return False
+
+
+def _attach_one_goal_pool_key(
+    by_capture: dict[int, list[str]],
+    cap_id: int,
+    key: tuple[str, int],
+    registry: dict[tuple[str, int], dict],
+    existing: set[tuple[str, int]],
+) -> None:
+    entry = registry.get(key)
+    name = (entry or {}).get("name") or f"Moon {key[1]}"
+    by_capture.setdefault(cap_id, []).append(
+        moon_label(key[0], key[1], str(name))
+    )
+    existing.add(key)
+
+
 def attach_capture_goal_pool_moons(
     by_capture: dict[int, list[str]],
     registry: dict[tuple[str, int], dict],
@@ -714,17 +739,11 @@ def attach_capture_goal_pool_moons(
         existing = _existing_keys_from_labels(by_capture.get(cap_id, []))
         for goal in goals:
             for key in goal_pools.get(goal, set()):
-                if key in existing:
+                if _skip_goal_pool_attachment(key, cap_id, existing):
                     continue
-                if cap_id in CAPTURE_GOAL_POOL_CURATED_ONLY:
-                    if CURATED_PRIMARY.get(key) != cap_id:
-                        continue
-                entry = registry.get(key)
-                name = (entry or {}).get("name") or f"Moon {key[1]}"
-                by_capture.setdefault(cap_id, []).append(
-                    moon_label(key[0], key[1], str(name))
+                _attach_one_goal_pool_key(
+                    by_capture, cap_id, key, registry, existing
                 )
-                existing.add(key)
         if cap_id in by_capture:
             by_capture[cap_id].sort(key=_moon_label_sort_key)
 
@@ -1252,6 +1271,29 @@ def _capture_tipo(meta: dict, n_for_tipo: int) -> str:
     return "minoritaria"
 
 
+def _parse_tag_only_key(raw: object) -> tuple[str, int] | None:
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return (str(raw["kingdom"]), int(raw["moon"]))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _tag_only_keys_from_group(group: dict, want: str) -> set[tuple[str, int]]:
+    if str(group.get("capture") or "").casefold() != want:
+        return set()
+    keys: set[tuple[str, int]] = set()
+    for raw in group.get("tag_only_moons") or []:
+        key = _parse_tag_only_key(raw)
+        if key:
+            keys.add(key)
+    for m in group_moons(group):
+        if m.get("goal") is False and "kingdom" in m and "moon" in m:
+            keys.add((str(m["kingdom"]), int(m["moon"])))
+    return keys
+
+
 def _capture_tag_only_keys(cap_name: str) -> set[tuple[str, int]]:
     """tag_only_moons de grupos bingo con el mismo capture (goal=false)."""
     if not BINGO_GROUPS_PATH.exists():
@@ -1259,18 +1301,7 @@ def _capture_tag_only_keys(cap_name: str) -> set[tuple[str, int]]:
     want = cap_name.casefold()
     keys: set[tuple[str, int]] = set()
     for group in load_bingo_groups():
-        if str(group.get("capture") or "").casefold() != want:
-            continue
-        for raw in group.get("tag_only_moons") or []:
-            if not isinstance(raw, dict):
-                continue
-            try:
-                keys.add((str(raw["kingdom"]), int(raw["moon"])))
-            except (KeyError, TypeError, ValueError):
-                continue
-        for m in group_moons(group):
-            if m.get("goal") is False and "kingdom" in m and "moon" in m:
-                keys.add((str(m["kingdom"]), int(m["moon"])))
+        keys |= _tag_only_keys_from_group(group, want)
     return keys
 
 
@@ -1302,6 +1333,54 @@ def _curated_keys_for_capture(cap_id: int) -> set[tuple[str, int]]:
     return {key for key, cid in CURATED_PRIMARY.items() if int(cid) == int(cap_id)}
 
 
+def _moon_key_from_label(label: str) -> tuple[str, int] | None:
+    m = re.match(r"^(\w+)#(\d+)\s+", label.strip())
+    if not m:
+        return None
+    return (m.group(1), int(m.group(2)))
+
+
+def _moon_in_capture_pool(
+    key: tuple[str, int],
+    *,
+    real_keys: frozenset[tuple[str, int]],
+    tag_only: set[tuple[str, int]],
+    curated: set[tuple[str, int]],
+    pool: set[tuple[str, int]],
+) -> bool:
+    return (
+        key in real_keys
+        or key in tag_only
+        or key in curated
+        or key in pool
+    )
+
+
+def _capture_moon_counts_for_goal(
+    key: tuple[str, int],
+    *,
+    tag_only: set[tuple[str, int]],
+    pool: set[tuple[str, int]],
+    curated: set[tuple[str, int]],
+    primary_goal: str,
+    cap_id: int | None,
+) -> bool:
+    if key in tag_only:
+        return False
+    if key in pool:
+        return True
+    if key not in curated or key in CURATED_GOAL_FALSE_KEYS or not primary_goal:
+        return False
+    kingdom_multi_goal = _MULTI_MOON_GOAL_BY_KINGDOM.get(key[0])
+    capture_goal = CAPTURE_OBJECTIVE.get(int(cap_id), "") if cap_id is not None else ""
+    counts = kingdom_multi_goal == primary_goal or capture_goal == primary_goal
+    if cap_id is not None:
+        peer_false = CAPTURE_PEER_GOAL_FALSE_KEYS.get(int(cap_id))
+        if peer_false and key in peer_false:
+            return False
+    return counts
+
+
 def _build_capture_moons(
     moon_labels: list[str],
     goals: list[str],
@@ -1317,40 +1396,28 @@ def _build_capture_moons(
         pool |= goal_pools.get(goal, set())
     tag_only = _capture_tag_only_keys(cap_name)
     curated = _curated_keys_for_capture(int(cap_id)) if cap_id is not None else set()
+    primary_goal = goals[0] if goals else ""
     moons: list[dict[str, object]] = []
     for label in moon_labels:
-        m = re.match(r"^(\w+)#(\d+)\s+", label.strip())
-        if not m:
+        key = _moon_key_from_label(label)
+        if key is None:
             continue
-        key = (m.group(1), int(m.group(2)))
-        if (
-            key not in real_keys
-            and key not in tag_only
-            and key not in curated
-            and key not in pool
+        if not _moon_in_capture_pool(
+            key,
+            real_keys=real_keys,
+            tag_only=tag_only,
+            curated=curated,
+            pool=pool,
         ):
             continue
-        primary_goal = goals[0] if goals else ""
-        kingdom_multi_goal = _MULTI_MOON_GOAL_BY_KINGDOM.get(key[0])
-        capture_goal = (
-            CAPTURE_OBJECTIVE.get(int(cap_id), "") if cap_id is not None else ""
+        counts_for_goal = _capture_moon_counts_for_goal(
+            key,
+            tag_only=tag_only,
+            pool=pool,
+            curated=curated,
+            primary_goal=primary_goal,
+            cap_id=cap_id,
         )
-        if key in tag_only:
-            counts_for_goal = False
-        else:
-            counts_for_goal = key in pool or (
-                key in curated
-                and key not in CURATED_GOAL_FALSE_KEYS
-                and bool(primary_goal)
-                and (
-                    kingdom_multi_goal == primary_goal
-                    or capture_goal == primary_goal
-                )
-            )
-        if cap_id is not None:
-            peer_false = CAPTURE_PEER_GOAL_FALSE_KEYS.get(int(cap_id))
-            if peer_false and key in peer_false:
-                counts_for_goal = False
         moons.append(
             parse_moon_label(label, registry, counts_for_goal=counts_for_goal)
         )

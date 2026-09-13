@@ -394,6 +394,19 @@ AVAILABILITY_WEIGHT_PENALTY: dict[int, int] = {
     3: 30,
 }
 
+_EXACT_ZONE_BASE_WEIGHT: dict[frozenset[str], int] = {
+    frozenset({"e"}): 100,
+    frozenset({"m"}): 100,
+    frozenset({"l"}): 100,
+    frozenset({"e", "m"}): 100,
+    frozenset({"m", "l"}): 100,
+    frozenset({"l", "n"}): 95,
+    frozenset({"e", "m", "l"}): 85,
+    frozenset({"m", "l", "n"}): 85,
+    frozenset({"e", "m", "l", "n"}): 55,
+    frozenset({"n"}): 60,
+}
+
 
 def expand_zones_forward(
     zones_hit: set[str],
@@ -468,6 +481,53 @@ def _item_threshold_weight(m: dict) -> int:
     return 1
 
 
+def _limiting_rank(m: dict, registry: dict | None) -> int:
+    return _availability_rank_label(item_availability_label(m, registry))
+
+
+def _limiting_availability_from_pool(
+    pool: list[dict], registry: dict | None
+) -> str:
+    if not pool:
+        return "base"
+    return item_availability_label(
+        max(pool, key=lambda m: _limiting_rank(m, registry)), registry
+    )
+
+
+def _limiting_multi_kingdom(
+    items: list[dict], need: int, kingdom: str, registry: dict | None
+) -> str:
+    taken: list[dict] = []
+    acc = 0
+    for m in items:
+        taken.append(m)
+        acc += _item_threshold_weight(m)
+        if acc >= need:
+            break
+    matched = [m for m in taken if str(m.get("kingdom") or "") == kingdom]
+    pool = matched if matched else taken
+    return _limiting_availability_from_pool(pool, registry)
+
+
+def _limiting_mono_kingdom(
+    items: list[dict], need: int, kingdom: str, registry: dict | None
+) -> str:
+    k_moons = [
+        m for m in items if kingdom and str(m.get("kingdom") or "") == kingdom
+    ]
+    pool = k_moons if k_moons else list(items)
+    ranked = sorted(pool, key=lambda m: _limiting_rank(m, registry))
+    taken: list[dict] = []
+    acc = 0
+    for m in ranked:
+        taken.append(m)
+        acc += _item_threshold_weight(m)
+        if acc >= need:
+            break
+    return _limiting_availability_from_pool(taken, registry)
+
+
 def limiting_availability_for_threshold(
     items: list[dict],
     threshold: int | None,
@@ -491,46 +551,9 @@ def limiting_availability_for_threshold(
     need = int(threshold)
     if need < 1:
         return "base"
-
-    def _rank(m: dict) -> int:
-        return _availability_rank_label(item_availability_label(m, registry))
-
     if multi_kingdom and kingdom:
-        # Prefijo acumulativo del pool (orden historia / grupo); clusters
-        # regionales aportan ``total``. Luego filtra al reino asignado.
-        taken: list[dict] = []
-        acc = 0
-        for m in items:
-            taken.append(m)
-            acc += _item_threshold_weight(m)
-            if acc >= need:
-                break
-        matched = [
-            m for m in taken if str(m.get("kingdom") or "") == kingdom
-        ]
-        pool = matched if matched else taken
-        if not pool:
-            return "base"
-        return item_availability_label(max(pool, key=_rank), registry)
-
-    k_moons = [
-        m
-        for m in items
-        if kingdom and str(m.get("kingdom") or "") == kingdom
-    ]
-    # Mono: unidades más fáciles hasta cubrir el umbral.
-    pool = k_moons if k_moons else list(items)
-    ranked = sorted(pool, key=_rank)
-    taken = []
-    acc = 0
-    for m in ranked:
-        taken.append(m)
-        acc += _item_threshold_weight(m)
-        if acc >= need:
-            break
-    if not taken:
-        return "base"
-    return item_availability_label(max(taken, key=_rank), registry)
+        return _limiting_multi_kingdom(items, need, kingdom, registry)
+    return _limiting_mono_kingdom(items, need, kingdom, registry)
 
 
 # Tourist: siempre Late/Night; no hereda e/m del reino (p.ej. cascade).
@@ -681,6 +704,40 @@ def filter_moons_for_goal(goal: str, moons: list[dict], story_order: list[str]) 
     return list(moons)
 
 
+def _normalize_goal_moon(raw: dict) -> dict | None:
+    if raw.get("kingdom") is None or raw.get("moon") is None:
+        return None
+    row = {
+        "kingdom": str(raw["kingdom"]),
+        "moon": int(raw["moon"]),
+        "name": str(raw.get("name") or ""),
+    }
+    if raw.get("disponibilidad"):
+        row["disponibilidad"] = str(raw["disponibilidad"])
+    return row
+
+
+def _goal_moons_from_entries(
+    goal: str,
+    obj: dict,
+    entries: list,
+    registry: dict,
+    pick_moons_for_goal,
+) -> list[dict] | None:
+    board = list(obj.get("board_categories") or [])
+    _used, moons, _note = pick_moons_for_goal(
+        str(goal), entries, board, registry
+    )
+    if not moons:
+        return None
+    normalized = [
+        row
+        for raw in moons
+        if (row := _normalize_goal_moon(raw)) is not None
+    ]
+    return normalized or None
+
+
 def build_goal_moons() -> dict[str, list[dict]]:
     """goal → lunas (mismo criterio que goals_referencia.pick_moons_for_goal)."""
     from export_goals_referencia import collect_membership, pick_moons_for_goal
@@ -694,24 +751,9 @@ def build_goal_moons() -> dict[str, list[dict]]:
         entries = membership.get(str(goal)) or []
         if not entries:
             continue
-        board = list(obj.get("board_categories") or [])
-        _used, moons, _note = pick_moons_for_goal(
-            str(goal), entries, board, registry
+        normalized = _goal_moons_from_entries(
+            str(goal), obj, entries, registry, pick_moons_for_goal
         )
-        if not moons:
-            continue
-        normalized: list[dict] = []
-        for raw in moons:
-            if raw.get("kingdom") is None or raw.get("moon") is None:
-                continue
-            row = {
-                "kingdom": str(raw["kingdom"]),
-                "moon": int(raw["moon"]),
-                "name": str(raw.get("name") or ""),
-            }
-            if raw.get("disponibilidad"):
-                row["disponibilidad"] = str(raw["disponibilidad"])
-            normalized.append(row)
         if normalized:
             out[str(goal)] = normalized
     return out
@@ -830,6 +872,65 @@ def fallback_kingdoms(
     return set()
 
 
+def _objective_range(obj: dict) -> list[int] | None:
+    ranges = obj.get("range")
+    new_range = unique_ascending(list(ranges)) if ranges else None
+    if new_range == []:
+        new_range = [1]
+    return new_range
+
+
+def _kingdoms_from_goal_moons(moons: list[dict], story_order: list[str]) -> set[str]:
+    return {
+        str(m["kingdom"]) for m in moons if m.get("kingdom") in story_order
+    }
+
+
+def _progression_for_kingdom_set(
+    kingdoms: set[str],
+    *,
+    goal: str,
+    ranges: list[int] | None,
+    moons: list[dict],
+    obj: dict,
+    registry: dict | None,
+    story_order: list[str],
+    ceilings: dict[str, str],
+) -> list[str]:
+    if len(kingdoms) == 1:
+        mono = mono_kingdom_progression(
+            next(iter(kingdoms)),
+            goal=goal,
+            ranges=ranges,
+            moons=moons,
+            obj=obj,
+            registry=registry,
+        )
+        if mono is not None:
+            return mono
+    zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
+    return expand_zones_forward(zones_hit, kingdoms=kingdoms)
+
+
+def _adjust_range_for_moons(
+    goal: str,
+    new_range: list[int] | None,
+    kingdoms: set[str],
+    moons: list[dict],
+    story_order: list[str],
+    ceilings: dict[str, str],
+) -> list[int] | None:
+    if new_range is None:
+        return None
+    if goal in RANGE_PRESERVE:
+        return list(RANGE_PRESERVE[goal])
+    if len(kingdoms) >= 2:
+        zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
+        if len(zones_hit) == 2:
+            return range_from_kingdom_counts(moons, story_order)
+    return new_range
+
+
 def apply_objective(
     goal: str,
     obj: dict,
@@ -839,66 +940,36 @@ def apply_objective(
     ceilings: dict[str, str],
     registry: dict | None = None,
 ) -> tuple[list[str], list[int] | None]:
-    ranges = obj.get("range")
-    new_range = unique_ascending(list(ranges)) if ranges else None
-    if new_range == []:
-        new_range = [1]
+    new_range = _objective_range(obj)
 
     override = PROGRESSION_OVERRIDES.get(goal)
     if override is not None:
-        # Puente completo aunque no haya range (fijas tipo Warp-Painting / story).
         if goal in RANGE_PRESERVE:
             new_range = list(RANGE_PRESERVE[goal])
         return unique_progression(list(override)), new_range
 
     moons = goal_moons.get(goal) or []
+    prog_kwargs = {
+        "goal": goal,
+        "ranges": new_range,
+        "moons": moons,
+        "obj": obj,
+        "registry": registry,
+        "story_order": story_order,
+        "ceilings": ceilings,
+    }
 
     if moons:
-        kingdoms = {
-            str(m["kingdom"]) for m in moons if m.get("kingdom") in story_order
-        }
-        if len(kingdoms) == 1:
-            mono = mono_kingdom_progression(
-                next(iter(kingdoms)),
-                goal=goal,
-                ranges=new_range,
-                moons=moons,
-                obj=obj,
-                registry=registry,
-            )
-            if mono is not None:
-                prog = mono
-            else:
-                zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
-                prog = expand_zones_forward(zones_hit, kingdoms=kingdoms)
-        else:
-            zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
-            prog = expand_zones_forward(zones_hit, kingdoms=kingdoms)
-        if new_range is None:
-            return prog, None
-        if goal in RANGE_PRESERVE:
-            new_range = list(RANGE_PRESERVE[goal])
-        elif len(kingdoms) >= 2:
-            zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
-            if len(zones_hit) == 2:
-                # 2 zonas naturales + 2+ reinos → range acumulado (Dorrie, etc.).
-                new_range = range_from_kingdom_counts(moons, story_order)
+        kingdoms = _kingdoms_from_goal_moons(moons, story_order)
+        prog = _progression_for_kingdom_set(kingdoms, **prog_kwargs)
+        new_range = _adjust_range_for_moons(
+            goal, new_range, kingdoms, moons, story_order, ceilings
+        )
         return prog, new_range
 
     kingdoms = fallback_kingdoms(goal, obj, story_order)
-    if len(kingdoms) == 1:
-        mono = mono_kingdom_progression(
-            next(iter(kingdoms)),
-            goal=goal,
-            ranges=new_range,
-            moons=moons,
-            obj=obj,
-            registry=registry,
-        )
-        if mono is not None:
-            return mono, new_range
-    zones_hit = zones_hit_by_kingdoms(kingdoms, story_order, ceilings)
-    return expand_zones_forward(zones_hit, kingdoms=kingdoms), new_range
+    prog = _progression_for_kingdom_set(kingdoms, **prog_kwargs)
+    return prog, new_range
 
 
 def primary_icon(objective: dict) -> str:
@@ -1050,6 +1121,23 @@ def weighting_progression(
     return list(obj_progression)
 
 
+def _base_weight_for_zones(zones: set[str], ks: set[str]) -> int:
+    if not zones:
+        return 100
+    if zones == {"e", "m"} and ks and ks <= FORK_MID_KINGDOMS:
+        return 70
+    if zones == {"l", "n"} and ks and ks <= FORK_LATE_KINGDOMS:
+        return 75
+    exact = _EXACT_ZONE_BASE_WEIGHT.get(frozenset(zones))
+    if exact is not None:
+        return exact
+    if "m" in zones:
+        return 80
+    if "l" in zones:
+        return 75
+    return 70
+
+
 def weighting_for_progression(
     progression: list[str],
     *,
@@ -1064,36 +1152,9 @@ def weighting_for_progression(
     más probable en el pool → Rush se llena antes con goals tempranas).
     """
     zones = set(progression or [])
-    if not zones:
-        base = 100
-    else:
-        ks = {str(k) for k in (kingdoms or set())}
-        if zones == {"e", "m"} and ks and ks <= FORK_MID_KINGDOMS:
-            base = 70
-        elif zones == {"l", "n"} and ks and ks <= FORK_LATE_KINGDOMS:
-            base = 75
-        elif zones in ({"e"}, {"m"}, {"l"}, {"e", "m"}):
-            base = 100
-        elif zones == {"m", "l"}:
-            base = 100
-        elif zones == {"l", "n"}:
-            base = 95
-        elif zones == {"e", "m", "l"}:
-            base = 85
-        elif zones == {"m", "l", "n"}:
-            base = 85
-        elif zones == {"e", "m", "l", "n"}:
-            base = 55
-        elif zones == {"n"}:
-            base = 60
-        elif "m" in zones:
-            base = 80
-        elif "l" in zones:
-            base = 75
-        else:
-            base = 70
+    ks = {str(k) for k in (kingdoms or set())}
+    base = _base_weight_for_zones(zones, ks)
 
-    # Globals multi-zona: no aplicar penalización mid/wp (ya están bajos).
     if zones == {"e", "m", "l", "n"}:
         return base
 
@@ -1168,6 +1229,74 @@ def _set_objective_range_fields(
         obj.pop("individual_limit", None)
 
 
+def _kingdoms_for_weighting(
+    goal: str,
+    obj: dict,
+    moons: list[dict],
+    story_order: list[str],
+) -> set[str]:
+    if moons:
+        return {
+            str(m["kingdom"]) for m in moons if m.get("kingdom") in story_order
+        }
+    return fallback_kingdoms(goal, obj, story_order)
+
+
+def _reweight_objective(
+    obj: dict,
+    new_p: list[str],
+    goal: str,
+    moons: list[dict],
+    story_order: list[str],
+    registry: dict | None,
+) -> tuple[int, int]:
+    fallback_ks = _kingdoms_for_weighting(goal, obj, moons, story_order)
+    kingdoms = weighting_kingdoms(
+        obj, moons, fallback_ks, registry=registry
+    )
+    avail_rank = goal_availability_rank(obj, moons, registry=registry)
+    weight_prog = weighting_progression(
+        new_p, obj, moons, kingdoms, registry=registry
+    )
+    new_w = weighting_for_progression(
+        weight_prog, kingdoms=kingdoms, availability_rank=avail_rank
+    )
+    old_w = _apply_weighting(obj, new_w)
+    return old_w, new_w
+
+
+def _sync_one_regional_objective(
+    obj: dict,
+    by_goal: dict[str, dict],
+    goal_moons: dict[str, list[dict]],
+    story_order: list[str],
+    registry: dict | None,
+) -> tuple | None:
+    goal = str(obj.get("goal") or "")
+    if not goal.endswith(REGIONAL_COINS_SUFFIX):
+        return None
+    if goal in PROGRESSION_OVERRIDES:
+        return None
+    base = goal[: -len(REGIONAL_COINS_SUFFIX)]
+    sib = by_goal.get(f"{base} Moons") or by_goal.get(f"{base} Moon[[s]]")
+    if not sib:
+        return None
+    new_p = unique_progression(list(sib.get("progression") or []))
+    old_p = list(obj.get("progression") or [])
+    if old_p == new_p:
+        return None
+    old_r = list(obj["range"]) if obj.get("range") else None
+    old_w = obj.get("weighting", 100)
+    _set_objective_range_fields(obj, new_p, old_r)
+    moons = goal_moons.get(goal) or []
+    _, new_w = _reweight_objective(
+        obj, new_p, goal, moons, story_order, registry
+    )
+    if old_p != new_p or old_w != new_w:
+        return (goal, old_p, new_p, old_r, old_r)
+    return None
+
+
 def sync_regional_progression_from_sibling_moons(
     objectives: list[dict],
     *,
@@ -1183,44 +1312,11 @@ def sync_regional_progression_from_sibling_moons(
     by_goal = {str(o.get("goal") or ""): o for o in objectives}
     changed: list[tuple] = []
     for obj in objectives:
-        goal = str(obj.get("goal") or "")
-        if not goal.endswith(REGIONAL_COINS_SUFFIX):
-            continue
-        if goal in PROGRESSION_OVERRIDES:
-            continue
-        base = goal[: -len(REGIONAL_COINS_SUFFIX)]
-        sib = by_goal.get(f"{base} Moons") or by_goal.get(f"{base} Moon[[s]]")
-        if not sib:
-            continue
-        new_p = unique_progression(list(sib.get("progression") or []))
-        old_p = list(obj.get("progression") or [])
-        old_r = list(obj["range"]) if obj.get("range") else None
-        old_w = obj.get("weighting", 100)
-        if old_p == new_p:
-            continue
-        _set_objective_range_fields(obj, new_p, old_r)
-        moons = goal_moons.get(goal) or []
-        if moons:
-            fallback_ks = {
-                str(m["kingdom"])
-                for m in moons
-                if m.get("kingdom") in story_order
-            }
-        else:
-            fallback_ks = fallback_kingdoms(goal, obj, story_order)
-        kingdoms = weighting_kingdoms(
-            obj, moons, fallback_ks, registry=registry
+        change = _sync_one_regional_objective(
+            obj, by_goal, goal_moons, story_order, registry
         )
-        avail_rank = goal_availability_rank(obj, moons, registry=registry)
-        weight_prog = weighting_progression(
-            new_p, obj, moons, kingdoms, registry=registry
-        )
-        new_w = weighting_for_progression(
-            weight_prog, kingdoms=kingdoms, availability_rank=avail_rank
-        )
-        _apply_weighting(obj, new_w)
-        if old_p != new_p or old_w != new_w:
-            changed.append((goal, old_p, new_p, old_r, old_r))
+        if change is not None:
+            changed.append(change)
     return changed
 
 
@@ -1257,42 +1353,24 @@ def _update_combined_objective(
     )
     _set_objective_range_fields(obj, new_p, new_r)
     moons = goal_moons.get(goal) or []
-    if moons:
-        fallback_ks = {
-            str(m["kingdom"]) for m in moons if m.get("kingdom") in story_order
-        }
-    else:
-        fallback_ks = fallback_kingdoms(goal, obj, story_order)
-    kingdoms = weighting_kingdoms(
-        obj, moons, fallback_ks, registry=registry
+    old_w, new_w = _reweight_objective(
+        obj, new_p, goal, moons, story_order, registry
     )
-    avail_rank = goal_availability_rank(obj, moons, registry=registry)
-    weight_prog = weighting_progression(
-        new_p, obj, moons, kingdoms, registry=registry
-    )
-    new_w = weighting_for_progression(
-        weight_prog, kingdoms=kingdoms, availability_rank=avail_rank
-    )
-    old_w = _apply_weighting(obj, new_w)
     if old_p != new_p or old_r != new_r or old_w != new_w:
         return (goal, old_p, new_p, old_r, new_r)
     return None
 
 
-def main() -> None:
-    clear_runtime_caches()
-    meta = load_meta()
-    story_order = list(meta["story_order"])
-    ceilings = dict(meta["run_tier_ceiling"])
-    goal_moons = build_goal_moons()
-    from catalog_lib import build_matrix_moon_registry
-
-    registry = build_matrix_moon_registry()
-
-    stamp_combined_filename_today()
-    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
-    changed = []
-    for obj in data["objectives"]:
+def _update_all_objectives(
+    objectives: list[dict],
+    *,
+    goal_moons: dict[str, list[dict]],
+    story_order: list[str],
+    ceilings: dict[str, str],
+    registry: dict | None,
+) -> list[tuple]:
+    changed: list[tuple] = []
+    for obj in objectives:
         if strip_moontype_from_regional_categories(obj):
             changed.append(
                 (str(obj.get("goal") or ""), "moontype", "removed from categories")
@@ -1306,22 +1384,10 @@ def main() -> None:
         )
         if change is not None:
             changed.append(change)
+    return changed
 
-    synced = sync_regional_progression_from_sibling_moons(
-        data["objectives"],
-        goal_moons=goal_moons,
-        story_order=story_order,
-        registry=registry,
-    )
-    changed.extend(synced)
 
-    JSON_PATH.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-
-    # Orden Combined ({{X}}+alfa + campo orden 1..N); antes vivía en
-    # export_csv.py, absorbido aquí para que Combined quede siempre ordenado.
-    sorted_data = sort_combined_json()
+def _print_sorted_summary(sorted_data: dict) -> None:
     objectives_sorted = sorted_data["objectives"]
     by_icon: dict[str, list[str]] = defaultdict(list)
     for obj in objectives_sorted:
@@ -1336,13 +1402,8 @@ def main() -> None:
     print(f"orden: 1..{len(objectives_sorted)}")
     print(f"Iconos duplicados: {dupes} ({len(by_icon)} iconos distintos)")
 
-    clear_runtime_caches()
-    counts = normalize_bingo_groups_file()
-    print(f"bingo_groups sync: {counts}")
-    print(f"Actualizados: {len(changed)} objetivos")
 
-    clear_runtime_caches()
-    by = load_combined_objectives_by_goal()
+def _print_progression_distribution(by: dict[str, dict]) -> None:
     prog_c = Counter(
         tuple(o.get("progression") or []) for o in by.values() if not o.get("disabled")
     )
@@ -1350,6 +1411,8 @@ def main() -> None:
     for k, v in sorted(prog_c.items(), key=lambda x: (-x[1], x[0])):
         print(f"  {v:3d}  {list(k)}")
 
+
+def _print_weighting_distribution(by: dict[str, dict]) -> None:
     weight_c = Counter(
         int(o.get("weighting") or 100)
         for o in by.values()
@@ -1359,6 +1422,12 @@ def main() -> None:
     for k, v in sorted(weight_c.items()):
         print(f"  {v:3d}  weight={k}")
 
+
+def _print_sample_progressions(
+    by: dict[str, dict],
+    goal_moons: dict[str, list[dict]],
+    story_order: list[str],
+) -> None:
     print("\nEjemplos (conteo lunas -> prog):")
     samples = [
         "{{X}} Cactus/Tree Moons",
@@ -1385,6 +1454,53 @@ def main() -> None:
         print(
             f"  {g}: [{detail}] prog={o.get('progression')} range={o.get('range')}"
         )
+
+
+def main() -> None:
+    clear_runtime_caches()
+    meta = load_meta()
+    story_order = list(meta["story_order"])
+    ceilings = dict(meta["run_tier_ceiling"])
+    goal_moons = build_goal_moons()
+    from catalog_lib import build_matrix_moon_registry
+
+    registry = build_matrix_moon_registry()
+
+    stamp_combined_filename_today()
+    data = json.loads(JSON_PATH.read_text(encoding="utf-8"))
+    changed = _update_all_objectives(
+        data["objectives"],
+        goal_moons=goal_moons,
+        story_order=story_order,
+        ceilings=ceilings,
+        registry=registry,
+    )
+
+    synced = sync_regional_progression_from_sibling_moons(
+        data["objectives"],
+        goal_moons=goal_moons,
+        story_order=story_order,
+        registry=registry,
+    )
+    changed.extend(synced)
+
+    JSON_PATH.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+    sorted_data = sort_combined_json()
+    _print_sorted_summary(sorted_data)
+
+    clear_runtime_caches()
+    counts = normalize_bingo_groups_file()
+    print(f"bingo_groups sync: {counts}")
+    print(f"Actualizados: {len(changed)} objetivos")
+
+    clear_runtime_caches()
+    by = load_combined_objectives_by_goal()
+    _print_progression_distribution(by)
+    _print_weighting_distribution(by)
+    _print_sample_progressions(by, goal_moons, story_order)
 
 
 if __name__ == "__main__":

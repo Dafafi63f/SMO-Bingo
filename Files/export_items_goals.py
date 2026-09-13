@@ -12,6 +12,7 @@ Uso:
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 from catalog_lib import (
     CATALOG_DIR,
@@ -110,16 +111,12 @@ def _group_goal_names(group: dict) -> set[str]:
     }
 
 
-def _build_umbrella_children() -> dict[str, frozenset[str]]:
-    """umbrella → hijos que la hacen redundante en el mismo ítem."""
-    groups = [g for g in load_bingo_groups() if isinstance(g, dict)]
-    by_id = {str(g.get("id") or ""): g for g in groups}
-    drop: dict[str, set[str]] = defaultdict(set)
-
+def _add_fauna_flora_nature_drops(
+    groups: list[dict], drop: dict[str, set[str]]
+) -> None:
     fauna_u = "{{X}} Fauna Moons"
     flora_u = "{{X}} Flora Moons"
     nature_u = "{{X}} Nature Moons"
-
     for g in groups:
         tag = str(g.get("moon_tag") or "")
         goals = _group_goal_names(g)
@@ -127,9 +124,12 @@ def _build_umbrella_children() -> dict[str, frozenset[str]]:
             drop[fauna_u] |= {x for x in goals if x != fauna_u}
         if tag == "flora" or g.get("id") == "flora":
             drop[flora_u] |= {x for x in goals if x != flora_u}
-
     drop[nature_u] |= drop[fauna_u] | drop[flora_u] | {fauna_u, flora_u}
 
+
+def _add_group_id_umbrella_drops(
+    by_id: dict[str, dict], drop: dict[str, set[str]]
+) -> None:
     for gid, umbrella in (
         ("ground_pound", "{{X}} Ground Pound Moons"),
         ("outfit_door", "{{X}} Outfit Door Moons"),
@@ -137,13 +137,20 @@ def _build_umbrella_children() -> dict[str, frozenset[str]]:
         g = by_id.get(gid) or {}
         drop[umbrella] |= {x for x in _group_goal_names(g) if x != umbrella}
 
-    labels = list(_KINGDOM_LABELS.values()) + ["Bowser's"]
+
+def _collect_all_group_goals(groups: list[dict]) -> set[str]:
     all_goals: set[str] = set()
     for g in groups:
         all_goals |= _group_goal_names(g)
+    return all_goals
 
-    by_norm = {_norm_goal_key(g): g for g in all_goals}
 
+def _add_zone_fragment_umbrella_drops(
+    *,
+    labels: list[str],
+    by_norm: dict[str, str],
+    drop: dict[str, set[str]],
+) -> None:
     for frag in _KINGDOM_ZONE_FRAGMENTS:
         for label in labels:
             for suffix, umbrella_suffix in (
@@ -155,11 +162,35 @@ def _build_umbrella_children() -> dict[str, frozenset[str]]:
                 if child:
                     drop[f"{{{{X}}}} {label}{umbrella_suffix}"].add(child)
 
+
+def _add_zone_goal_umbrella_drops(
+    *,
+    all_goals: set[str],
+    by_norm: dict[str, str],
+    drop: dict[str, set[str]],
+) -> None:
     for child, umbrellas in _ZONE_GOAL_UMBRELLAS.items():
         if child in all_goals or _norm_goal_key(child) in by_norm:
             real = by_norm.get(_norm_goal_key(child), child)
             for umbrella in umbrellas:
                 drop[umbrella].add(real)
+
+
+def _build_umbrella_children() -> dict[str, frozenset[str]]:
+    """umbrella → hijos que la hacen redundante en el mismo ítem."""
+    groups = [g for g in load_bingo_groups() if isinstance(g, dict)]
+    by_id = {str(g.get("id") or ""): g for g in groups}
+    drop: dict[str, set[str]] = defaultdict(set)
+
+    _add_fauna_flora_nature_drops(groups, drop)
+    _add_group_id_umbrella_drops(by_id, drop)
+
+    labels = list(_KINGDOM_LABELS.values()) + ["Bowser's"]
+    all_goals = _collect_all_group_goals(groups)
+    by_norm = {_norm_goal_key(g): g for g in all_goals}
+
+    _add_zone_fragment_umbrella_drops(labels=labels, by_norm=by_norm, drop=drop)
+    _add_zone_goal_umbrella_drops(all_goals=all_goals, by_norm=by_norm, drop=drop)
 
     return {k: frozenset(v) for k, v in drop.items() if v}
 
@@ -287,25 +318,29 @@ def _goal_stem(text: str) -> str:
     return stem
 
 
-def _goal_kingdom_hint(goal_row: dict) -> str | None:
-    """Reino único de la goal (nombre / individuales), o None si es multi."""
-    text = str(goal_row.get("goal") or "")
-    stem = _goal_stem(text)
+def _strip_goal_stem_suffix(stem: str) -> str:
     for suffix in (" Moon Rock", " Talkatoo", " Sphynx Question"):
-        if stem.endswith(suffix):
-            stem = stem[: -len(suffix)]
-            if stem.startswith("Correct "):
-                stem = stem[len("Correct ") :]
-            stem = stem.strip()
-            break
-    named = []
+        if not stem.endswith(suffix):
+            continue
+        stem = stem[: -len(suffix)]
+        if stem.startswith("Correct "):
+            stem = stem[len("Correct ") :]
+        return stem.strip()
+    return stem
+
+
+def _is_moon_rocks_stem(stem: str) -> bool:
+    return (
+        stem == "Moon Rocks"
+        or stem.startswith("Moon Rock")
+        or stem.startswith("Moon Rocks ")
+    )
+
+
+def _kingdom_from_stem(stem: str) -> str | None:
+    named: list[str] = []
     for k, label in _KINGDOM_LABELS.items():
-        # "Moon Rocks" / "Moon Rock" no son el reino Moon.
-        if k == "moon" and (
-            stem == "Moon Rocks"
-            or stem.startswith("Moon Rock")
-            or stem.startswith("Moon Rocks ")
-        ):
+        if k == "moon" and _is_moon_rocks_stem(stem):
             continue
         if (
             stem == label
@@ -314,8 +349,10 @@ def _goal_kingdom_hint(goal_row: dict) -> str | None:
             or stem.startswith(f"{label}'s ")
         ):
             named.append(k)
-    if len(named) == 1:
-        return named[0]
+    return named[0] if len(named) == 1 else None
+
+
+def _kingdom_from_individuales(goal_row: dict) -> str | None:
     kingdoms: set[str] = set()
     saw_blank_kingdom = False
     for ind in goal_row.get("individuales") or []:
@@ -323,7 +360,6 @@ def _goal_kingdom_hint(goal_row: dict) -> str | None:
             continue
         k = str(ind.get("kingdom") or "").strip()
         if not k:
-            # Umbral sin reino fijo → goal multi-reino (p. ej. Activate P-Switches).
             saw_blank_kingdom = True
             continue
         kingdoms.add(k)
@@ -332,6 +368,15 @@ def _goal_kingdom_hint(goal_row: dict) -> str | None:
     if len(kingdoms) == 1:
         return next(iter(kingdoms))
     return None
+
+
+def _goal_kingdom_hint(goal_row: dict) -> str | None:
+    """Reino único de la goal (nombre / individuales), o None si es multi."""
+    stem = _strip_goal_stem_suffix(_goal_stem(str(goal_row.get("goal") or "")))
+    named = _kingdom_from_stem(stem)
+    if named:
+        return named
+    return _kingdom_from_individuales(goal_row)
 
 
 def _is_concrete_lista_row(row: dict) -> bool:
@@ -361,11 +406,71 @@ def _lookup_lista_idx(
     return None
 
 
-def build_items_goals() -> dict:
-    zone_map = load_zonas_zone_index()
-    payload = build_zonas_reino(zone_map=zone_map)
-    ref = load_catalog(REF_PATH) if REF_PATH.is_file() else {}
+def _looks_eight_bit_regional(name: str) -> bool:
+    """Heurística mientras lists.regionals no conserve eight_bit."""
+    n = name.casefold()
+    if n.startswith(("8-bit", "last 8-bit")):
+        return True
+    # Seaside: flag histórico sin prefijo 8-bit en el nombre.
+    return n.startswith("ocean-bottom maze")
 
+
+@dataclass
+class _ItemsGoalsState:
+    items: list[dict]
+    moon_index: dict[tuple, int]
+    lista_index: dict[tuple, int]
+    by_kingdom_source: dict[tuple[str, str], list[int]]
+    goals_by_idx: dict[int, list[tuple[int, str]]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    seen_goal: dict[int, set[int]] = field(default_factory=lambda: defaultdict(set))
+    story_keys: frozenset[tuple[str, int]] = field(default_factory=_story_moon_keys)
+    outfit_door_keys: frozenset[tuple[str, int]] = field(
+        default_factory=_outfit_door_moon_keys
+    )
+
+
+def _new_zonas_item_row(
+    *, kingdom: str, source: str, name: str, id_kingdom: object, idx: int
+) -> dict:
+    return {
+        "id": _item_id(kingdom, source, id_kingdom),
+        "name": name,
+        "order": idx + 1,
+        "n_goals": 0,
+        "goals": [],
+    }
+
+
+def _register_moon_item(
+    *,
+    moon_index: dict[tuple, int],
+    kingdom: str,
+    idx: int,
+    id_kingdom: object,
+    raw: dict,
+) -> None:
+    moon_num = int(str(id_kingdom or raw.get("moon") or 0))
+    moon_index[_moon_key(kingdom, moon_num)] = idx
+
+
+def _register_lista_item(
+    *,
+    lista_index: dict[tuple, int],
+    by_kingdom_source: dict[tuple[str, str], list[int]],
+    kingdom: str,
+    source: str,
+    name: str,
+    idx: int,
+    raw: dict,
+) -> None:
+    for key in _lista_keys(kingdom=kingdom, source=source, name=name, item=raw):
+        lista_index.setdefault(key, idx)
+    by_kingdom_source[(kingdom, source)].append(idx)
+
+
+def _index_zonas_items(payload: dict) -> _ItemsGoalsState:
     items: list[dict] = []
     moon_index: dict[tuple, int] = {}
     lista_index: dict[tuple, int] = {}
@@ -380,223 +485,329 @@ def build_items_goals() -> dict:
             name = str(raw.get("name") or "")
             id_kingdom = raw.get("id_kingdom")
             idx = len(items)
-            row: dict = {
-                "id": _item_id(kingdom, source, id_kingdom),
-                "name": name,
-                "order": idx + 1,
-                "n_goals": 0,
-                "goals": [],
-            }
             if source == MOON_SOURCE:
-                moon_num = int(id_kingdom or raw.get("moon") or 0)
-                moon_index[_moon_key(kingdom, moon_num)] = idx
-            else:
-                for key in _lista_keys(
-                    kingdom=kingdom, source=source, name=name, item=raw
-                ):
-                    lista_index.setdefault(key, idx)
-                by_kingdom_source[(kingdom, source)].append(idx)
-            items.append(row)
-
-    goals_by_idx: dict[int, list[tuple[int, str]]] = defaultdict(list)
-    seen_goal: dict[int, set[int]] = defaultdict(set)
-    story_keys = _story_moon_keys()
-    outfit_door_keys = _outfit_door_moon_keys()
-    # idx → (kingdom, moon) para moons del universo
-    idx_moon_ref: dict[int, tuple[str, int]] = {}
-    for key, idx in moon_index.items():
-        idx_moon_ref[idx] = (str(key[1]), int(key[2]))
-
-    def _add(idx: int, goal_row: dict) -> None:
-        goal = str(goal_row.get("goal") or "")
-        if not goal or goal in SKIP_GOALS:
-            return
-        orden = int(goal_row.get("orden") or 0)
-        if orden in seen_goal[idx]:
-            return
-        seen_goal[idx].add(orden)
-        goals_by_idx[idx].append((orden, goal))
-
-    def _add_moon(idx: int, goal_row: dict, *, cat_k: str, cat_m: int) -> None:
-        goal = str(goal_row.get("goal") or "")
-        # Solo lunas del grupo story_moon llevan * Story Moons.
-        if _is_kingdom_story_goal(goal) and (cat_k, cat_m) not in story_keys:
-            return
-        _add(idx, goal_row)
-
-    def _add_lista_row(goal_row: dict, raw: dict) -> None:
-        kingdom = str(raw.get("kingdom") or "")
-        name = str(raw.get("name") or "")
-        source = _resolve_lista_source(goal_row, raw)
-        idx = _lookup_lista_idx(
-            lista_index, kingdom=kingdom, source=source, name=name, item=raw
-        )
-        if idx is None:
-            return
-        hint_k = _goal_kingdom_hint(goal_row)
-        if hint_k and kingdom and kingdom != hint_k:
-            return
-        _add(idx, goal_row)
-
-    def _add_kingdom_source(
-        goal_row: dict, *, kingdom: str, source: str
-    ) -> None:
-        hint_k = _goal_kingdom_hint(goal_row)
-        if hint_k and kingdom and kingdom != hint_k:
-            return
-        for idx in by_kingdom_source.get((kingdom, source), []):
-            _add(idx, goal_row)
-
-    def _attach_lista_pool(goal_row: dict) -> None:
-        lista_rows = [
-            r for r in (goal_row.get("lista") or []) if isinstance(r, dict)
-        ]
-        concrete = [r for r in lista_rows if _is_concrete_lista_row(r)]
-        aggregates = [r for r in lista_rows if not _is_concrete_lista_row(r)]
-        sources = _split_lista_sources(goal_row.get("lista_source"))
-
-        if concrete:
-            for raw in concrete:
-                _add_lista_row(goal_row, raw)
-            return
-
-        if aggregates:
-            fallback_source = sources[0] if len(sources) == 1 else None
-            for raw in aggregates:
-                kingdom = str(raw.get("kingdom") or "")
-                source = str(raw.get("source") or "") or fallback_source
-                if not kingdom or not source:
-                    continue
-                _add_kingdom_source(goal_row, kingdom=kingdom, source=source)
-            return
-
-        # lista vacía: regionals tipados vía goal_list_lib (clusters / by_kingdom).
-        goal = str(goal_row.get("goal") or "")
-        regional = regional_lista_for_goal(goal)
-        if regional is not None:
-            reg_concrete = [r for r in regional if _is_concrete_lista_row(r)]
-            if reg_concrete:
-                for raw in reg_concrete:
-                    seeded = dict(raw)
-                    seeded.setdefault("source", "regionals")
-                    _add_lista_row(goal_row, seeded)
-                return
-            for raw in regional:
-                if not isinstance(raw, dict):
-                    continue
-                kingdom = str(raw.get("kingdom") or "")
-                if kingdom:
-                    _add_kingdom_source(
-                        goal_row, kingdom=kingdom, source="regionals"
-                    )
-            if regional or not sources:
-                return
-
-        # POI singleton (sphynxes / moon_rocks / …): lista_source + hint de reino.
-        hint_k = _goal_kingdom_hint(goal_row)
-        if hint_k and len(sources) == 1 and sources[0] != "regionals":
-            _add_kingdom_source(goal_row, kingdom=hint_k, source=sources[0])
-            return
-
-        # Sand Ice: clusters conocidos si el filtro zone aún no está curado.
-        if goal == "{{X}} Sand Ice Regional Coins":
-            for name in (
-                "Inside the Ice Caves",
-                "Inside the Underground Temple",
-            ):
-                _add_lista_row(
-                    goal_row,
-                    {
-                        "kingdom": "sand",
-                        "source": "regionals",
-                        "name": name,
-                    },
+                _register_moon_item(
+                    moon_index=moon_index,
+                    kingdom=kingdom,
+                    idx=idx,
+                    id_kingdom=id_kingdom,
+                    raw=raw,
                 )
-            return
-
-        # 8-Bit Regional: eight_bit se strippea de goal_lists; usar nombre.
-        if goal == "{{X}} 8-Bit Regional Coins":
-            for i, row in enumerate(items):
-                if "/regionals/" not in str(row.get("id") or ""):
-                    continue
-                if _looks_eight_bit_regional(str(row.get("name") or "")):
-                    _add(i, goal_row)
-
-    for goal_row in ref.get("goals") or []:
-        if not isinstance(goal_row, dict):
-            continue
-        goal = str(goal_row.get("goal") or "")
-        if not goal or goal in SKIP_GOALS:
-            continue
-
-        for moon in goal_row.get("moons") or []:
-            if not isinstance(moon, dict) or moon.get("moon") is None:
-                continue
-            cat_k, cat_m = lunas_catalog_ref(
-                str(moon.get("kingdom") or ""), int(moon["moon"])
+            else:
+                _register_lista_item(
+                    lista_index=lista_index,
+                    by_kingdom_source=by_kingdom_source,
+                    kingdom=kingdom,
+                    source=source,
+                    name=name,
+                    idx=idx,
+                    raw=raw,
+                )
+            items.append(
+                _new_zonas_item_row(
+                    kingdom=kingdom,
+                    source=source,
+                    name=name,
+                    id_kingdom=id_kingdom,
+                    idx=idx,
+                )
             )
-            moon_idx = moon_index.get(_moon_key(cat_k, cat_m))
-            if moon_idx is None:
-                continue
-            _add_moon(moon_idx, goal_row, cat_k=cat_k, cat_m=cat_m)
 
-        _attach_lista_pool(goal_row)
+    return _ItemsGoalsState(
+        items=items,
+        moon_index=moon_index,
+        lista_index=lista_index,
+        by_kingdom_source=dict(by_kingdom_source),
+    )
 
-    # POIs sin fila en lista[] de referencia pero con goal Combined clara.
-    ref_by_goal = {
+
+def _goal_add(state: _ItemsGoalsState, idx: int, goal_row: dict) -> None:
+    goal = str(goal_row.get("goal") or "")
+    if not goal or goal in SKIP_GOALS:
+        return
+    orden = int(goal_row.get("orden") or 0)
+    if orden in state.seen_goal[idx]:
+        return
+    state.seen_goal[idx].add(orden)
+    state.goals_by_idx[idx].append((orden, goal))
+
+
+def _goal_add_moon(
+    state: _ItemsGoalsState,
+    idx: int,
+    goal_row: dict,
+    *,
+    cat_k: str,
+    cat_m: int,
+) -> None:
+    goal = str(goal_row.get("goal") or "")
+    if _is_kingdom_story_goal(goal) and (cat_k, cat_m) not in state.story_keys:
+        return
+    _goal_add(state, idx, goal_row)
+
+
+def _goal_add_lista_row(
+    state: _ItemsGoalsState, goal_row: dict, raw: dict
+) -> None:
+    kingdom = str(raw.get("kingdom") or "")
+    name = str(raw.get("name") or "")
+    source = _resolve_lista_source(goal_row, raw)
+    idx = _lookup_lista_idx(
+        state.lista_index, kingdom=kingdom, source=source, name=name, item=raw
+    )
+    if idx is None:
+        return
+    hint_k = _goal_kingdom_hint(goal_row)
+    if hint_k and kingdom and kingdom != hint_k:
+        return
+    _goal_add(state, idx, goal_row)
+
+
+def _goal_add_kingdom_source(
+    state: _ItemsGoalsState, goal_row: dict, *, kingdom: str, source: str
+) -> None:
+    hint_k = _goal_kingdom_hint(goal_row)
+    if hint_k and kingdom and kingdom != hint_k:
+        return
+    for idx in state.by_kingdom_source.get((kingdom, source), []):
+        _goal_add(state, idx, goal_row)
+
+
+def _goal_add_ks_forced(
+    state: _ItemsGoalsState, goal_row: dict, *, kingdom: str, source: str
+) -> None:
+    """Como _goal_add_kingdom_source pero sin filtrar por hint de reino."""
+    for idx in state.by_kingdom_source.get((kingdom, source), []):
+        _goal_add(state, idx, goal_row)
+
+
+def _attach_concrete_lista(
+    state: _ItemsGoalsState, goal_row: dict, concrete: list[dict]
+) -> None:
+    for raw in concrete:
+        _goal_add_lista_row(state, goal_row, raw)
+
+
+def _attach_aggregate_lista(
+    state: _ItemsGoalsState,
+    goal_row: dict,
+    aggregates: list[dict],
+    sources: list[str],
+) -> None:
+    fallback_source = sources[0] if len(sources) == 1 else None
+    for raw in aggregates:
+        kingdom = str(raw.get("kingdom") or "")
+        source = str(raw.get("source") or "") or fallback_source
+        if not kingdom or not source:
+            continue
+        _goal_add_kingdom_source(state, goal_row, kingdom=kingdom, source=source)
+
+
+def _attach_regional_lista(
+    state: _ItemsGoalsState,
+    goal_row: dict,
+    goal: str,
+    sources: list[str],
+) -> bool:
+    """Regional fallback; True si consumió el goal."""
+    regional = regional_lista_for_goal(goal)
+    if regional is None:
+        return False
+
+    reg_concrete = [r for r in regional if _is_concrete_lista_row(r)]
+    if reg_concrete:
+        for raw in reg_concrete:
+            seeded = dict(raw)
+            seeded.setdefault("source", "regionals")
+            _goal_add_lista_row(state, goal_row, seeded)
+        return True
+
+    for raw in regional:
+        if not isinstance(raw, dict):
+            continue
+        kingdom = str(raw.get("kingdom") or "")
+        if kingdom:
+            _goal_add_kingdom_source(
+                state, goal_row, kingdom=kingdom, source="regionals"
+            )
+    return bool(regional or not sources)
+
+
+def _attach_poi_singleton_lista(
+    state: _ItemsGoalsState, goal_row: dict, sources: list[str]
+) -> bool:
+    hint_k = _goal_kingdom_hint(goal_row)
+    if not hint_k or len(sources) != 1 or sources[0] == "regionals":
+        return False
+    _goal_add_kingdom_source(state, goal_row, kingdom=hint_k, source=sources[0])
+    return True
+
+
+def _attach_sand_ice_regional(state: _ItemsGoalsState, goal_row: dict) -> None:
+    for name in (
+        "Inside the Ice Caves",
+        "Inside the Underground Temple",
+    ):
+        _goal_add_lista_row(
+            state,
+            goal_row,
+            {
+                "kingdom": "sand",
+                "source": "regionals",
+                "name": name,
+            },
+        )
+
+
+def _attach_eight_bit_regional(state: _ItemsGoalsState, goal_row: dict) -> None:
+    for i, row in enumerate(state.items):
+        if "/regionals/" not in str(row.get("id") or ""):
+            continue
+        if _looks_eight_bit_regional(str(row.get("name") or "")):
+            _goal_add(state, i, goal_row)
+
+
+def _attach_special_lista_goals(
+    state: _ItemsGoalsState, goal_row: dict, goal: str, sources: list[str]
+) -> bool:
+    if _attach_poi_singleton_lista(state, goal_row, sources):
+        return True
+    if goal == "{{X}} Sand Ice Regional Coins":
+        _attach_sand_ice_regional(state, goal_row)
+        return True
+    if goal == "{{X}} 8-Bit Regional Coins":
+        _attach_eight_bit_regional(state, goal_row)
+        return True
+    return False
+
+
+def _attach_lista_pool(state: _ItemsGoalsState, goal_row: dict) -> None:
+    lista_rows = [
+        r for r in (goal_row.get("lista") or []) if isinstance(r, dict)
+    ]
+    concrete = [r for r in lista_rows if _is_concrete_lista_row(r)]
+    aggregates = [r for r in lista_rows if not _is_concrete_lista_row(r)]
+    sources = _split_lista_sources(goal_row.get("lista_source"))
+
+    if concrete:
+        _attach_concrete_lista(state, goal_row, concrete)
+        return
+
+    if aggregates:
+        _attach_aggregate_lista(state, goal_row, aggregates, sources)
+        return
+
+    goal = str(goal_row.get("goal") or "")
+    if _attach_regional_lista(state, goal_row, goal, sources):
+        return
+
+    if _attach_special_lista_goals(state, goal_row, goal, sources):
+        return
+
+
+def _process_goal_moons(state: _ItemsGoalsState, goal_row: dict) -> None:
+    for moon in goal_row.get("moons") or []:
+        if not isinstance(moon, dict) or moon.get("moon") is None:
+            continue
+        cat_k, cat_m = lunas_catalog_ref(
+            str(moon.get("kingdom") or ""), int(moon["moon"])
+        )
+        moon_idx = state.moon_index.get(_moon_key(cat_k, cat_m))
+        if moon_idx is None:
+            continue
+        _goal_add_moon(state, moon_idx, goal_row, cat_k=cat_k, cat_m=cat_m)
+
+
+def _ref_by_goal(ref: dict) -> dict[str, dict]:
+    return {
         str(g.get("goal") or ""): g
         for g in ref.get("goals") or []
         if isinstance(g, dict) and g.get("goal")
     }
 
-    def _add_ks_forced(goal_row: dict, *, kingdom: str, source: str) -> None:
-        """Como _add_kingdom_source pero sin filtrar por hint de reino."""
-        for idx in by_kingdom_source.get((kingdom, source), []):
-            _add(idx, goal_row)
 
+def _apply_forced_poi_goals(
+    state: _ItemsGoalsState, ref_by_goal: dict[str, dict]
+) -> None:
     boxer = ref_by_goal.get("Snow Boxer Shorts Moon")
     if boxer:
-        # Merch en Sand; la luna Combined es Snow (hint ≠ reino del POI).
-        _add_ks_forced(boxer, kingdom="sand", source="boxer_shorts")
+        _goal_add_ks_forced(state, boxer, kingdom="sand", source="boxer_shorts")
     sphynx = ref_by_goal.get("{{X}} Sphynx Moons")
-    if sphynx:
-        for kingdom in ("sand", "seaside"):
-            _add_ks_forced(sphynx, kingdom=kingdom, source="sphynxes")
+    if not sphynx:
+        return
+    for kingdom in ("sand", "seaside"):
+        _goal_add_ks_forced(state, sphynx, kingdom=kingdom, source="sphynxes")
 
-    # story_moon sin template de reino (Cascade #1): Total Story Moons.
-    total_story = ref_by_goal.get(GOAL_TOTAL_STORY_MOONS)
-    if total_story:
-        orden_ts = int(total_story.get("orden") or 0)
-        for cat_k, cat_m in story_keys:
-            moon_idx = moon_index.get(_moon_key(cat_k, cat_m))
-            if moon_idx is None:
-                continue
-            if any(
-                _is_kingdom_story_goal(g) for _, g in goals_by_idx.get(moon_idx) or []
-            ):
-                continue
-            if orden_ts in seen_goal[moon_idx]:
-                continue
-            seen_goal[moon_idx].add(orden_ts)
-            goals_by_idx[moon_idx].append((orden_ts, GOAL_TOTAL_STORY_MOONS))
+
+def _attach_total_story_moons(
+    state: _ItemsGoalsState, total_story: dict | None
+) -> None:
+    if not total_story:
+        return
+    orden_ts = int(total_story.get("orden") or 0)
+    for cat_k, cat_m in state.story_keys:
+        moon_idx = state.moon_index.get(_moon_key(cat_k, cat_m))
+        if moon_idx is None:
+            continue
+        if any(
+            _is_kingdom_story_goal(g)
+            for _, g in state.goals_by_idx.get(moon_idx) or []
+        ):
+            continue
+        if orden_ts in state.seen_goal[moon_idx]:
+            continue
+        state.seen_goal[moon_idx].add(orden_ts)
+        state.goals_by_idx[moon_idx].append((orden_ts, GOAL_TOTAL_STORY_MOONS))
+
+
+def _finalize_items(state: _ItemsGoalsState) -> tuple[int, dict[int, int]]:
+    idx_moon_ref: dict[int, tuple[str, int]] = {}
+    for key, idx in state.moon_index.items():
+        idx_moon_ref[idx] = (str(key[1]), int(key[2]))
 
     n_with = 0
     by_n: dict[int, int] = defaultdict(int)
-    for i, row in enumerate(items):
-        pairs = sorted(goals_by_idx.get(i) or [], key=lambda p: p[0])
+    for i, row in enumerate(state.items):
+        pairs = sorted(state.goals_by_idx.get(i) or [], key=lambda p: p[0])
         goals = prune_umbrella_goals([name for _, name in pairs if name])
         moon_ref = idx_moon_ref.get(i)
         goals = prune_outfit_door_sub_area_goals(
             goals,
-            is_outfit_door=bool(moon_ref and moon_ref in outfit_door_keys),
+            is_outfit_door=bool(moon_ref and moon_ref in state.outfit_door_keys),
         )
         row["n_goals"] = len(goals)
         row["goals"] = goals
         by_n[len(goals)] += 1
         if goals:
             n_with += 1
+    return n_with, dict(by_n)
 
-    n_moons = sum(1 for r in items if "/moon/" in str(r.get("id") or ""))
+
+def _attach_goals_from_ref(state: _ItemsGoalsState, ref: dict) -> None:
+    for goal_row in ref.get("goals") or []:
+        if not isinstance(goal_row, dict):
+            continue
+        goal = str(goal_row.get("goal") or "")
+        if not goal or goal in SKIP_GOALS:
+            continue
+        _process_goal_moons(state, goal_row)
+        _attach_lista_pool(state, goal_row)
+
+
+def build_items_goals() -> dict:
+    zone_map = load_zonas_zone_index()
+    payload = build_zonas_reino(zone_map=zone_map)
+    ref = load_catalog(REF_PATH) if REF_PATH.is_file() else {}
+
+    state = _index_zonas_items(payload)
+    _attach_goals_from_ref(state, ref)
+
+    ref_by_goal = _ref_by_goal(ref)
+    _apply_forced_poi_goals(state, ref_by_goal)
+    _attach_total_story_moons(state, ref_by_goal.get(GOAL_TOTAL_STORY_MOONS))
+
+    n_with, by_n = _finalize_items(state)
+    n_moons = sum(1 for r in state.items if "/moon/" in str(r.get("id") or ""))
     n_items_by_n_goals = {str(k): by_n[k] for k in sorted(by_n)}
     return {
         "_definition": (
@@ -616,23 +827,14 @@ def build_items_goals() -> dict:
             "Regenerar: python Files/export_items_goals.py (o regenerate_all.py). "
             "n_items_by_n_goals como goal_icons.n_icons_by_n_goals."
         ),
-        "n_items": len(items),
+        "n_items": len(state.items),
         "n_moons": n_moons,
-        "n_lista_items": len(items) - n_moons,
+        "n_lista_items": len(state.items) - n_moons,
         "n_with_goals": n_with,
-        "n_without_goals": len(items) - n_with,
+        "n_without_goals": len(state.items) - n_with,
         "n_items_by_n_goals": n_items_by_n_goals,
-        "items": items,
+        "items": state.items,
     }
-
-
-def _looks_eight_bit_regional(name: str) -> bool:
-    """Heurística mientras lists.regionals no conserve eight_bit."""
-    n = name.casefold()
-    if n.startswith(("8-bit", "last 8-bit")):
-        return True
-    # Seaside: flag histórico sin prefijo 8-bit en el nombre.
-    return n.startswith("ocean-bottom maze")
 
 
 def main() -> int:

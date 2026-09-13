@@ -65,35 +65,59 @@ def _ingest_zone_rows(
             out[(kingdom, source, name)] = str(it["zone"])
 
 
+def _load_zonas_from_reino(out: dict[tuple[str, str, str], str]) -> None:
+    """Legado primero si existe (migración → luego se borra al exportar)."""
+    if not ZONAS_REINO_PATH.is_file():
+        return
+    data = json.loads(ZONAS_REINO_PATH.read_text(encoding="utf-8"))
+    for block in data.get("kingdoms") or []:
+        if not isinstance(block, dict):
+            continue
+        kingdom = str(block.get("kingdom") or "")
+        _ingest_zone_rows(out, kingdom=kingdom, rows=block.get("list") or [])
+
+
+def _ingest_inventario_zone_row(
+    out: dict[tuple[str, str, str], str],
+    it: dict,
+    *,
+    default_k: str,
+) -> None:
+    kingdom = str(it.get("kingdom") or default_k)
+    source = str(it.get("source") or "")
+    name = str(it.get("name") or "")
+    zone = str(it.get("zone") or "")
+    if kingdom and source and name and zone:
+        out[(kingdom, source, name)] = zone
+
+
+def _ingest_inventario_zone_block(
+    out: dict[tuple[str, str, str], str], block: dict
+) -> None:
+    default_k = str(block.get("kingdom") or "")
+    for it in block.get("list") or []:
+        if isinstance(it, dict):
+            _ingest_inventario_zone_row(out, it, default_k=default_k)
+
+
+def _load_zonas_from_inventario(out: dict[tuple[str, str, str], str]) -> None:
+    if not ZONAS_INVENTARIO_PATH.is_file():
+        return
+    data = json.loads(ZONAS_INVENTARIO_PATH.read_text(encoding="utf-8"))
+    for block in data.get("zones") or []:
+        if isinstance(block, dict):
+            _ingest_inventario_zone_block(out, block)
+
+
 def load_zonas_zone_index() -> dict[tuple[str, str, str], str]:
     """(kingdom, source, name) → zone. Fuente: zonas_inventario (+ legado reino)."""
     global _zonas_zone_cache
     if _zonas_zone_cache is not None:
         return _zonas_zone_cache
     out: dict[tuple[str, str, str], str] = {}
-    # Legado primero si existe (migración → luego se borra al exportar).
-    if ZONAS_REINO_PATH.is_file():
-        data = json.loads(ZONAS_REINO_PATH.read_text(encoding="utf-8"))
-        for block in data.get("kingdoms") or []:
-            if not isinstance(block, dict):
-                continue
-            kingdom = str(block.get("kingdom") or "")
-            _ingest_zone_rows(out, kingdom=kingdom, rows=block.get("list") or [])
-    if not out and ZONAS_INVENTARIO_PATH.is_file():
-        data = json.loads(ZONAS_INVENTARIO_PATH.read_text(encoding="utf-8"))
-        for block in data.get("zones") or []:
-            if not isinstance(block, dict):
-                continue
-            default_k = str(block.get("kingdom") or "")
-            for it in block.get("list") or []:
-                if not isinstance(it, dict):
-                    continue
-                kingdom = str(it.get("kingdom") or default_k)
-                source = str(it.get("source") or "")
-                name = str(it.get("name") or "")
-                zone = str(it.get("zone") or "")
-                if kingdom and source and name and zone:
-                    out[(kingdom, source, name)] = zone
+    _load_zonas_from_reino(out)
+    if not out:
+        _load_zonas_from_inventario(out)
     _zonas_zone_cache = out
     return out
 
@@ -261,6 +285,27 @@ def _sub_area_disponibilidad_lookup() -> dict[tuple[str, str], str]:
     return _sub_area_disp_cache
 
 
+def _regional_sub_area_disponibilidad(
+    k: str, zone: str, name_l: str
+) -> str | None:
+    sub_lookup = _sub_area_disponibilidad_lookup()
+    level = _REGIONAL_ZONE_TO_SUB_AREA_LEVEL.get(zone)
+    if level and (k, level) in sub_lookup:
+        return sub_lookup[(k, level)]
+    for needle, level_name in _REGIONAL_NAME_TO_SUB_AREA_LEVEL:
+        if needle in name_l and (k, level_name) in sub_lookup:
+            return sub_lookup[(k, level_name)]
+    return None
+
+
+def _regional_summit_path_disponibilidad(name_l: str) -> str | None:
+    if "cloud" in name_l:
+        return "world_peace"
+    if "flower" in name_l or "elevator" in name_l:
+        return "mid_story"
+    return None
+
+
 def infer_regional_cluster_disponibilidad(
     item: dict, *, kingdom: str | None = None
 ) -> str:
@@ -280,20 +325,15 @@ def infer_regional_cluster_disponibilidad(
         return "revisit"
     zone = regional_cluster_zone(item)
     name_l = str(item.get("name") or "").lower()
-    sub_lookup = _sub_area_disponibilidad_lookup()
-    level = _REGIONAL_ZONE_TO_SUB_AREA_LEVEL.get(zone)
-    if level and (k, level) in sub_lookup:
-        return sub_lookup[(k, level)]
-    for needle, level_name in _REGIONAL_NAME_TO_SUB_AREA_LEVEL:
-        if needle in name_l and (k, level_name) in sub_lookup:
-            return sub_lookup[(k, level_name)]
+    sub_disp = _regional_sub_area_disponibilidad(k, zone, name_l)
+    if sub_disp is not None:
+        return sub_disp
     if (k, zone) in _REGIONAL_ZONE_DISPONIBILIDAD:
         return _REGIONAL_ZONE_DISPONIBILIDAD[(k, zone)]
     if zone == "summit_path":
-        if "cloud" in name_l:
-            return "world_peace"
-        if "flower" in name_l or "elevator" in name_l:
-            return "mid_story"
+        summit_disp = _regional_summit_path_disponibilidad(name_l)
+        if summit_disp is not None:
+            return summit_disp
     return "base"
 
 
@@ -493,6 +533,38 @@ def _reorder_list_item(row: dict) -> dict:
     return ordered
 
 
+def _assign_id_list_to_sublist(rows: list) -> list[dict]:
+    next_local = 0
+    out_rows: list[dict] = []
+    for raw in rows:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        local = item.get("id_list")
+        if local is None:
+            local = item.get("id")
+        if local is None:
+            next_local += 1
+            local = next_local
+        else:
+            next_local = max(next_local, int(local))
+        item["id_list"] = int(local)
+        out_rows.append(item)
+    return out_rows
+
+
+def _assign_global_ids_to_sublist(
+    rows: list[dict], next_global: int
+) -> tuple[list[dict], int]:
+    out_rows: list[dict] = []
+    for item in rows:
+        next_global += 1
+        item = dict(item)
+        item["id"] = next_global
+        out_rows.append(_reorder_list_item(item))
+    return out_rows, next_global
+
+
 def assign_goal_lists_ids(data: dict) -> dict:
     """Asegura id (global 1..n_items) e id_list (por sublista).
 
@@ -502,35 +574,13 @@ def assign_goal_lists_ids(data: dict) -> dict:
     lists = data.get("lists") or {}
     if not isinstance(lists, dict):
         return data
-    # 1) id_list por sublista
     for list_name in sorted(lists):
-        rows = lists.get(list_name) or []
-        next_local = 0
-        out_rows: list[dict] = []
-        for raw in rows:
-            if not isinstance(raw, dict):
-                continue
-            item = dict(raw)
-            local = item.get("id_list")
-            if local is None:
-                local = item.get("id")
-            if local is None:
-                next_local += 1
-                local = next_local
-            else:
-                next_local = max(next_local, int(local))
-            item["id_list"] = int(local)
-            out_rows.append(item)
-        lists[list_name] = out_rows
-    # 2) id global del file
+        lists[list_name] = _assign_id_list_to_sublist(lists.get(list_name) or [])
     next_global = 0
     for list_name in sorted(lists):
-        out_rows = []
-        for item in lists.get(list_name) or []:
-            next_global += 1
-            item = dict(item)
-            item["id"] = next_global
-            out_rows.append(_reorder_list_item(item))
+        out_rows, next_global = _assign_global_ids_to_sublist(
+            lists.get(list_name) or [], next_global
+        )
         lists[list_name] = out_rows
     data["lists"] = lists
     return data
@@ -1256,6 +1306,75 @@ def goal_list_source(goal: str) -> str | None:
     return None
 
 
+def _boss_fight_lista_items(goal: str) -> list[dict] | None:
+    if goal == GOAL_BOSS_FIGHTS:
+        return boss_fights_lista()
+    if goal == "{{X}} Kingdom Boss Fight[[s]]":
+        return kingdom_boss_fights_lista()
+    if goal == "{{X}} Broodal Fights":
+        return broodal_fights_lista()
+    return None
+
+
+def _sphynx_goal_lista_items(goal: str) -> list[dict] | None:
+    if goal == "Correct Wooded Sphynx Question":
+        return enrich_lista_locations(sphynx_for_kingdom("wooded"))
+    if goal == "Correct Moon Sphynx Question":
+        return enrich_lista_locations(sphynx_for_kingdom("moon"))
+    return None
+
+
+def _kingdom_singleton_goal_lista_items(
+    goal: str, *, kingdom: str | None
+) -> list[dict] | None:
+    if goal.endswith(" Talkatoo") and GOAL_X not in goal and kingdom:
+        return [talkatoo_entry(kingdom)]
+    if goal.endswith(" Moon Rock") and kingdom:
+        return [moon_rock_entry(kingdom)]
+    return None
+
+
+def _curated_goal_lista_items(goal: str) -> list[dict] | None:
+    if goal not in _CURATED_GOAL_LISTAS:
+        return None
+    items: list[dict] = []
+    for list_name in _curated_list_names(goal):
+        items.extend(curated_list(list_name))
+    return items
+
+
+def _raw_goal_lista_items(
+    goal: str, gl: str, *, kingdom: str | None
+) -> list[dict]:
+    if goal in CAPTURE_SOLO:
+        return capture_solo_lista(goal)
+    boss_items = _boss_fight_lista_items(goal)
+    if boss_items is not None:
+        return boss_items
+    if goal in _FIXED_GOAL_LISTAS:
+        return enrich_lista_locations(list(_FIXED_GOAL_LISTAS[goal]))
+    sphynx_items = _sphynx_goal_lista_items(goal)
+    if sphynx_items is not None:
+        return sphynx_items
+    singleton_items = _kingdom_singleton_goal_lista_items(goal, kingdom=kingdom)
+    if singleton_items is not None:
+        return singleton_items
+    if goal == "Capture {{X}} Binoculars":
+        return binoculars_lista()
+    curated_items = _curated_goal_lista_items(goal)
+    if curated_items is not None:
+        return curated_items
+    if goal.startswith("All Multi-Moons"):
+        return multi_moon_totals_lista()
+    if "checkpoint" in gl:
+        return _checkpoint_lista(goal, kingdom)
+    if REGIONAL_COIN_PHRASE in gl:
+        return _regional_lista(goal)
+    if goal == "{{X}} Unique Captures":
+        return unique_captures_list()
+    return []
+
+
 def build_goal_lista(
     goal: str,
     _obj: dict,
@@ -1264,42 +1383,7 @@ def build_goal_lista(
 ) -> list[dict]:
     """Devuelve la lista de elementos que cuentan para completar la goal."""
     gl = goal.lower()
-
-    if goal in CAPTURE_SOLO:
-        items = capture_solo_lista(goal)
-    elif goal == GOAL_BOSS_FIGHTS:
-        items = boss_fights_lista()
-    elif goal == "{{X}} Kingdom Boss Fight[[s]]":
-        items = kingdom_boss_fights_lista()
-    elif goal == "{{X}} Broodal Fights":
-        items = broodal_fights_lista()
-    elif goal in _FIXED_GOAL_LISTAS:
-        items = enrich_lista_locations(list(_FIXED_GOAL_LISTAS[goal]))
-    elif goal == "Correct Wooded Sphynx Question":
-        items = enrich_lista_locations(sphynx_for_kingdom("wooded"))
-    elif goal == "Correct Moon Sphynx Question":
-        items = enrich_lista_locations(sphynx_for_kingdom("moon"))
-    elif goal.endswith(" Talkatoo") and GOAL_X not in goal and kingdom:
-        items = [talkatoo_entry(kingdom)]
-    elif goal.endswith(" Moon Rock") and kingdom:
-        items = [moon_rock_entry(kingdom)]
-    elif goal == "Capture {{X}} Binoculars":
-        items = binoculars_lista()
-    elif goal in _CURATED_GOAL_LISTAS:
-        items = []
-        for list_name in _curated_list_names(goal):
-            items.extend(curated_list(list_name))
-    elif goal.startswith("All Multi-Moons"):
-        items = multi_moon_totals_lista()
-    elif "checkpoint" in gl:
-        items = _checkpoint_lista(goal, kingdom)
-    elif REGIONAL_COIN_PHRASE in gl:
-        items = _regional_lista(goal)
-    elif goal == "{{X}} Unique Captures":
-        items = unique_captures_list()
-    else:
-        items = []
-
+    items = _raw_goal_lista_items(goal, gl, kingdom=kingdom)
     # Bosses: orden curado en lists.bosses (p. ej. Luncheon Spewart → Cookatiel).
     if goal in (
         GOAL_BOSS_FIGHTS,
@@ -1314,6 +1398,48 @@ def build_goal_lista(
 LIST_DISPONIBILIDAD_MULTI_ALLOWED = frozenset({"checkpoints", "life_up_hearts"})
 
 
+def _list_item_has_lista_identity(item: dict) -> bool:
+    return bool(
+        item.get("name")
+        or item.get("capture")
+        or item.get("id") is not None
+        or item.get("id_list") is not None
+    )
+
+
+def _list_item_numeric_id(item: dict) -> int | None:
+    num = item.get("id_list")
+    if num is None:
+        num = item.get("id")
+    if num is None:
+        num = item.get("checkpoint")  # legacy
+    return int(num) if num is not None else None
+
+
+def _list_item_checkpoint_like(item: dict) -> bool:
+    return (
+        item.get("zone") is None
+        and item.get("total") is None
+        and item.get("regional") is None
+        and item.get("coins") is None
+        and item.get("level") is None
+        and item.get("id_list") is None
+    )
+
+
+def _list_item_id_match_key(
+    item: dict, kingdom: str, num: int, list_name: str | None
+) -> tuple:
+    if item.get("capture") is not None:
+        return ("capture", kingdom, num, str(item.get("capture") or ""))
+    name = str(item.get("name") or "")
+    if list_name == "checkpoints":
+        return ("cp", kingdom, num, name)
+    if _list_item_checkpoint_like(item):
+        return ("cp", kingdom, num, name)
+    return ("id", kingdom, num, name)
+
+
 def list_item_match_key(item: dict, list_name: str | None = None) -> tuple:
     """Clave estable para emparejar filas goal_lists ↔ goals_referencia.
 
@@ -1323,38 +1449,12 @@ def list_item_match_key(item: dict, list_name: str | None = None) -> tuple:
     moon metadata (Hariet rematch, …) usan id+name como el resto.
     """
     kingdom = str(item.get("kingdom") or "")
-    # moons usan moon; CPs usan cp; resto id+name.
-    has_lista_identity = bool(
-        item.get("name")
-        or item.get("capture")
-        or item.get("id") is not None
-        or item.get("id_list") is not None
-    )
+    has_lista_identity = _list_item_has_lista_identity(item)
     if item.get("moon") is not None and not has_lista_identity:
         return ("moon", kingdom, int(item["moon"]), "")
-    num = item.get("id_list")
-    if num is None:
-        num = item.get("id")
-    if num is None:
-        num = item.get("checkpoint")  # legacy
+    num = _list_item_numeric_id(item)
     if num is not None:
-        if item.get("capture") is not None:
-            return ("capture", kingdom, int(num), str(item.get("capture") or ""))
-        name = str(item.get("name") or "")
-        if list_name == "checkpoints":
-            return ("cp", kingdom, int(num), name)
-        # Sin list_name: CPs legacy sin zone (goals_referencia aún puede omitir zone).
-        checkpoint_like = (
-            item.get("zone") is None
-            and item.get("total") is None
-            and item.get("regional") is None
-            and item.get("coins") is None
-            and item.get("level") is None
-            and item.get("id_list") is None
-        )
-        if checkpoint_like:
-            return ("cp", kingdom, int(num), name)
-        return ("id", kingdom, int(num), name)
+        return _list_item_id_match_key(item, kingdom, num, list_name)
     if item.get("moon") is not None:
         return ("moon", kingdom, int(item["moon"]), "")
     return ("name", kingdom, 0, str(item.get("name") or ""))
@@ -1379,6 +1479,33 @@ def _split_lista_sources(src: str | None) -> list[str]:
     return [part for part in str(src).split("+") if part]
 
 
+def _lista_item_matches_in_list(
+    item: dict,
+    list_name: str,
+    lists: dict,
+    *,
+    kingdom: str,
+    name: str,
+) -> bool:
+    key = list_item_match_key(item, list_name=list_name)
+    for raw in lists.get(list_name) or []:
+        if not isinstance(raw, dict):
+            continue
+        enriched = enrich_lista_locations([dict(raw)])[0]
+        if list_item_match_key(enriched, list_name=list_name) == key:
+            return True
+        if list_item_match_key(dict(raw), list_name=list_name) == key:
+            return True
+        # Fijos sin id (p. ej. Klepto): emparejar kingdom+name.
+        if (
+            name
+            and str(enriched.get("kingdom") or "") == kingdom
+            and str(enriched.get("name") or enriched.get("capture") or "") == name
+        ):
+            return True
+    return False
+
+
 def resolve_lista_item_source(item: dict, hint: str | None = None) -> str | None:
     """Nombre de lists.* en goal_lists.json para un elemento."""
     hints = _split_lista_sources(hint)
@@ -1390,32 +1517,77 @@ def resolve_lista_item_source(item: dict, hint: str | None = None) -> str | None
     kingdom = str(item.get("kingdom") or "")
     name = str(item.get("name") or item.get("capture") or "")
 
-    def _match_in(list_name: str) -> bool:
-        key = list_item_match_key(item, list_name=list_name)
-        for raw in lists.get(list_name) or []:
-            if not isinstance(raw, dict):
-                continue
-            enriched = enrich_lista_locations([dict(raw)])[0]
-            if list_item_match_key(enriched, list_name=list_name) == key:
-                return True
-            if list_item_match_key(dict(raw), list_name=list_name) == key:
-                return True
-            # Fijos sin id (p. ej. Klepto): emparejar kingdom+name.
-            if (
-                name
-                and str(enriched.get("kingdom") or "") == kingdom
-                and str(enriched.get("name") or enriched.get("capture") or "") == name
-            ):
-                return True
-        return False
-
     for list_name in hints:
-        if list_name in lists and _match_in(list_name):
+        if list_name in lists and _lista_item_matches_in_list(
+            item, list_name, lists, kingdom=kingdom, name=name
+        ):
             return list_name
     for list_name in sorted(lists):
-        if _match_in(list_name):
+        if _lista_item_matches_in_list(
+            item, list_name, lists, kingdom=kingdom, name=name
+        ):
             return list_name
     return hints[0] if hints else None
+
+
+_POOL_METADATA_KEYS = (
+    "total",
+    "regional",
+    "sub_area",
+    "icon",
+    "n_moons",
+    "n_groups",
+    "painting",
+    "use",
+    "n_odyssey_units",
+    "coins",
+    "moon",
+    "moon_link",
+    "progression",
+    "odyssey",
+    "capture",
+)
+
+
+def _find_goal_lists_row_match(
+    source: str | None, kingdom: object, name: object
+) -> dict | None:
+    if not source or source == "captures" or not name:
+        return None
+    for row in (load_goal_lists().get("lists") or {}).get(source) or []:
+        if not isinstance(row, dict):
+            continue
+        if (
+            str(row.get("kingdom") or "") == str(kingdom or "")
+            and str(row.get("name") or "") == str(name or "")
+        ):
+            return row
+    return None
+
+
+def _resolve_lista_item_ids(raw: dict, row_match: dict | None) -> tuple[object, object]:
+    global_id = raw.get("id")
+    local_id = raw.get("id_list")
+    if local_id is None and raw.get("moon") is not None and not raw.get("name"):
+        local_id = raw.get("moon")
+    if row_match is not None:
+        if global_id is None and row_match.get("id") is not None:
+            global_id = row_match["id"]
+        if local_id is None:
+            local_id = row_match.get("id_list")
+            if local_id is None:
+                local_id = row_match.get("id")
+    if global_id is None and local_id is not None:
+        global_id = local_id
+    if local_id is None and global_id is not None:
+        local_id = global_id
+    return global_id, local_id
+
+
+def _copy_pool_metadata(raw: dict, out: dict) -> None:
+    for key in _POOL_METADATA_KEYS:
+        if key in raw and raw[key] not in (None, ""):
+            out[key] = raw[key]
 
 
 def format_bingo_group_lista_item(item: dict, source: str | None) -> dict:
@@ -1433,35 +1605,8 @@ def format_bingo_group_lista_item(item: dict, source: str | None) -> dict:
     if source:
         out["source"] = source
 
-    global_id = raw.get("id")
-    local_id = raw.get("id_list")
-    if local_id is None and raw.get("moon") is not None and not raw.get("name"):
-        local_id = raw.get("moon")
-
-    row_match: dict | None = None
-    if source and source != "captures" and raw.get("name"):
-        for row in (load_goal_lists().get("lists") or {}).get(source) or []:
-            if not isinstance(row, dict):
-                continue
-            if (
-                str(row.get("kingdom") or "") == str(kingdom or "")
-                and str(row.get("name") or "") == str(raw.get("name") or "")
-            ):
-                row_match = row
-                break
-    if row_match is not None:
-        if global_id is None and row_match.get("id") is not None:
-            global_id = row_match["id"]
-        if local_id is None:
-            local_id = row_match.get("id_list")
-            if local_id is None:
-                local_id = row_match.get("id")
-
-    # CAPTURE_LIST / filas con un solo id numérico.
-    if global_id is None and local_id is not None:
-        global_id = local_id
-    if local_id is None and global_id is not None:
-        local_id = global_id
+    row_match = _find_goal_lists_row_match(source, kingdom, raw.get("name"))
+    global_id, local_id = _resolve_lista_item_ids(raw, row_match)
 
     if global_id is not None:
         out["id"] = int(global_id)
@@ -1474,27 +1619,128 @@ def format_bingo_group_lista_item(item: dict, source: str | None) -> dict:
     disp = raw.get("disponibilidad")
     if disp not in (None, ""):
         out["disponibilidad"] = disp
-    # Metadatos de pool (regionals, checkpoints, multi-moons, …).
-    for key in (
-        "total",
-        "regional",
-        "sub_area",
-        "icon",
-        "n_moons",
-        "n_groups",
-        "painting",
-        "use",
-        "n_odyssey_units",
-        "coins",
-        "moon",
-        "moon_link",
-        "progression",
-        "odyssey",
-        "capture",
-    ):
-        if key in raw and raw[key] not in (None, ""):
-            out[key] = raw[key]
+    _copy_pool_metadata(raw, out)
     return out
+
+
+def _is_countable_lista_item(item: dict) -> bool:
+    return bool(
+        item.get("name")
+        or item.get("capture")
+        or item.get("moon") is not None
+    )
+
+
+def _append_unique_lista_item(
+    seen: set[tuple],
+    items: list[dict],
+    item: dict,
+    list_name: str | None,
+) -> None:
+    formatted = format_bingo_group_lista_item(item, list_name)
+    key = list_item_match_key(formatted, list_name=list_name)
+    if key in seen:
+        return
+    seen.add(key)
+    items.append(formatted)
+
+
+def _collect_curated_pool_items(
+    seen: set[tuple],
+    items: list[dict],
+    sources: set[str],
+    list_name: str,
+    pool: list[dict],
+) -> None:
+    if not pool:
+        return
+    sources.add(list_name)
+    for item in pool:
+        if not isinstance(item, dict) or not _is_countable_lista_item(item):
+            continue
+        _append_unique_lista_item(seen, items, item, list_name)
+
+
+def _should_skip_captures_objective(group_id: str, goal: str) -> bool:
+    return group_id == "captures" and goal in (
+        "Capture {{X}} Binoculars",
+        "Defeat Madame Broode in Moon Kingdom",
+    )
+
+
+def _append_objective_lista_items(
+    group: dict,
+    obj: dict,
+    combined_by_goal: dict,
+    seen: set[tuple],
+    items: list[dict],
+    sources: set[str],
+) -> None:
+    goal = str(obj.get("goal") or "")
+    combined = combined_by_goal.get(goal) or obj
+    kingdom = kingdom_context_for_group_goal(group, goal)
+    src = goal_list_source(goal)
+    raw_items = build_goal_lista(goal, combined, kingdom=kingdom)
+    if not raw_items:
+        return
+    if src:
+        sources.add(src)
+    for item in raw_items:
+        if not isinstance(item, dict) or not _is_countable_lista_item(item):
+            continue
+        item_source = resolve_lista_item_source(item, src)
+        _append_unique_lista_item(seen, items, item, item_source)
+
+
+def _collect_objective_lista_items(
+    group: dict,
+    objectives: list[dict],
+    combined_by_goal: dict,
+    seen: set[tuple],
+    items: list[dict],
+    sources: set[str],
+) -> None:
+    group_id = str(group.get("id") or "")
+    for obj in objectives:
+        goal = str(obj.get("goal") or "")
+        if not goal or _should_skip_captures_objective(group_id, goal):
+            continue
+        _append_objective_lista_items(
+            group, obj, combined_by_goal, seen, items, sources
+        )
+
+
+def _collect_group_specific_lista_items(
+    group: dict,
+    seen: set[tuple],
+    items: list[dict],
+    sources: set[str],
+) -> None:
+    group_id = str(group.get("id") or "")
+    if group_id == "shop":
+        for list_name in ("shops",):
+            _collect_curated_pool_items(
+                seen, items, sources, list_name, curated_list(list_name)
+            )
+        return
+    if group_id == "merchandise":
+        for list_name in SHOP_ITEM_LISTS:
+            _collect_curated_pool_items(
+                seen, items, sources, list_name, curated_list(list_name)
+            )
+        return
+    if group_id == "sphynx":
+        _collect_curated_pool_items(
+            seen, items, sources, "sphynxes", curated_list("sphynxes")
+        )
+        return
+    if group_id != "captures":
+        return
+    for list_name, pool in (
+        ("binoculars", binoculars_lista()),
+        ("bosses", capture_bosses_lista()),
+    ):
+        _collect_curated_pool_items(seen, items, sources, list_name, pool)
 
 
 def build_bingo_group_lista(
@@ -1515,131 +1761,10 @@ def build_bingo_group_lista(
     items: list[dict] = []
     sources: set[str] = set()
     combined_by_goal = combined_by_goal or {}
-    for obj in objectives:
-        goal = str(obj.get("goal") or "")
-        if not goal:
-            continue
-        combined = combined_by_goal.get(goal) or obj
-        kingdom = kingdom_context_for_group_goal(group, goal)
-        # Binoculars y bosses-captura: pool fijo del grupo (no por objective suelto).
-        if str(group.get("id") or "") == "captures" and goal in (
-            "Capture {{X}} Binoculars",
-            "Defeat Madame Broode in Moon Kingdom",
-        ):
-            continue
-        src = goal_list_source(goal)
-        raw_items = build_goal_lista(goal, combined, kingdom=kingdom)
-        if not raw_items:
-            continue
-        if src:
-            sources.add(src)
-        for item in raw_items:
-            if not isinstance(item, dict):
-                continue
-            # Agregados por reino (Total Checkpoints / All Multi-Moons, …):
-            # valen en goals_referencia de esa goal, no en lista[] del grupo
-            # temático (ahí solo ítems con name / capture / moon).
-            if not (
-                item.get("name")
-                or item.get("capture")
-                or item.get("moon") is not None
-            ):
-                continue
-            item_source = resolve_lista_item_source(item, src)
-            # Formatear antes del dedup: goals fijas (Defeat Bowser, …) llegan
-            # sin id; Boss Fights sí lo traen → misma clave solo tras enriquecer.
-            formatted = format_bingo_group_lista_item(item, item_source)
-            # Dedup con source: p.ej. checkpoint «Jaxi Ruins» vs jaxi_stands
-            # id_list=6 no deben colisionar.
-            key = list_item_match_key(formatted, list_name=item_source)
-            if key in seen:
-                continue
-            seen.add(key)
-            items.append(formatted)
-
-    # shop: Crazy Cap ×11. merchandise: trajes/souvenirs/stickers/boxer_shorts.
-    if str(group.get("id") or "") == "shop":
-        for list_name in ("shops",):
-            sources.add(list_name)
-            for item in curated_list(list_name):
-                if not isinstance(item, dict):
-                    continue
-                if not (
-                    item.get("name")
-                    or item.get("capture")
-                    or item.get("moon") is not None
-                ):
-                    continue
-                formatted = format_bingo_group_lista_item(item, list_name)
-                key = list_item_match_key(formatted, list_name=list_name)
-                if key in seen:
-                    continue
-                seen.add(key)
-                items.append(formatted)
-
-    if str(group.get("id") or "") == "merchandise":
-        for list_name in SHOP_ITEM_LISTS:
-            sources.add(list_name)
-            for item in curated_list(list_name):
-                if not isinstance(item, dict):
-                    continue
-                if not (
-                    item.get("name")
-                    or item.get("capture")
-                    or item.get("moon") is not None
-                ):
-                    continue
-                formatted = format_bingo_group_lista_item(item, list_name)
-                key = list_item_match_key(formatted, list_name=list_name)
-                if key in seen:
-                    continue
-                seen.add(key)
-                items.append(formatted)
-
-    # sphynx: las 4 esfinges (Sand/Seaside sin goal Correct … Question).
-    if str(group.get("id") or "") == "sphynx":
-        sources.add("sphynxes")
-        for item in curated_list("sphynxes"):
-            if not isinstance(item, dict):
-                continue
-            if not (
-                item.get("name")
-                or item.get("capture")
-                or item.get("moon") is not None
-            ):
-                continue
-            formatted = format_bingo_group_lista_item(item, "sphynxes")
-            key = list_item_match_key(formatted, list_name="sphynxes")
-            if key in seen:
-                continue
-            seen.add(key)
-            items.append(formatted)
-
-    # captures: binoculars (capturas_lunas) + bosses con captura obligatoria.
-    if str(group.get("id") or "") == "captures":
-        for list_name, pool in (
-            ("binoculars", binoculars_lista()),
-            ("bosses", capture_bosses_lista()),
-        ):
-            if not pool:
-                continue
-            sources.add(list_name)
-            for item in pool:
-                if not isinstance(item, dict):
-                    continue
-                if not (
-                    item.get("name")
-                    or item.get("capture")
-                    or item.get("moon") is not None
-                ):
-                    continue
-                formatted = format_bingo_group_lista_item(item, list_name)
-                key = list_item_match_key(formatted, list_name=list_name)
-                if key in seen:
-                    continue
-                seen.add(key)
-                items.append(formatted)
-
+    _collect_objective_lista_items(
+        group, objectives, combined_by_goal, seen, items, sources
+    )
+    _collect_group_specific_lista_items(group, seen, items, sources)
     lista = sort_lista_items(items)
     lista_source = "+".join(sorted(sources)) if sources else None
     return lista, lista_source
@@ -1673,66 +1798,90 @@ def collect_disponibilidad_list_violations() -> list[tuple[str, str, str]]:
     return violations
 
 
+def _location_field_violations_for_item(
+    scope: str, key: str, raw: dict, *, zone_msg: str, near_prefix: str
+) -> list[tuple[str, str, str]]:
+    violations: list[tuple[str, str, str]] = []
+    if "zone" in raw:
+        violations.append((scope, key, zone_msg))
+    near_hit = sorted(k for k in _NEAR_LOCATION_KEYS if k in raw)
+    if near_hit:
+        violations.append((scope, key, f"{near_prefix} ({near_hit})"))
+    return violations
+
+
+def _collect_goal_lists_location_violations() -> list[tuple[str, str, str]]:
+    violations: list[tuple[str, str, str]] = []
+    for list_name, items in (load_goal_lists().get("lists") or {}).items():
+        scope = f"goal_lists:{list_name}"
+        for raw in items:
+            if not isinstance(raw, dict):
+                continue
+            key = str(list_item_match_key(raw))
+            violations.extend(
+                _location_field_violations_for_item(
+                    scope,
+                    key,
+                    raw,
+                    zone_msg="zone solo en Catalog/zonas_inventario.json",
+                    near_prefix="near* prohibido",
+                )
+            )
+    return violations
+
+
+def _collect_referencia_location_violations() -> list[tuple[str, str, str]]:
+    ref_path = CATALOG_DIR / "goals_referencia.json"
+    if not ref_path.exists():
+        return []
+    ref = json.loads(ref_path.read_text(encoding="utf-8"))
+    violations: list[tuple[str, str, str]] = []
+    for goal in ref.get("goals") or []:
+        gname = str(goal.get("goal") or "")
+        scope = f"goals_referencia:{gname}"
+        for item in goal.get("lista") or []:
+            if not isinstance(item, dict):
+                continue
+            key = str(list_item_match_key(item))
+            violations.extend(
+                _location_field_violations_for_item(
+                    scope,
+                    key,
+                    item,
+                    zone_msg="lista[] sin zone (usar zonas_inventario)",
+                    near_prefix="lista[] con near*",
+                )
+            )
+    return violations
+
+
 def collect_location_field_violations() -> list[tuple[str, str, str]]:
     """Ubicación: zone solo en zonas_inventario; near* prohibido en lists/referencia.
 
     No audita moons[] / lunas-objetivos.
     """
-    violations: list[tuple[str, str, str]] = []
+    return (
+        _collect_goal_lists_location_violations()
+        + _collect_referencia_location_violations()
+    )
 
-    # goal_lists: sin zone ni near*.
-    for list_name, items in (load_goal_lists().get("lists") or {}).items():
-        for raw in items:
-            if not isinstance(raw, dict):
-                continue
-            key = str(list_item_match_key(raw))
-            if "zone" in raw:
-                violations.append(
-                    (
-                        f"goal_lists:{list_name}",
-                        key,
-                        "zone solo en Catalog/zonas_inventario.json",
-                    )
-                )
-            near_hit = sorted(k for k in _NEAR_LOCATION_KEYS if k in raw)
-            if near_hit:
-                violations.append(
-                    (
-                        f"goal_lists:{list_name}",
-                        key,
-                        f"near* prohibido ({near_hit})",
-                    )
-                )
 
-    # goals_referencia.lista[]: sin zone ni near*.
-    ref_path = CATALOG_DIR / "goals_referencia.json"
-    if ref_path.exists():
-        ref = json.loads(ref_path.read_text(encoding="utf-8"))
-        for goal in ref.get("goals") or []:
-            gname = str(goal.get("goal") or "")
-            for item in goal.get("lista") or []:
-                if not isinstance(item, dict):
-                    continue
-                key = str(list_item_match_key(item))
-                if "zone" in item:
-                    violations.append(
-                        (
-                            f"goals_referencia:{gname}",
-                            key,
-                            "lista[] sin zone (usar zonas_inventario)",
-                        )
-                    )
-                near_hit = sorted(k for k in _NEAR_LOCATION_KEYS if k in item)
-                if near_hit:
-                    violations.append(
-                        (
-                            f"goals_referencia:{gname}",
-                            key,
-                            f"lista[] con near* ({near_hit})",
-                        )
-                    )
-
-    return violations
+def _index_referencia_goal_disponibilidad(
+    index: dict[tuple, str | list[str]], goal: dict
+) -> None:
+    src = str(goal.get("lista_source") or "")
+    list_name = src if src and "+" not in src else None
+    for item in goal.get("lista") or []:
+        if "disponibilidad" not in item:
+            continue
+        key = list_item_match_key(item, list_name=list_name)
+        disp = normalize_disponibilidad(item.get("disponibilidad"))
+        if key in index and index[key] != disp:
+            raise ValueError(
+                f"disponibilidad contradictoria en referencia para {key!r}: "
+                f"{index[key]!r} vs {disp!r}"
+            )
+        index[key] = disp
 
 
 def build_referencia_lista_disponibilidad_index() -> dict[tuple, str | list[str]]:
@@ -1741,19 +1890,7 @@ def build_referencia_lista_disponibilidad_index() -> dict[tuple, str | list[str]
     ref = json.loads(path.read_text(encoding="utf-8"))
     index: dict[tuple, str | list[str]] = {}
     for goal in ref.get("goals") or []:
-        src = str(goal.get("lista_source") or "")
-        list_name = src if src and "+" not in src else None
-        for item in goal.get("lista") or []:
-            if "disponibilidad" not in item:
-                continue
-            key = list_item_match_key(item, list_name=list_name)
-            disp = normalize_disponibilidad(item.get("disponibilidad"))
-            if key in index and index[key] != disp:
-                raise ValueError(
-                    f"disponibilidad contradictoria en referencia para {key!r}: "
-                    f"{index[key]!r} vs {disp!r}"
-                )
-            index[key] = disp
+        _index_referencia_goal_disponibilidad(index, goal)
     return index
 
 
