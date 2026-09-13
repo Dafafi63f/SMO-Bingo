@@ -1399,7 +1399,8 @@ class CapturasLunasTests(unittest.TestCase):
         ):
             moons = row.get("moons") or []
             self.assertEqual(len(moons), 1)
-            self.assertEqual((moons[0]["kingdom"], moons[0]["moon"]), key)
+            got_key = (moons[0]["kingdom"], moons[0]["moon"])
+            self.assertEqual(got_key, key)
             self.assertEqual(moons[0].get("goal"), expect_goal)
             if expect_goal:
                 self.assertNotIn("tag", moons[0])

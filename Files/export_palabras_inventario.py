@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 
 from catalog_lib import (
     CATALOG_DIR,
@@ -443,7 +444,6 @@ def parse_usos(usos: dict[str, int]) -> dict[str, int]:
 
 
 def _resolve_format_counts(
-    usos: list[str],
     n_ind: dict[str, int],
     *,
     luna_for_tag: int,
@@ -503,7 +503,6 @@ def _format_usos(
     captura_n: int = 0,
 ) -> dict[str, int]:
     n_luna, n_goal, n_lista = _resolve_format_counts(
-        usos,
         n_ind,
         luna_for_tag=luna_for_tag,
         grupo_n=grupo_n,
@@ -1300,6 +1299,24 @@ def _accumulate_individual_totals(
         totals[key] += parsed.get(key, 0)
 
 
+@dataclass(frozen=True)
+class _PalabraCounts:
+    """Contadores y pools compartidos al montar filas de palabras_inventario."""
+
+    standalone_capture_words: set[str]
+    goal_counts: dict[str, int]
+    luna_counts: dict[str, int]
+    captura_goal_counts: dict[str, int]
+    capture_luna_counts: dict[str, int]
+    bingo_counts: dict[str, int]
+    grupo_counts: dict[str, dict[str, int]]
+    goal_list_counts: dict[str, int]
+    capture_lista_counts: dict[str, int]
+    grupo_lista_computed: dict[str, int]
+    captura_counts: dict[str, int]
+    captura_sin_luna: dict[str, int]
+
+
 def _try_build_palabra_row(
     *,
     row_id: int,
@@ -1308,18 +1325,7 @@ def _try_build_palabra_row(
     usos_by: dict[str, set[str]],
     uso_counts: dict[str, int],
     totals: dict[str, int],
-    standalone_capture_words: set[str],
-    goal_counts: dict[str, int],
-    luna_counts: dict[str, int],
-    captura_goal_counts: dict[str, int],
-    capture_luna_counts: dict[str, int],
-    bingo_counts: dict[str, int],
-    grupo_counts: dict[str, dict[str, int]],
-    goal_list_counts: dict[str, int],
-    capture_lista_counts: dict[str, int],
-    grupo_lista_computed: dict[str, int],
-    captura_counts: dict[str, int],
-    captura_sin_luna: dict[str, int],
+    counts: _PalabraCounts,
 ) -> dict | None:
     for u in usos:
         if u in USO_FIJO_WORD_COUNT:
@@ -1327,30 +1333,32 @@ def _try_build_palabra_row(
     n_ind = _individual_counts_for_word(
         word,
         usos_by[word],
-        standalone_capture_words=standalone_capture_words,
-        goal_counts=goal_counts,
-        luna_counts=luna_counts,
-        captura_goal_counts=captura_goal_counts,
-        capture_luna_counts=capture_luna_counts,
+        standalone_capture_words=counts.standalone_capture_words,
+        goal_counts=counts.goal_counts,
+        luna_counts=counts.luna_counts,
+        captura_goal_counts=counts.captura_goal_counts,
+        capture_luna_counts=counts.capture_luna_counts,
     )
     luna_for_tag = _compute_luna_for_tag(
-        word, usos, usos_by[word], n_ind, luna_counts
+        word, usos, usos_by[word], n_ind, counts.luna_counts
     )
-    bingo_n = _lookup_bingo_count(word, bingo_counts) if "bingo" in usos else 0
-    grupo_n = grupo_counts.get(word) if "grupo" in usos else None
+    bingo_n = (
+        _lookup_bingo_count(word, counts.bingo_counts) if "bingo" in usos else 0
+    )
+    grupo_n = counts.grupo_counts.get(word) if "grupo" in usos else None
     lista_n = _compute_lista_n_for_word(
         word,
         usos_by[word],
-        grupo_counts=grupo_counts,
-        goal_list_counts=goal_list_counts,
-        capture_lista_counts=capture_lista_counts,
-        grupo_lista_computed=grupo_lista_computed,
+        grupo_counts=counts.grupo_counts,
+        goal_list_counts=counts.goal_list_counts,
+        capture_lista_counts=counts.capture_lista_counts,
+        grupo_lista_computed=counts.grupo_lista_computed,
     )
     captura_n = _compute_captura_n_for_word(
         word,
         usos_by[word],
-        captura_counts=captura_counts,
-        captura_sin_luna=captura_sin_luna,
+        captura_counts=counts.captura_counts,
+        captura_sin_luna=counts.captura_sin_luna,
     )
     usos_fmt = _format_usos(
         usos,
@@ -1378,19 +1386,7 @@ def _try_build_palabra_row(
 def _build_palabras_rows(
     words: list[str],
     usos_by: dict[str, set[str]],
-    *,
-    standalone_capture_words: set[str],
-    goal_counts: dict[str, int],
-    luna_counts: dict[str, int],
-    captura_goal_counts: dict[str, int],
-    capture_luna_counts: dict[str, int],
-    bingo_counts: dict[str, int],
-    grupo_counts: dict[str, dict[str, int]],
-    goal_list_counts: dict[str, int],
-    capture_lista_counts: dict[str, int],
-    grupo_lista_computed: dict[str, int],
-    captura_counts: dict[str, int],
-    captura_sin_luna: dict[str, int],
+    counts: _PalabraCounts,
 ) -> tuple[list[dict], dict[str, int], dict[str, int]]:
     rows: list[dict] = []
     uso_counts: dict[str, int] = dict.fromkeys(USO_ORDER, 0)
@@ -1404,18 +1400,7 @@ def _build_palabras_rows(
             usos_by=usos_by,
             uso_counts=uso_counts,
             totals=totals,
-            standalone_capture_words=standalone_capture_words,
-            goal_counts=goal_counts,
-            luna_counts=luna_counts,
-            captura_goal_counts=captura_goal_counts,
-            capture_luna_counts=capture_luna_counts,
-            bingo_counts=bingo_counts,
-            grupo_counts=grupo_counts,
-            goal_list_counts=goal_list_counts,
-            capture_lista_counts=capture_lista_counts,
-            grupo_lista_computed=grupo_lista_computed,
-            captura_counts=captura_counts,
-            captura_sin_luna=captura_sin_luna,
+            counts=counts,
         )
         if row:
             rows.append(row)
@@ -1799,18 +1784,20 @@ def build_palabras_inventario() -> dict:
     rows, uso_counts, totals = _build_palabras_rows(
         words,
         usos_by,
-        standalone_capture_words=standalone_capture_words,
-        goal_counts=goal_counts,
-        luna_counts=luna_counts,
-        captura_goal_counts=captura_goal_counts,
-        capture_luna_counts=capture_luna_counts,
-        bingo_counts=bingo_counts,
-        grupo_counts=grupo_counts,
-        goal_list_counts=goal_list_counts,
-        capture_lista_counts=capture_lista_counts,
-        grupo_lista_computed=grupo_lista_computed,
-        captura_counts=captura_counts,
-        captura_sin_luna=captura_sin_luna,
+        _PalabraCounts(
+            standalone_capture_words=standalone_capture_words,
+            goal_counts=goal_counts,
+            luna_counts=luna_counts,
+            captura_goal_counts=captura_goal_counts,
+            capture_luna_counts=capture_luna_counts,
+            bingo_counts=bingo_counts,
+            grupo_counts=grupo_counts,
+            goal_list_counts=goal_list_counts,
+            capture_lista_counts=capture_lista_counts,
+            grupo_lista_computed=grupo_lista_computed,
+            captura_counts=captura_counts,
+            captura_sin_luna=captura_sin_luna,
+        ),
     )
     n_palabras_by_uso = _validate_palabras_inventario(
         rows,
