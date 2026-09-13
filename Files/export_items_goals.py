@@ -768,25 +768,50 @@ def _goal_add_pair(
     state.goals_by_idx[idx].append((orden, goal))
 
 
+def _merge_merch_goals_into(
+    state: _ItemsGoalsState,
+    *,
+    kingdom: str,
+    merch_src: str,
+    by_orden: dict[int, str],
+) -> None:
+    for idx in state.by_kingdom_source.get((kingdom, merch_src), []):
+        for orden, goal in state.goals_by_idx.get(idx) or []:
+            if goal not in _SHOP_INHERIT_SKIP_GOALS:
+                by_orden[int(orden)] = goal
+
+
+def _merch_goals_by_orden(
+    state: _ItemsGoalsState, kingdom: str
+) -> dict[int, str]:
+    by_orden: dict[int, str] = {}
+    for merch_src in SHOP_ITEM_LISTS:
+        if merch_src == "boxer_shorts":
+            continue
+        _merge_merch_goals_into(
+            state, kingdom=kingdom, merch_src=merch_src, by_orden=by_orden
+        )
+    return by_orden
+
+
+def _inherit_orden_goals_to_shops(
+    state: _ItemsGoalsState,
+    shop_idxs: list[int],
+    by_orden: dict[int, str],
+) -> None:
+    for shop_idx in shop_idxs:
+        for orden, goal in by_orden.items():
+            _goal_add_pair(state, shop_idx, orden, goal)
+
+
 def _apply_shop_inherits_sold_item_goals(state: _ItemsGoalsState) -> None:
     """Crazy Cap = unión de goals de mercancía del reino (+ Shop Moon del reino)."""
     for (kingdom, source), shop_idxs in state.by_kingdom_source.items():
         if source != "shops" or not shop_idxs:
             continue
-        by_orden: dict[int, str] = {}
-        for merch_src in SHOP_ITEM_LISTS:
-            if merch_src == "boxer_shorts":
-                continue
-            for idx in state.by_kingdom_source.get((kingdom, merch_src), []):
-                for orden, goal in state.goals_by_idx.get(idx) or []:
-                    if goal in _SHOP_INHERIT_SKIP_GOALS:
-                        continue
-                    by_orden[int(orden)] = goal
-        if not by_orden:
-            continue
-        for shop_idx in shop_idxs:
-            for orden, goal in by_orden.items():
-                _goal_add_pair(state, shop_idx, orden, goal)
+        by_orden = _merch_goals_by_orden(state, kingdom)
+        if by_orden:
+            _inherit_orden_goals_to_shops(state, shop_idxs, by_orden)
 
 
 def _apply_forced_poi_goals(

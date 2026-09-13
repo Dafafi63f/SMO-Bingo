@@ -116,80 +116,96 @@ def _zone_review_sample(it: dict, group: dict) -> dict:
     return sample
 
 
+_ZONE_METHOD_PRIORITY = (
+    "heuristic_shop",
+    "heuristic_toad",
+    "heuristic_art",
+    "distinto_curado",
+    "fallback_curado",
+)
+
+
+def _zones_missing_finding() -> Finding:
+    return Finding(
+        front="zones",
+        severity=SEVERITY_INFO,
+        code="missing",
+        summary="Falta zonas_revision.json (local; regenerar export_zona_revision).",
+        fix_hint="python Files/export_zona_revision.py",
+    )
+
+
+def _zones_summary_finding(zr: dict, by_method_view: dict) -> Finding:
+    return Finding(
+        front="zones",
+        severity=SEVERITY_INFO,
+        code="summary",
+        summary=(
+            f"zonas_revision: {zr.get('n_pendiente')} pendiente / "
+            f"{zr.get('n_ok')} ok"
+        ),
+        detail={"by_method": by_method_view},
+        fix_hint=(
+            "Curar heurísticas en zonas_inventario; regenerar "
+            "zonas_revision (local). n_without_zone debe ser 0 "
+            "(no se lista aquí)."
+        ),
+    )
+
+
+def _is_pending_method_item(it: object, method: str) -> bool:
+    return (
+        isinstance(it, dict)
+        and it.get("status") == "pendiente"
+        and str(it.get("method") or "") == method
+    )
+
+
+def _pending_method_samples(
+    zr: dict, method: str, *, limit: int = 8
+) -> list[dict]:
+    groups = [g for g in (zr.get("groups") or []) if isinstance(g, dict)]
+    groups.sort(key=lambda g: 0 if g.get("kind") == "zone" else 1)
+    samples: list[dict] = []
+    for group in groups:
+        for it in group.get("items") or []:
+            if not _is_pending_method_item(it, method):
+                continue
+            samples.append(_zone_review_sample(it, group))
+            if len(samples) >= limit:
+                return samples
+    return samples
+
+
+def _zones_method_finding(method: str, n: int, samples: list[dict]) -> Finding:
+    return Finding(
+        front="zones",
+        severity=SEVERITY_REVIEW,
+        code=f"method:{method}",
+        summary=f"{n} items method={method}",
+        detail={"samples": samples},
+        fix_hint="Editar zone en zonas_inventario (misma id/name/source).",
+    )
+
+
 def _front_zones() -> list[Finding]:
     """Cola de heurísticas de zone (cola local; sin reportar sin_zone)."""
     zr_path = CATALOG_DIR / "zonas_revision.json"
     if not zr_path.is_file():
-        return [
-            Finding(
-                front="zones",
-                severity=SEVERITY_INFO,
-                code="missing",
-                summary="Falta zonas_revision.json (local; regenerar export_zona_revision).",
-                fix_hint="python Files/export_zona_revision.py",
-            )
-        ]
+        return [_zones_missing_finding()]
     zr = load_catalog(zr_path)
-    by_method_raw = dict(zr.get("by_method") or {})
-    # sin_zone / n_without_zone: curar en zonas_inventario; aquí no se listan.
     by_method_view = {
-        k: v for k, v in by_method_raw.items() if k != "sin_zone"
+        k: v for k, v in dict(zr.get("by_method") or {}).items() if k != "sin_zone"
     }
-    out: list[Finding] = [
-        Finding(
-            front="zones",
-            severity=SEVERITY_INFO,
-            code="summary",
-            summary=(
-                f"zonas_revision: {zr.get('n_pendiente')} pendiente / "
-                f"{zr.get('n_ok')} ok"
-            ),
-            detail={"by_method": by_method_view},
-            fix_hint=(
-                "Curar heurísticas en zonas_inventario; regenerar "
-                "zonas_revision (local). n_without_zone debe ser 0 "
-                "(no se lista aquí)."
-            ),
-        )
-    ]
+    out: list[Finding] = [_zones_summary_finding(zr, by_method_view)]
     by_method = Counter(by_method_view)
-    # Heurísticas / discrepancias a curar (sin_zone fuera de alcance aquí).
-    priority = (
-        "heuristic_shop",
-        "heuristic_toad",
-        "heuristic_art",
-        "distinto_curado",
-        "fallback_curado",
-    )
-    for method in priority:
+    for method in _ZONE_METHOD_PRIORITY:
         n = int(by_method.get(method) or 0)
         if n <= 0:
             continue
-        samples: list[dict] = []
-        # Preferir grupos por zone para rellenar zone en el sample (sin nulls).
-        groups = [g for g in (zr.get("groups") or []) if isinstance(g, dict)]
-        groups.sort(key=lambda g: 0 if g.get("kind") == "zone" else 1)
-        for group in groups:
-            for it in group.get("items") or []:
-                if not isinstance(it, dict):
-                    continue
-                if it.get("status") != "pendiente":
-                    continue
-                if str(it.get("method") or "") != method:
-                    continue
-                samples.append(_zone_review_sample(it, group))
-                if len(samples) >= 8:
-                    break
-            if len(samples) >= 8:
-                break
         out.append(
-            Finding(
-                front="zones",
-                severity=SEVERITY_REVIEW,
-                code=f"method:{method}",
-                summary=f"{n} items method={method}",
-                detail={"samples": samples},
-                fix_hint="Editar zone en zonas_inventario (misma id/name/source).",
+            _zones_method_finding(
+                method, n, _pending_method_samples(zr, method)
             )
         )
     return out
@@ -271,32 +287,77 @@ def _front_items() -> list[Finding]:
     return out
 
 
-def _front_goals() -> list[Finding]:
-    ref = load_catalog(CATALOG_DIR / "goals_referencia.json")
-    out: list[Finding] = []
+def _goal_pool_rows(g: dict) -> tuple[str, str, list[dict], list[dict]]:
+    name = str(g.get("goal") or "")
+    pool = str(g.get("pool") or "")
+    moons = [m for m in (g.get("moons") or []) if isinstance(m, dict)]
+    lista = [m for m in (g.get("lista") or []) if isinstance(m, dict)]
+    return name, pool, moons, lista
+
+
+def _accumulate_goal_ratios(
+    g: dict,
+    *,
+    tag_false: list[tuple[float, int, int, str]],
+    goal_false: list[tuple[float, int, int, str]],
+    empty_pool: list[str],
+) -> None:
+    name, pool, moons, lista = _goal_pool_rows(g)
+    if pool == "moons" and not moons:
+        empty_pool.append(name)
+    elif pool == "lista" and not lista:
+        empty_pool.append(name)
+    if len(moons) < 4:
+        return
+    n_tf = sum(1 for m in moons if m.get("tag") is False)
+    n_gf = sum(1 for m in moons if m.get("goal") is False)
+    if n_tf:
+        tag_false.append((n_tf / len(moons), n_tf, len(moons), name))
+    if n_gf:
+        goal_false.append((n_gf / len(moons), n_gf, len(moons), name))
+
+
+def _scan_goal_ratios(
+    ref: dict,
+) -> tuple[
+    list[tuple[float, int, int, str]],
+    list[tuple[float, int, int, str]],
+    list[str],
+]:
     tag_false: list[tuple[float, int, int, str]] = []
     goal_false: list[tuple[float, int, int, str]] = []
     empty_pool: list[str] = []
     for g in ref.get("goals") or []:
-        if not isinstance(g, dict):
-            continue
-        name = str(g.get("goal") or "")
-        pool = str(g.get("pool") or "")
-        moons = [m for m in (g.get("moons") or []) if isinstance(m, dict)]
-        lista = [m for m in (g.get("lista") or []) if isinstance(m, dict)]
-        if pool == "moons" and not moons:
-            empty_pool.append(name)
-        if pool == "lista" and not lista:
-            empty_pool.append(name)
-        if len(moons) >= 4:
-            n_tf = sum(1 for m in moons if m.get("tag") is False)
-            n_gf = sum(1 for m in moons if m.get("goal") is False)
-            if n_tf:
-                tag_false.append((n_tf / len(moons), n_tf, len(moons), name))
-            if n_gf:
-                goal_false.append((n_gf / len(moons), n_gf, len(moons), name))
+        if isinstance(g, dict):
+            _accumulate_goal_ratios(
+                g,
+                tag_false=tag_false,
+                goal_false=goal_false,
+                empty_pool=empty_pool,
+            )
     tag_false.sort(reverse=True)
     goal_false.sort(reverse=True)
+    return tag_false, goal_false, empty_pool
+
+
+def _ratio_samples(
+    rows: list[tuple[float, int, int, str]], *, false_key: str
+) -> list[dict]:
+    return [
+        {
+            "goal": name,
+            false_key: n_false,
+            "n_moons": n,
+            "ratio": round(r, 2),
+        }
+        for r, n_false, n, name in rows[:12]
+    ]
+
+
+def _front_goals() -> list[Finding]:
+    ref = load_catalog(CATALOG_DIR / "goals_referencia.json")
+    tag_false, goal_false, empty_pool = _scan_goal_ratios(ref)
+    out: list[Finding] = []
     if empty_pool:
         out.append(
             Finding(
@@ -314,17 +375,7 @@ def _front_goals() -> list[Finding]:
             severity=SEVERITY_REVIEW if tag_false else SEVERITY_INFO,
             code="tag_false_ratio",
             summary="Top goals con moons[].tag=false (pool sin tag tematica)",
-            detail={
-                "samples": [
-                    {
-                        "goal": name,
-                        "tag_false": n_tf,
-                        "n_moons": n,
-                        "ratio": round(r, 2),
-                    }
-                    for r, n_tf, n, name in tag_false[:12]
-                ]
-            },
+            detail={"samples": _ratio_samples(tag_false, false_key="tag_false")},
             fix_hint="Paraguas Nature/Fauna o luna mal en el grupo? tags_inventario.",
         )
     )
@@ -334,17 +385,7 @@ def _front_goals() -> list[Finding]:
             severity=SEVERITY_REVIEW if goal_false else SEVERITY_INFO,
             code="goal_false_ratio",
             summary="Top goals con moons[].goal=false (en pool pero no cuentan)",
-            detail={
-                "samples": [
-                    {
-                        "goal": name,
-                        "goal_false": n_gf,
-                        "n_moons": n,
-                        "ratio": round(r, 2),
-                    }
-                    for r, n_gf, n, name in goal_false[:12]
-                ]
-            },
+            detail={"samples": _ratio_samples(goal_false, false_key="goal_false")},
             fix_hint="Normal en tours/NPC; raro si casi todo el pool es goal:false.",
         )
     )
