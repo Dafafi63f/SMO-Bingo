@@ -545,15 +545,16 @@ def progression_from_kingdom_availability(
     zones = list(border) if border is not None else list(
         KINGDOM_BORDER_PROGRESSION.get(kingdom) or []
     )
-    if not zones:
+    zone_iter = iter(zones)
+    first = next(zone_iter, None)
+    if first is None:
         return ""
-    first = zones[0]
-    rest = zones[1:]
+    second = next(zone_iter, None)
     av = (availability or "base").strip().lower()
     if av == "revisit":
         av = "base"
-    if av in {"mid_story", "world_peace"} and rest:
-        return rest[0]
+    if av in {"mid_story", "world_peace"} and second is not None:
+        return second
     return first
 
 
