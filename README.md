@@ -60,7 +60,8 @@ Fuente única de changelog del repo (no repetir en otros README).
 - Combined `2026-09-13`: **`{{X}} Wedding Moons`** — `range: [2]`, Lake `#21` + Wooded `#27`, `moontype`, prog `m`, icon `heartflowerbloom`; en grupo `cappy`.
 - **`{{X}} Lost Trapeetle Moons`**: `[1,2]` → `[2]`, sin `[[s]]` (cada luna ya cuenta en Cage / Blocks).
 - Naming: `Moon[[s]]` solo si `1 ∈ range`; mínimo ≥2 → `Moons` fijo (detalle en Bingos README). Ambas en `SINGLE_VALUE_OK`.
-- Zone: solo **`zonas_inventario.json`** (eliminado `zonas_reino.json`); tests/docs alineados. Script sigue llamándose `export_zonas_reino.py`.
+- Zone: solo **`zonas_inventario.json`** (eliminado `zonas_reino.json`); script `export_zonas_inventario.py`.
+- Multi-obtain de tags: solo `TAG_OBTAIN`; capturas: aviso solo si asignadas &lt; pool wiki.
 - Lake Warp-Painting / pintura Sand→Lake: availability **base**.
 - Icons: `purpletotal` / rotación Sub-Area Regional.
 - Catálogo activo: `items_goals`, `zonas_revision`, `palabras_inventario`, `mariowiki_capture_guides`. Fuera: `moon_names_wiki.json`, `sync_lunas.py`.
@@ -71,8 +72,12 @@ Fuente única de pendientes (no repetir en otros README).
 
 - Simulador del **modo Rush** de lockout.live.
 - Curar cola **`zonas_revision.json`** (muchos `pendiente`).
-- Avisos de regen: tags multi-obtain, capturas ≠ pool wiki, ~15 icons Combined fuera del manifest `smo/`.
-- Valorar renombrar `export_zonas_reino.py` → nombre alineado a `zonas_inventario`.
-- Revisar weighting Wedding (`80`) vs Bloom (`100`) con partidas reales.
-- Tema boda: no ampliar sin criterio nuevo (retornos postgame fuera de alcance).
-- Tours / paraguas (Captain Toad, transport, fauna/flora…): dejar salvo rediseño explícito.
+
+## Decisiones (no reabrir sin criterio nuevo)
+
+- **Wedding** weighting `80` (vs Bloom implícito/`100`): a propósito — set mid entre Lake+Wooded; Bloom es local Wooded.
+- **Tema boda**: no ampliar el set sin criterio nuevo (retornos postgame fuera de alcance).
+- **Tours / paraguas** (Captain Toad, transport, fauna/flora…): dejar salvo rediseño explícito.
+- **Icons no-`smo/`** (~15–17 goals): intencionados (assets de otros packs / remap); el catálogo lleva `n_goals_non_smo`.
+- **Capturas vs pool wiki**: asignadas ≥ pool es OK (extras curados); aviso solo si faltan lunas del pool.
+- **Multi-obtain de tags**: solo métodos en `TAG_OBTAIN` (no criatura+método).

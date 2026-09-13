@@ -1092,13 +1092,8 @@ ALLOWED_MULTI_OBTAIN: frozenset[frozenset[str]] = frozenset(
 
 
 def _obtain_tags(tag_set: set[str]) -> set[str]:
-    return (
-        tag_set
-        - load_group_context_tags()
-        - TAG_STORY
-        - TAG_ACTION
-        - TAG_KINGDOM
-    )
+    """Métodos de obtención (TAG_OBTAIN); el resto son contexto/criatura/zona."""
+    return tag_set & TAG_OBTAIN
 
 
 def _incompatible_pair_issues(

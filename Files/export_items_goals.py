@@ -1,6 +1,6 @@
 """Export Catalog/items_goals.json — cada ítem del juego → goals Combined.
 
-Universo e orden = build_zonas_reino() (story kingdoms; moons → lists alfa +
+Universo e orden = build_zonas_inventario() (story kingdoms; moons → lists alfa +
 binoculars), plano sin agrupar. goals[] = nombres de templates (compacto,
 como goal_icons). Lookup estricto vía moons[] / lista[] de goals_referencia
 (moons con remap mushroom#39→luncheon#50). Sin expandir lista_source a toda
@@ -21,7 +21,7 @@ from catalog_lib import (
     lunas_catalog_ref,
     write_catalog_json,
 )
-from export_zonas_reino import BINOCULARS_SOURCE, MOON_SOURCE, build_zonas_reino
+from export_zonas_inventario import BINOCULARS_SOURCE, MOON_SOURCE, build_zonas_inventario
 from goal_list_lib import (
     list_item_match_key,
     load_zonas_zone_index,
@@ -796,7 +796,7 @@ def _attach_goals_from_ref(state: _ItemsGoalsState, ref: dict) -> None:
 
 def build_items_goals() -> dict:
     zone_map = load_zonas_zone_index()
-    payload = build_zonas_reino(zone_map=zone_map)
+    payload = build_zonas_inventario(zone_map=zone_map)
     ref = load_catalog(REF_PATH) if REF_PATH.is_file() else {}
 
     state = _index_zonas_items(payload)

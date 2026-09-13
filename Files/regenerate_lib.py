@@ -230,8 +230,8 @@ def _run_goals_individuales() -> int:
     return 0
 
 
-def _run_zonas_reino() -> int:
-    from export_zonas_reino import main as zonas_main
+def _run_zonas_inventario() -> int:
+    from export_zonas_inventario import main as zonas_main
 
     return zonas_main()
 
@@ -373,9 +373,9 @@ def build_steps() -> list[RegenerateStep]:
         RegenerateStep(
             "zonas_inventario",
             "zonas_inventario",
-            bingo + ref + ("Files/export_zonas_reino.py",) + libs,
+            bingo + ref + ("Files/export_zonas_inventario.py",) + libs,
             zonas_out,
-            _run_zonas_reino,
+            _run_zonas_inventario,
         ),
         RegenerateStep(
             "items_goals",
@@ -385,7 +385,7 @@ def build_steps() -> list[RegenerateStep]:
                 _CATALOG_GOAL_LISTS,
                 _CATALOG_ZONAS_INVENTARIO,
                 "Files/export_items_goals.py",
-                "Files/export_zonas_reino.py",
+                "Files/export_zonas_inventario.py",
             )
             + libs,
             items_goals_out,

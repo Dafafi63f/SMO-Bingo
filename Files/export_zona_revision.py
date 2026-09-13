@@ -4,7 +4,7 @@ Cada ítem aparece a la vez en 3 grupos (kind=kingdom|zone|source), todos en
 un solo ``groups[]``. kind=zone no lleva kingdom (el slug de zone basta).
 
 Ítems: id (= reino/source/nº) + name + status [+ method/zone/…] sin repetir
-kingdom/source. Orden de ítems = el de build_zonas_reino() (moons → goal_lists
+kingdom/source. Orden de ítems = el de build_zonas_inventario() (moons → goal_lists
 alfa + binoculars), no alfabético por id.
 
 Cada ítem lleva ``status``: ``ok`` | ``pendiente``.
@@ -22,7 +22,7 @@ import json
 from collections import defaultdict
 
 from catalog_lib import CATALOG_DIR, load_catalog, write_catalog_json
-from export_zonas_reino import (
+from export_zonas_inventario import (
     BINOCULARS_SOURCE,
     MOON_SOURCE,
     _MOON_ZONE_FALLBACK,
@@ -31,7 +31,7 @@ from export_zonas_reino import (
     _item_display_name,
     _inventario_zone_label,
     _kingdom_from_lunas_row,
-    build_zonas_reino,
+    build_zonas_inventario,
     infer_moon_zone,
     load_sub_area_levels,
 )
@@ -491,7 +491,7 @@ def _revision_method_for_item(
 
 def build_zona_revision() -> dict:
     zone_map = load_zonas_zone_index()
-    payload = build_zonas_reino(zone_map=zone_map)
+    payload = build_zonas_inventario(zone_map=zone_map)
     data = load_goal_lists()
     lists = data.get("lists") or {}
 

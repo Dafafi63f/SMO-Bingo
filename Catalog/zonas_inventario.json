@@ -1,6 +1,6 @@
 {
   "_definition": "Inventario por zone (alfa global). Fuente de ubicación (zone) del proyecto: cada list[].zone es la zone base; el slug del bloque (zones[].zone) es reino_zona si la zone se repite entre reinos (p. ej. cap_odyssey). Editar zone aquí (o vía regen preservando kingdom+source+name). Cabecera: n_total / n_moons / n_items; n_zoned = filas con zone; n_without_zone = resto. kingdom en el bloque solo si la zone es exclusiva de un reino.",
-  "_note": "Regenerar: python Files/export_zonas_reino.py. Curar list[].zone aquí (preservado por kingdom+source+name).",
+  "_note": "Regenerar: python Files/export_zonas_inventario.py. Curar list[].zone aquí (preservado por kingdom+source+name).",
   "n_kingdoms": 13,
   "n_moons": 434,
   "n_items": 582,

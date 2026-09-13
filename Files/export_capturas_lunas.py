@@ -1628,9 +1628,15 @@ def _print_capturas_summary(
     n_assigned = len(moon_to_capture)
     print(f"Lunas asignadas (captura principal): {n_assigned}")
     print(f"Pool wiki captures (n_moons_pool): {n_moons_pool}")
-    if n_assigned != n_moons_pool:
+    if n_assigned < n_moons_pool:
         print(
-            f"AVISO: asignadas ({n_assigned}) != pool wiki ({n_moons_pool})"
+            f"AVISO: asignadas ({n_assigned}) < pool wiki ({n_moons_pool}) "
+            "(faltan lunas del pool)"
+        )
+    elif n_assigned > n_moons_pool:
+        print(
+            f"Nota: asignadas ({n_assigned}) > pool wiki ({n_moons_pool}) "
+            "(extras fuera del subset wiki; OK)"
         )
     vacias = sum(1 for r in rows if int(r["n_moons"]) == 0)
     if vacias:

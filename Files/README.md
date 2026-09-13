@@ -30,7 +30,7 @@ Auditoría opcional: `python Files/audit_catalog_consistency.py`
 | `export_lunas_tags.py` | `lunas-objetivos` + `tags_inventario` |
 | `export_goals_referencia.py` | Hub `goals_referencia.json` |
 | `export_goals_individuales.py` | `goals_individuales.json` (+ enriquece el hub) |
-| `export_zonas_reino.py` | `zonas_inventario.json` (nombre histórico del script) |
+| `export_zonas_inventario.py` | `zonas_inventario.json` |
 | `export_items_goals.py` | `items_goals.json` (ítem → goals Combined) |
 | `export_zona_revision.py` | `zonas_revision.json` (cola de curación de zones) |
 | `export_palabras_inventario.py` | `palabras_inventario.json` (slugs × usos) |

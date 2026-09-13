@@ -1,6 +1,6 @@
 """Export Catalog/zonas_inventario.json — inventario por zone (alfa).
 
-Construye en memoria un inventario por kingdom (función `build_zonas_reino`)
+Construye en memoria un inventario por kingdom (`build_zonas_inventario`)
 y lo proyecta a `zonas_inventario.json`:
   - ítems de goal_lists (source = nombre de lista) + binoculars
   - lunas in-scope (source = moon; desde lunas-objetivos.json)
@@ -12,7 +12,7 @@ Zone: fuente de ubicación (POIs + lunas); se preserva al regenerar
 Si existe el legado `zonas_reino.json`, se elimina al exportar.
 
 Uso:
-  python Files/export_zonas_reino.py
+  python Files/export_zonas_inventario.py
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from goal_list_lib import (
     write_goal_lists,
 )
 
-ZONAS_REINO_PATH = CATALOG_DIR / "zonas_reino.json"
+ZONAS_REINO_LEGACY_PATH = CATALOG_DIR / "zonas_reino.json"
 ZONAS_INVENTARIO_PATH = CATALOG_DIR / "zonas_inventario.json"
 LUNAS_PATH = CATALOG_DIR / "lunas-objetivos.json"
 
@@ -825,7 +825,7 @@ def _finalize_kingdom_block(
     }
 
 
-def _validate_zonas_reino_item_counts(
+def _validate_zonas_inventario_item_counts(
     kingdoms: list[dict], *, n_items_goal_lists: int
 ) -> None:
     n_items = sum(k["n_items"] for k in kingdoms)
@@ -842,7 +842,7 @@ def _validate_zonas_reino_item_counts(
         )
 
 
-def build_zonas_reino(
+def build_zonas_inventario(
     *, zone_map: dict[tuple[str, str, str], str] | None = None
 ) -> dict:
     """kingdoms[]: kingdom, by_zone, by_source, n_moons, n_items, n_total, list."""
@@ -882,7 +882,7 @@ def build_zonas_reino(
     n_moons = sum(k["n_moons"] for k in kingdoms)
     n_items = sum(k["n_items"] for k in kingdoms)
     n_items_goal_lists = int(data.get("n_items") or 0)
-    _validate_zonas_reino_item_counts(
+    _validate_zonas_inventario_item_counts(
         kingdoms, n_items_goal_lists=n_items_goal_lists
     )
     n_binoculars = sum(
@@ -909,7 +909,7 @@ def build_zonas_reino(
             "Al regenerar, zone se preserva por (kingdom, source, name). "
             "Lunas: zone inferida de lists (sub_area/moon_link/tags/POI) "
             "o fallback curado; sin tags. "
-            "Regenerar: python Files/export_zonas_reino.py"
+            "Regenerar: python Files/export_zonas_inventario.py"
         ),
         "n_kingdoms": len(kingdoms),
         "n_moons": n_moons,
@@ -1000,10 +1000,10 @@ def _build_inventario_zone_rows(
     return zones_out
 
 
-def build_zonas_inventario(payload: dict | None = None) -> dict:
+def _build_zonas_inventario_catalog(payload: dict | None = None) -> dict:
     """Vista de inventario: una entrada por (zone, kingdom); slug único en zones[]."""
     if payload is None:
-        payload = build_zonas_reino()
+        payload = build_zonas_inventario()
 
     buckets = _collect_inventario_buckets(payload)
     zones_out = _build_inventario_zone_rows(buckets)
@@ -1026,7 +1026,7 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
             "kingdom en el bloque solo si la zone es exclusiva de un reino."
         ),
         "_note": (
-            "Regenerar: python Files/export_zonas_reino.py. "
+            "Regenerar: python Files/export_zonas_inventario.py. "
             "Curar list[].zone aquí (preservado por kingdom+source+name)."
         ),
         **header_counts,
@@ -1039,15 +1039,15 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
 
 def main() -> int:
     # 1) Inventario por kingdom en memoria (preserva zone vía índice).
-    payload = build_zonas_reino()
+    payload = build_zonas_inventario()
     # 2) Limpiar zone de goal_lists si aún quedara.
     write_goal_lists(load_goal_lists())
     # 3) Vista / fuente de zone por zone (alfa).
-    detalle = build_zonas_inventario(payload)
+    detalle = _build_zonas_inventario_catalog(payload)
     write_catalog_json(ZONAS_INVENTARIO_PATH, detalle)
     # 4) Quitar legado zonas_reino.json si existe.
-    if ZONAS_REINO_PATH.is_file():
-        ZONAS_REINO_PATH.unlink()
+    if ZONAS_REINO_LEGACY_PATH.is_file():
+        ZONAS_REINO_LEGACY_PATH.unlink()
     print(
         f"Exportado: {ZONAS_INVENTARIO_PATH.relative_to(CATALOG_DIR.parent).as_posix()} "
         f"(zones={detalle.get('n_zones')})"
