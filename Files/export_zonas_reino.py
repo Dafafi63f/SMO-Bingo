@@ -559,7 +559,7 @@ def infer_moon_zone(
     moon: int,
     name: str,
     tags: list[str],
-    lists: dict,
+    _lists: dict,
     zone_map: dict[tuple[str, str, str], str],
     moon_refs: dict[tuple[str, int], list[tuple[str, str]]] | None = None,
     kingdom_zones: dict[str, set[str]] | None = None,
@@ -710,7 +710,7 @@ def build_zonas_reino(
                 moon=moon_num,
                 name=str(item.get("name") or ""),
                 tags=tags,
-                lists=lists_for_moon_refs,
+                _lists=lists_for_moon_refs,
                 zone_map=zones,
                 moon_refs=moon_refs,
                 kingdom_zones=k_zones,
@@ -845,7 +845,7 @@ def build_zonas_inventario(payload: dict | None = None) -> dict:
     zone_reino_counts: Counter[str] = Counter(z for z, _ in buckets)
 
     entries: list[tuple[str, str, str, bool]] = []
-    for zone, kingdom in buckets:
+    for (zone, kingdom), _items in buckets.items():
         shared = zone_reino_counts[zone] > 1
         label = _inventario_zone_label(kingdom, zone, shared=shared)
         entries.append((label, kingdom, zone, shared))

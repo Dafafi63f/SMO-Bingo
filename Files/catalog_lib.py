@@ -27,6 +27,12 @@ CAPTURES_LUNAS_JSON = CATALOG_DIR / "capturas_lunas.json"
 MARIOWIKI_CAPTURE_GUIDES_JSON = "mariowiki_capture_guides.json"
 MOON_NAMES_WIKI_JSON = MARIOWIKI_CAPTURE_GUIDES_JSON
 GOAL_X = "{{X}}"
+_MOON_PLACEHOLDER_PREFIX = "Moon "
+
+
+def _is_moon_number_placeholder(name: str) -> bool:
+    rest = name[len(_MOON_PLACEHOLDER_PREFIX) :]
+    return name.startswith(_MOON_PLACEHOLDER_PREFIX) and rest.isdigit()
 GOAL_X_PREFIX = "{{X}} "
 GOAL_UNIQUE_CAPTURES = "{{X}} Unique Captures"
 # Captura normal con ≥N lunas → tag concreta junto a `captures`.
@@ -1568,9 +1574,8 @@ def goal_moon_count_mode(goal: str, obj: dict, *, moonish: bool = False) -> str 
         return "physical_moons"
     if KINGDOM_MOONS_ODYSSEY_TOOLTIP in tip:
         return "odyssey_units"
-    if moonish or "moon" in low:
-        if GOAL_X in goal and "moon" in low:
-            return "physical_moons"
+    if (moonish or "moon" in low) and GOAL_X in goal and "moon" in low:
+        return "physical_moons"
     return None
 
 
@@ -2185,8 +2190,8 @@ _GROUP_GOAL_TAG_KIND_HEADER_ORDER: tuple[str, ...] = tuple(
 def finalize_bingo_groups_doc(bingo: dict) -> dict:
     """Cabecera n_groups + conteos por kind / gaps / totales de pool."""
     groups = list(bingo.get("groups") or [])
-    kind_counts = {k: 0 for k in _GROUP_KIND_HEADER}
-    goal_tag_counts = {k: 0 for k in _GROUP_GOAL_TAG_KIND_HEADER}
+    kind_counts = dict.fromkeys(_GROUP_KIND_HEADER, 0)
+    goal_tag_counts = dict.fromkeys(_GROUP_GOAL_TAG_KIND_HEADER, 0)
     for g in groups:
         kind = str(g.get("kind") or "nada")
         if kind in kind_counts:
@@ -3258,7 +3263,7 @@ def normalize_bingo_groups_file() -> dict[str, int]:
         g = {**g, "objectives": [{"goal": name} for name in names]}
         groups.append(normalize_bingo_group(g, combined_by_goal))
     groups = assign_bingo_group_orden(groups)
-    counts = {kind: 0 for kind in _GROUP_KIND_HEADER}
+    counts = dict.fromkeys(_GROUP_KIND_HEADER, 0)
     for g in groups:
         kind = str(g.get("kind") or "nada")
         if kind in counts:
@@ -3480,7 +3485,7 @@ def _apply_tags_to_merged_moon(
     wiki_name = (wiki_entry or {}).get("name")
     raw_name = str(raw.get("name") or "")
     # Preferir wiki si el raw es placeholder "Moon N" (p. ej. tag_only_moons).
-    if raw_name.startswith("Moon ") and raw_name[5:].isdigit() and wiki_name:
+    if _is_moon_number_placeholder(raw_name) and wiki_name:
         name = wiki_name
     else:
         name = raw_name or wiki_name or f"Moon {moon}"
@@ -3500,7 +3505,7 @@ def _apply_tags_to_merged_moon(
     entry["tags"] |= tags_to_add
     entry.setdefault("catalogs", set()).add("bingo_groups")
     cur = str(entry.get("name") or "")
-    if wiki_name and (not cur or (cur.startswith("Moon ") and cur[5:].isdigit())):
+    if wiki_name and (not cur or _is_moon_number_placeholder(cur)):
         entry["name"] = wiki_name
     elif len(name) > len(cur):
         entry["name"] = name
@@ -3744,13 +3749,7 @@ def attach_bingo_group_spec_meta(group: dict) -> dict:
             moon = int(pair["moon"])
             raw_name = pair.get("name")
             wiki_name = (wiki.get(kingdom, {}) or {}).get(moon, {}).get("name")
-            if (
-                not raw_name
-                or (
-                    str(raw_name).startswith("Moon ")
-                    and str(raw_name)[5:].isdigit()
-                )
-            ):
+            if not raw_name or _is_moon_number_placeholder(str(raw_name)):
                 name = wiki_name or raw_name or f"Moon {moon}"
             else:
                 name = raw_name
@@ -3898,10 +3897,10 @@ def _merge_catalog_item_into(
     # Preferir nombre real sobre placeholder "Moon N".
     if new_name and (
         not cur
-        or (cur.startswith("Moon ") and cur[5:].isdigit())
+        or _is_moon_number_placeholder(cur)
         or (
             len(new_name) > len(cur)
-            and not (new_name.startswith("Moon ") and new_name[5:].isdigit())
+            and not _is_moon_number_placeholder(new_name)
         )
     ):
         entry["name"] = new_name

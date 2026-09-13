@@ -81,7 +81,7 @@ class CatalogFilesExistTests(unittest.TestCase):
         self.assertEqual(data["n_zoned"], sum(z["n_total"] for z in data["zones"]))
         self.assertEqual(data["n_total"], data["n_moons"] + data["n_items"])
         self.assertEqual(data["n_total"], data["n_zoned"] + data["n_without_zone"])
-        self.assertEqual(data["n_items"], 582)
+        self.assertEqual(582, data["n_items"])
         self.assertNotIn("n_total_all", data)
         zones = [z["zone"] for z in data["zones"]]
         self.assertEqual(zones, sorted(zones, key=str.lower))
@@ -974,8 +974,9 @@ class BingoGroupsSyncTests(unittest.TestCase):
                 g.get("id"),
             )
             self.assertNotIn("goals", g["has"], g.get("id"))
-            self.assertTrue(
-                {"objectives", "moons", "goal", "tag", "lista"} <= set(n),
+            self.assertLessEqual(
+                {"objectives", "moons", "goal", "tag", "lista"},
+                set(n),
                 g.get("id"),
             )
             self.assertNotIn("has_goals", g, g.get("id"))
@@ -1815,8 +1816,9 @@ class ProjectAndLunasTests(unittest.TestCase):
         self.assertTrue(FORCE_MOON_TAGS)
         for (kingdom, moon), want in FORCE_MOON_TAGS.items():
             row = by[(kingdom, moon)]
-            self.assertTrue(
-                set(want) <= set(row["tags"]),
+            self.assertLessEqual(
+                set(want),
+                set(row["tags"]),
                 f"{kingdom}#{moon}: falta {sorted(want - set(row['tags']))} en {row['tags']}",
             )
 

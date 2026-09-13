@@ -394,7 +394,7 @@ def build_zona_revision() -> dict:
                 moon=moon_num,
                 name=name,
                 tags=tags,
-                lists=lists_for_moon_refs,
+                _lists=lists_for_moon_refs,
                 zone_map=zone_map,
                 moon_refs=moon_refs,
                 kingdom_zones=k_zones,

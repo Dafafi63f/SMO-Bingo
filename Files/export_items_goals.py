@@ -30,6 +30,7 @@ from goal_list_lib import (
 
 OUT_PATH = CATALOG_DIR / "items_goals.json"
 REF_PATH = CATALOG_DIR / "goals_referencia.json"
+GOAL_TOTAL_STORY_MOONS = "{{X}} Total Story Moons"
 
 # Agregados multi-reino / capturas sueltas: no van en items_goals (evitan inflación).
 SKIP_GOALS = frozenset(
@@ -38,7 +39,7 @@ SKIP_GOALS = frozenset(
         "{{X}} Sub-Area Moons",
         "{{X}} Total Moons",
         "{{X}} Total Multi-Moons",
-        "{{X}} Total Story Moons",
+        GOAL_TOTAL_STORY_MOONS,
         "{{X}} Total Checkpoints",
         "{{X}} Total Regional Coins",
         "All Multi-Moons in {{X}} Kingdoms",
@@ -404,7 +405,6 @@ def build_items_goals() -> dict:
     # idx → (kingdom, moon) para moons del universo
     idx_moon_ref: dict[int, tuple[str, int]] = {}
     for key, idx in moon_index.items():
-        # key = ("moon", kingdom, moon_num)
         idx_moon_ref[idx] = (str(key[1]), int(key[2]))
 
     def _add(idx: int, goal_row: dict) -> None:
@@ -564,7 +564,7 @@ def build_items_goals() -> dict:
             _add_ks_forced(sphynx, kingdom=kingdom, source="sphynxes")
 
     # story_moon sin template de reino (Cascade #1): Total Story Moons.
-    total_story = ref_by_goal.get("{{X}} Total Story Moons")
+    total_story = ref_by_goal.get(GOAL_TOTAL_STORY_MOONS)
     if total_story:
         orden_ts = int(total_story.get("orden") or 0)
         for cat_k, cat_m in story_keys:
@@ -578,7 +578,7 @@ def build_items_goals() -> dict:
             if orden_ts in seen_goal[moon_idx]:
                 continue
             seen_goal[moon_idx].add(orden_ts)
-            goals_by_idx[moon_idx].append((orden_ts, "{{X}} Total Story Moons"))
+            goals_by_idx[moon_idx].append((orden_ts, GOAL_TOTAL_STORY_MOONS))
 
     n_with = 0
     by_n: dict[int, int] = defaultdict(int)
@@ -629,7 +629,7 @@ def build_items_goals() -> dict:
 def _looks_eight_bit_regional(name: str) -> bool:
     """Heurística mientras lists.regionals no conserve eight_bit."""
     n = name.casefold()
-    if n.startswith("8-bit") or n.startswith("last 8-bit"):
+    if n.startswith(("8-bit", "last 8-bit")):
         return True
     # Seaside: flag histórico sin prefijo 8-bit en el nombre.
     return n.startswith("ocean-bottom maze")

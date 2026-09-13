@@ -69,6 +69,8 @@ GOAL_CAPPY_MOONS = "{{X}} Cappy Moons"
 GOAL_MARIO_MOONS = "{{X}} Mario Moons"
 GOAL_TOURIST_MOONS = "{{X}} Tourist Moon[[s]]"
 GOAL_MINIGAME_MOONS = "{{X}} Minigame Moons"
+GOAL_FIRE_BRO_MOONS = "{{X}} Fire Bro Moon[[s]]"
+REGIONAL_COINS_SUFFIX = " Regional Coins"
 
 GLOBAL_FROM_MID: frozenset[str] = frozenset(
     {
@@ -137,7 +139,7 @@ RANGE_PRESERVE: dict[str, list[int]] = {
     GOAL_MINIGAME_MOONS: [2, 4, 6, 8],
     "{{X}} Seaside Gushen Moons": [2, 4, 6],
     "{{X}} Seaside Komboo Moons": [2, 4],
-    "{{X}} Fire Bro Moon[[s]]": [1, 2],
+    GOAL_FIRE_BRO_MOONS: [1, 2],
     "{{X}} Hammer Bro Moons": [2, 3],
     "{{X}} Luncheon Fire Piranha Plant Moons": [2, 3],
     "{{X}} Luncheon Lantern Moon[[s]]": [1, 2, 3],
@@ -227,7 +229,7 @@ PROGRESSION_OVERRIDES: dict[str, list[str]] = {
     "{{X}} Destructible Block Moon[[s]]": ["e", "m"],
     "{{X}} Dog Moon[[s]]": ["m", "n"],
     "{{X}} Dorrie Moon[[s]]": ["e", "l", "n"],
-    "{{X}} Fire Bro Moon[[s]]": ["e", "l"],
+    GOAL_FIRE_BRO_MOONS: ["e", "l"],
     # Glydon: wooded/m + lost→l (puente) + seaside/n; range [1,2,3].
     "{{X}} Glydon Moon[[s]]": ["m", "l", "n"],
     "{{X}} Ground Pound Moons": ["m", "l"],
@@ -919,16 +921,16 @@ def earliest_disponibilidad(raw, default: str = "base") -> str:
     labels = _coerce_disponibilidad_labels(raw)
     if not labels:
         return default
-    return min(
-        labels,
-        key=lambda av: 0
-        if av in {"base", "revisit"}
-        else 1
-        if av == "mid_story"
-        else 2
-        if av == "world_peace"
-        else 3,
-    )
+    def _availability_rank(av: str) -> int:
+        if av in {"base", "revisit"}:
+            return 0
+        if av == "mid_story":
+            return 1
+        if av == "world_peace":
+            return 2
+        return 3
+
+    return min(labels, key=_availability_rank)
 
 
 def moon_availability(
@@ -1036,14 +1038,15 @@ def weighting_progression(
 ) -> list[str]:
     """Si el umbral es solo revisit, usar el puente del reino siguiente (peso)."""
     limiting = _limiting_moons(obj, moons, registry)
-    if limiting and all(
-        moon_availability(m, registry) == "revisit" for m in limiting
+    if (
+        limiting
+        and all(moon_availability(m, registry) == "revisit" for m in limiting)
+        and len(weight_kingdoms) == 1
     ):
-        if len(weight_kingdoms) == 1:
-            k = next(iter(weight_kingdoms))
-            border = KINGDOM_BORDER_PROGRESSION.get(k)
-            if border:
-                return list(border)
+        k = next(iter(weight_kingdoms))
+        border = KINGDOM_BORDER_PROGRESSION.get(k)
+        if border:
+            return list(border)
     return list(obj_progression)
 
 
@@ -1105,7 +1108,7 @@ def sort_key(objective: dict) -> tuple:
 
 
 def _is_regional_goal(goal: str) -> bool:
-    return goal.endswith(" Regional Coins") or goal.startswith(
+    return goal.endswith(REGIONAL_COINS_SUFFIX) or goal.startswith(
         "All Regional Coins in "
     )
 
@@ -1181,11 +1184,11 @@ def sync_regional_progression_from_sibling_moons(
     changed: list[tuple] = []
     for obj in objectives:
         goal = str(obj.get("goal") or "")
-        if not goal.endswith(" Regional Coins"):
+        if not goal.endswith(REGIONAL_COINS_SUFFIX):
             continue
         if goal in PROGRESSION_OVERRIDES:
             continue
-        base = goal[: -len(" Regional Coins")]
+        base = goal[: -len(REGIONAL_COINS_SUFFIX)]
         sib = by_goal.get(f"{base} Moons") or by_goal.get(f"{base} Moon[[s]]")
         if not sib:
             continue
@@ -1367,7 +1370,7 @@ def main() -> None:
         "{{X}} Goomba Moon[[s]]",
         "{{X}} 8-Bit Moons",
         "{{X}} Glydon Moon[[s]]",
-        "{{X}} Fire Bro Moon[[s]]",
+        GOAL_FIRE_BRO_MOONS,
         "{{X}} Hammer Bro Moons",
         "{{X}} Total Moons",
     ]

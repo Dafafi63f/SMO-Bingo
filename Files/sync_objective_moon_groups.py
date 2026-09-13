@@ -40,6 +40,11 @@ MIN_MOONS = GROUP_MIN_MOONS
 
 GOAL_MINI_ROCKET_MOONS = "{{X}} Mini Rocket Moons"
 GOAL_BEANSTALK_MOONS = "{{X}} Beanstalk Moons"
+GOAL_SNOW_OUTFIT_DOOR_MOONS = "{{X}} Snow Outfit Door Moons"
+GOAL_SNOW_BOXER_SHORTS_MOON = "Snow Boxer Shorts Moon"
+GOAL_LAKE_OUTFIT_DOOR_MOON = "Lake Outfit Door Moon"
+GOAL_SNOW_SHIVERIAN_RACER_MOONS = "{{X}} Snow Shiverian Racer Moon[[s]]"
+GOAL_SLOTS_MOONS = "{{X}} Slots Moon[[s]]"
 
 # Ids retirados (fusionados / fuera de norma).
 RETIRED_OBJECTIVE_GROUP_IDS: frozenset[str] = frozenset(
@@ -1040,7 +1045,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     },
     # --- snow ---
     "shiverian_racer": {
-        "goal": "{{X}} Snow Shiverian Racer Moon[[s]]",
+        "goal": GOAL_SNOW_SHIVERIAN_RACER_MOONS,
         "kingdom": "snow",
         "capture": "Shiverian Racer",
         "moons": [
@@ -1063,9 +1068,9 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             # Snow Story → solo story_moon (4 barreras), no todo el agujero.
             "{{X}} Snow Bitefrost Moons",
             "{{X}} Snow Goomba Moons",
-            "{{X}} Snow Outfit Door Moons",
-            "{{X}} Snow Shiverian Racer Moon[[s]]",
-            "Snow Boxer Shorts Moon",
+            GOAL_SNOW_OUTFIT_DOOR_MOONS,
+            GOAL_SNOW_SHIVERIAN_RACER_MOONS,
+            GOAL_SNOW_BOXER_SHORTS_MOON,
             "Snow Hint Art Moon",
             "Snow Multi-Moon",
             "Snow Shop Moon",
@@ -1224,10 +1229,10 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             GOAL_MINI_ROCKET_MOONS,
             "{{X}} Outfit Door Moons",
             "Sand Outfit Door Moon",
-            "Lake Outfit Door Moon",
+            GOAL_LAKE_OUTFIT_DOOR_MOON,
             "Wooded Outfit Door Moon",
             "{{X}} Metro Outfit Door Moons",
-            "{{X}} Snow Outfit Door Moons",
+            GOAL_SNOW_OUTFIT_DOOR_MOONS,
             "Seaside Outfit Door Moon",
             "{{X}} Luncheon Outfit Door Moons",
             "{{X}} Bowser's Outfit Door Moons",
@@ -1310,7 +1315,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         ),
     },
     "slots": {
-        "goal": "{{X}} Slots Moon[[s]]",
+        "goal": GOAL_SLOTS_MOONS,
         "name_patterns": [r"\bslots\b"],
         "extra_tags": ["cappy"],
         "note": (
@@ -1346,9 +1351,9 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "goals": [
             "{{X}} Minigame Moons",
             "{{X}} Metro Minigame Moon[[s]]",  # pool: 4 metro (filtro export)
-            "{{X}} Slots Moon[[s]]",
+            GOAL_SLOTS_MOONS,
             "{{X}} Koopa Trace-Walking Moon[[s]]",
-            "{{X}} Snow Shiverian Racer Moon[[s]]",
+            GOAL_SNOW_SHIVERIAN_RACER_MOONS,
         ],
         "moon_tag": "minigame",
         "include_story_moons": [("snow", 5)],  # Bound Bowl (multi)
@@ -1618,11 +1623,11 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Cappy Moons",
             "Save Cappy From Klepto",
             # Pools enteros dentro de moons[] cappy (acción Cappy).
-            "{{X}} Slots Moon[[s]]",
+            GOAL_SLOTS_MOONS,
             "{{X}} Bloom Flower Moon[[s]]",
             "{{X}} Lost Trapeetle Moons",
             "{{X}} Wedding Moons",
-            "Lake Outfit Door Moon",
+            GOAL_LAKE_OUTFIT_DOOR_MOON,
         ],
         "moon_tag": "cappy",
         "preserve_moons": True,
@@ -1898,10 +1903,10 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
         "goals": [
             "{{X}} Outfit Door Moons",
             "Sand Outfit Door Moon",
-            "Lake Outfit Door Moon",
+            GOAL_LAKE_OUTFIT_DOOR_MOON,
             "Wooded Outfit Door Moon",
             "{{X}} Metro Outfit Door Moons",
-            "{{X}} Snow Outfit Door Moons",
+            GOAL_SNOW_OUTFIT_DOOR_MOONS,
             "Seaside Outfit Door Moon",
             "{{X}} Luncheon Outfit Door Moons",
             "{{X}} Bowser's Outfit Door Moons",
@@ -2014,7 +2019,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
     "npc": {
         "goals": [
             "{{X}} NPC Moons",
-            "Snow Boxer Shorts Moon",
+            GOAL_SNOW_BOXER_SHORTS_MOON,
             "{{X}} Tourist Moon[[s]]",
         ],
         "moons": [
@@ -2078,7 +2083,7 @@ OBJECTIVE_MOON_GROUP_SPECS: dict[str, dict[str, Any]] = {
             "{{X}} Stickers",
             "Purchase {{X}} Costume Sets",
             "Purchase {{X}} Hats",
-            "Snow Boxer Shorts Moon",
+            GOAL_SNOW_BOXER_SHORTS_MOON,
         ],
         "moons": [],
         "allow_empty_moons": True,

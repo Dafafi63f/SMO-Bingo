@@ -36,6 +36,13 @@ REGIONAL_COINS_LARGE = 100
 # Compat: tope de un reino grande (p. ej. docs / All Large Kingdom).
 REGIONAL_COINS_PER_KINGDOM = REGIONAL_COINS_LARGE
 GOAL_X = "{{X}}"
+GOAL_PLURAL_SUFFIX = "[[s]]"
+REGIONAL_COIN_PHRASE = "regional coin"
+GOAL_BOSS_FIGHTS = "{{X}} Boss Fights"
+
+
+def _goal_lower_normalized(goal: str) -> str:
+    return goal.lower().replace(GOAL_PLURAL_SUFFIX, "")
 
 LARGE_KINGDOMS = ("sand", "wooded", "metro", "seaside", "luncheon", "bowser")
 SMALL_KINGDOMS = ("cap", "cascade", "lake", "lost", "snow", "moon")
@@ -414,8 +421,8 @@ def regional_clusters_for_goal(goal: str) -> list[dict] | None:
 
 def regional_lista_for_goal(goal: str) -> list[dict] | None:
     """lista[] regional: clusters o by_kingdom. None si la goal no es regional."""
-    gl = goal.lower().replace("[[s]]", "")
-    if "regional coin" not in gl:
+    gl = _goal_lower_normalized(goal)
+    if REGIONAL_COIN_PHRASE not in gl:
         return None
     if "total regional" in gl:
         return regional_by_kingdom_lista()
@@ -961,7 +968,7 @@ def checkpoint_goal_fields(goal: str) -> dict | None:
 
     All Checkpoints cuenta reinos (n_kingdoms / by_kingdom), no checkpoints sueltos.
     """
-    gl = goal.lower().replace("[[s]]", "")
+    gl = _goal_lower_normalized(goal)
     if "checkpoint" not in gl:
         return None
     if goal.startswith("All Checkpoints"):
@@ -993,8 +1000,8 @@ def _regional_zone_total(gl: str) -> int | None:
 
 def regional_goal_fields(goal: str, kingdom: str | None) -> dict | None:
     """Metadatos de pool regional; Total usa suma de la lista por reino."""
-    gl = goal.lower().replace("[[s]]", "")
-    if "regional coin" not in gl:
+    gl = _goal_lower_normalized(goal)
+    if REGIONAL_COIN_PHRASE not in gl:
         return None
     if "total regional" in gl:
         lista = regional_totals_lista()
@@ -1124,7 +1131,7 @@ def apply_shop_zones(data: dict | None = None) -> dict:
     return data
 
 
-def capture_solo_lista(goal: str) -> list[dict]:
+def capture_solo_lista(_goal: str) -> list[dict]:
     """Capture X: sin lista[] (identidad en capturas_lunas / CAPTURE_LIST)."""
     return []
 
@@ -1238,11 +1245,11 @@ def goal_list_source(goal: str) -> str | None:
     if goal.endswith(" Moon Rock") and GOAL_X not in goal:
         return "moon_rocks"
     gl = goal.lower()
-    if goal == "{{X}} Boss Fights":
+    if goal == GOAL_BOSS_FIGHTS:
         return "bosses"
     if "checkpoint" in gl:
         return "checkpoints"
-    if "regional coin" in goal.lower():
+    if REGIONAL_COIN_PHRASE in goal.lower():
         return "regionals"
     if goal.startswith("All Multi-Moons"):
         return None
@@ -1260,7 +1267,7 @@ def build_goal_lista(
 
     if goal in CAPTURE_SOLO:
         items = capture_solo_lista(goal)
-    elif goal == "{{X}} Boss Fights":
+    elif goal == GOAL_BOSS_FIGHTS:
         items = boss_fights_lista()
     elif goal == "{{X}} Kingdom Boss Fight[[s]]":
         items = kingdom_boss_fights_lista()
@@ -1286,7 +1293,7 @@ def build_goal_lista(
         items = multi_moon_totals_lista()
     elif "checkpoint" in gl:
         items = _checkpoint_lista(goal, kingdom)
-    elif "regional coin" in gl:
+    elif REGIONAL_COIN_PHRASE in gl:
         items = _regional_lista(goal)
     elif goal == "{{X}} Unique Captures":
         items = unique_captures_list()
@@ -1295,7 +1302,7 @@ def build_goal_lista(
 
     # Bosses: orden curado en lists.bosses (p. ej. Luncheon Spewart → Cookatiel).
     if goal in (
-        "{{X}} Boss Fights",
+        GOAL_BOSS_FIGHTS,
         "{{X}} Broodal Fights",
         "{{X}} Kingdom Boss Fight[[s]]",
     ):
@@ -1324,7 +1331,7 @@ def list_item_match_key(item: dict, list_name: str | None = None) -> tuple:
         or item.get("id_list") is not None
     )
     if item.get("moon") is not None and not has_lista_identity:
-        return ("moon", kingdom, int(item["moon"]))
+        return ("moon", kingdom, int(item["moon"]), "")
     num = item.get("id_list")
     if num is None:
         num = item.get("id")
@@ -1349,8 +1356,8 @@ def list_item_match_key(item: dict, list_name: str | None = None) -> tuple:
             return ("cp", kingdom, int(num), name)
         return ("id", kingdom, int(num), name)
     if item.get("moon") is not None:
-        return ("moon", kingdom, int(item["moon"]))
-    return ("name", kingdom, str(item.get("name") or ""))
+        return ("moon", kingdom, int(item["moon"]), "")
+    return ("name", kingdom, 0, str(item.get("name") or ""))
 
 
 def kingdom_context_for_group_goal(group: dict, goal: str) -> str | None:

@@ -46,6 +46,7 @@ def _uniq(goals: list[str]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 LINEAS_OUT_JSON = CATALOG_DIR / "bingo_lineas.json"
+ICON_SPHYNX_QUESTIONS = "smo/sphynxquestions.webp"
 
 # Concepto unico -> (clave_board, clave_line) cuando el nombre difiere.
 # Combined unifica singular/plural (checkpoints, storymoons, subarea,
@@ -207,7 +208,7 @@ def export_lineas() -> None:
         if not goal:
             continue
         board = list(obj.get("board_categories") or [])
-        line = list(obj.get("line_categories") or [])
+        line = obj.get("line_categories") or []
         if sorted(board) != sorted(line) or len(board) not in (1, 2):
             bad_parity.append(goal)
 
@@ -763,9 +764,9 @@ GOAL_ICON_REMAP: dict[str, str] = {
     # Familias sin variante / shop rotating (souvenir/sticker tambien en {{X}} Souvenirs/Stickers)
     "Call Jaxi from {{X}} Stand[[s]]": "smo/jaxicall.webp",
     "{{X}} Sand Jaxi Moons": "smo/souvenir3.webp",  # slot Sand Crazy Cap (Jaxi)
-    "Correct Wooded Sphynx Question": "smo/sphynxquestions.webp",
-    "Correct Moon Sphynx Question": "smo/sphynxquestions.webp",
-    "{{X}} Sphynx Moons": "smo/sphynxquestions.webp",
+    "Correct Wooded Sphynx Question": ICON_SPHYNX_QUESTIONS,
+    "Correct Moon Sphynx Question": ICON_SPHYNX_QUESTIONS,
+    "{{X}} Sphynx Moons": ICON_SPHYNX_QUESTIONS,
     "{{X}} Timer Challenge Moons": "smo/moontimer.webp",
     "{{X}} Hidden Timer Moon[[s]]": "smo/moontimer.webp",
     "Activate {{X}} Levers": "smgalaxy/lever.webp",

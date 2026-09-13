@@ -78,7 +78,7 @@ def is_moon_count_objective(goal: str, obj: dict) -> bool:
         return False
     # Ubicación / hablar (como Talkatoo): pool lista, no lunas del reino.
     # Ojo: "Moon Rock" / "Moon Talkatoo" contienen "moon" pero no son Moon Get.
-    if goal.endswith(" Moon Rock") or goal.endswith(" Talkatoo"):
+    if goal.endswith((" Moon Rock", " Talkatoo")):
         return False
     if goal in ("{{X}} Moon Rocks", "{{X}} Talkatoos"):
         return False
@@ -88,6 +88,7 @@ def is_moon_count_objective(goal: str, obj: dict) -> bool:
 
 GOAL_TOTAL_MOONS = "{{X}} Total Moons"
 GOAL_X_LOWER = "{{x}}"
+_SPECIAL_SEED_PHRASE = "special seed"
 
 _HYBRID_NO_MOON_GOALS = frozenset(
     {
@@ -355,7 +356,7 @@ def _maybe_filter_by_kingdom(
     entries: list[tuple[str, list[dict]]],
     moons: list[dict],
 ) -> list[dict]:
-    if not kd or "special seed" in gl:
+    if not kd or _SPECIAL_SEED_PHRASE in gl:
         return moons
     needs = (
         any(g in _SHARED_POOLS for g in used)
@@ -516,7 +517,7 @@ def _init_singular_handlers() -> None:
             ("fire piranha", fire_p),
             ("banzai", banzai),
             ("parabones", parabones),
-            ("special seed", special),
+            (_SPECIAL_SEED_PHRASE, special),
         ]
     )
 
@@ -580,7 +581,7 @@ def _apply_seed_and_minigame_filters(
     is_seeds_planted = "seeds planted" in gl and "lake seed" not in gl
     if is_ntt_seed or is_seeds_planted:
         moons = _filter_standard_seed_pots(moons)
-    elif "special seed" in gl:
+    elif _SPECIAL_SEED_PHRASE in gl:
         # Pool compartido seeds=15; Special Seed = lake#9 + wooded#33 + seaside#26.
         moons = _filter_special_seed(moons)
     elif "golden turnip" in gl:

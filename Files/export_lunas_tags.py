@@ -642,6 +642,10 @@ def export_lunas() -> None:
 
     by_n_tags: Counter[int] = Counter(len(row.get("tags") or []) for row in moons)
     n_moons_by_n_tags = {str(k): by_n_tags[k] for k in sorted(by_n_tags)}
+    synthetic_note = {
+        f"{a}#{b}": f"{c}#{d}"
+        for (a, b), (c, d) in LUNAS_CATALOG_SYNTHETIC.items()
+    }
 
     write_catalog_json(
         OUTPUT_LUNAS_JSON,
@@ -662,7 +666,7 @@ def export_lunas() -> None:
                 "Regenerar con export_lunas_tags.py o regenerate_all.py. "
                 "CSV: python export_lunas_tags.py --csv-only (desde este JSON). "
                 "n_moons_by_n_tags como items_goals.n_items_by_n_goals. "
-                f"Sintéticos: {dict((f'{a}#{b}', f'{c}#{d}') for (a, b), (c, d) in LUNAS_CATALOG_SYNTHETIC.items())}."
+                f"Sintéticos: {synthetic_note}."
             ),
             "n_moons": len(moons),
             "n_moons_by_n_tags": n_moons_by_n_tags,

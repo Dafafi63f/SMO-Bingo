@@ -21,13 +21,18 @@ STATE_VERSION = 1
 
 # Glob relativo a ROOT (forward slashes).
 _COMBINED_GLOB = "Bingos/Super Mario Odyssey-Combined-*.json"
+_CATALOG_GOAL_LISTS = "Catalog/goal_lists.json"
+_CATALOG_GOALS_REFERENCIA = "Catalog/goals_referencia.json"
+_CATALOG_ZONAS_INVENTARIO = "Catalog/zonas_inventario.json"
+_EXPORT_LUNAS_TAGS = "Files/export_lunas_tags.py"
+
 _SHARED_LIBS = (
     "Files/catalog_lib.py",
     "Files/goal_list_lib.py",
     "Files/mariowiki_guides.py",
     "Files/ranges_tools.py",
     "Catalog/project.json",
-    "Catalog/goal_lists.json",
+    _CATALOG_GOAL_LISTS,
     "Catalog/mariowiki_capture_guides.json",
 )
 
@@ -228,7 +233,7 @@ def _run_goals_individuales() -> int:
 def _run_zonas_reino() -> int:
     from export_zonas_reino import main as zonas_main
 
-    return int(zonas_main() or 0)
+    return zonas_main()
 
 
 def _run_tags_only() -> int:
@@ -249,13 +254,13 @@ def _run_enrich_goals_referencia() -> int:
 def _run_palabras_inventario() -> int:
     from export_palabras_inventario import main as palabras_main
 
-    return int(palabras_main() or 0)
+    return palabras_main()
 
 
 def _run_items_goals() -> int:
     from export_items_goals import main as items_goals_main
 
-    return int(items_goals_main() or 0)
+    return items_goals_main()
 
 
 def _run_clear_caches() -> int:
@@ -272,7 +277,7 @@ def build_steps() -> list[RegenerateStep]:
     bingo = ("Catalog/bingo_groups.json",)
     capturas = ("Catalog/capturas_lunas.json",)
     lunas = ("Catalog/lunas-objetivos.json", "Catalog/lunas-objetivos.csv")
-    ref = ("Catalog/goals_referencia.json",)
+    ref = (_CATALOG_GOALS_REFERENCIA,)
     ind = ("Catalog/goals_individuales.json",)
     tags = ("Catalog/tags_inventario.json",)
     palabras = ("Catalog/palabras_inventario.json",)
@@ -281,18 +286,18 @@ def build_steps() -> list[RegenerateStep]:
         "Catalog/goal_icons.json",
         "Catalog/goal_tooltips.json",
     )
-    zonas_out = ("Catalog/zonas_inventario.json",)
+    zonas_out = (_CATALOG_ZONAS_INVENTARIO,)
     items_goals_out = ("Catalog/items_goals.json",)
     palabras_inputs = (
         "Catalog/bingo_groups.json",
         "Catalog/bingo_lineas.json",
         "Catalog/capturas_lunas.json",
-        "Catalog/goals_referencia.json",
+        _CATALOG_GOALS_REFERENCIA,
         "Catalog/goals_individuales.json",
-        "Catalog/goal_lists.json",
+        _CATALOG_GOAL_LISTS,
         "Catalog/lunas-objetivos.json",
         "Catalog/tags_inventario.json",
-        "Catalog/zonas_inventario.json",
+        _CATALOG_ZONAS_INVENTARIO,
         "Files/export_palabras_inventario.py",
     ) + libs
 
@@ -347,7 +352,7 @@ def build_steps() -> list[RegenerateStep]:
         RegenerateStep(
             "lunas_objetivos",
             "lunas-objetivos",
-            bingo + capturas + tags + ("Files/export_lunas_tags.py",) + libs,
+            bingo + capturas + tags + (_EXPORT_LUNAS_TAGS,) + libs,
             lunas,
             _run_lunas_only,
         ),
@@ -376,9 +381,9 @@ def build_steps() -> list[RegenerateStep]:
             "items_goals",
             "items_goals",
             (
-                "Catalog/goals_referencia.json",
-                "Catalog/goal_lists.json",
-                "Catalog/zonas_inventario.json",
+                _CATALOG_GOALS_REFERENCIA,
+                _CATALOG_GOAL_LISTS,
+                _CATALOG_ZONAS_INVENTARIO,
                 "Files/export_items_goals.py",
                 "Files/export_zonas_reino.py",
             )
@@ -389,14 +394,14 @@ def build_steps() -> list[RegenerateStep]:
         RegenerateStep(
             "tags_inventario",
             "tags_inventario",
-            bingo + ref + ("Files/export_lunas_tags.py",) + libs,
+            bingo + ref + (_EXPORT_LUNAS_TAGS,) + libs,
             tags,
             _run_tags_only,
         ),
         RegenerateStep(
             "lunas_retag",
             "lunas-objetivos (retag)",
-            bingo + capturas + tags + ("Files/export_lunas_tags.py",) + libs,
+            bingo + capturas + tags + (_EXPORT_LUNAS_TAGS,) + libs,
             lunas,
             _run_lunas_only,
         ),

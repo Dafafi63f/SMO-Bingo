@@ -30,6 +30,11 @@ from catalog_lib import (
 
 OUT_JSON = CATALOG_DIR / "palabras_inventario.json"
 
+_FN_BINGO_LINEAS = "bingo_lineas.json"
+_FN_GOAL_LISTS = "goal_lists.json"
+_FN_ZONAS_INVENTARIO = "zonas_inventario.json"
+_FN_CAPTURAS_LUNAS = "capturas_lunas.json"
+
 USO_ORDER = (
     "bingo",
     "captura",
@@ -64,7 +69,7 @@ CAPTURA_GRUPO_ID = "captures"
 def _build_bingo_individual_counts() -> dict[str, int]:
     """Categoría bingo_lineas (id canónico) → n_goals de esa board/line."""
     out: dict[str, int] = {}
-    lineas_path = CATALOG_DIR / "bingo_lineas.json"
+    lineas_path = CATALOG_DIR / _FN_BINGO_LINEAS
     if not lineas_path.is_file():
         return out
     for group in load_catalog(lineas_path).get("groups") or []:
@@ -132,7 +137,7 @@ def _build_grupo_item_counts() -> dict[str, dict[str, int]]:
 def _build_goal_list_counts() -> dict[str, int]:
     """Clave canónica de goal_lists → n ítems en lists[name]."""
     out: dict[str, int] = {}
-    path = CATALOG_DIR / "goal_lists.json"
+    path = CATALOG_DIR / _FN_GOAL_LISTS
     if not path.is_file():
         return out
     lists = load_catalog(path).get("lists") or {}
@@ -150,7 +155,7 @@ def _build_goal_list_counts() -> dict[str, int]:
 def _build_kingdom_n_items() -> dict[str, int]:
     """Reino → n_items de zonas_inventario (= goal_lists + binoculars por kingdom)."""
     out: dict[str, int] = {}
-    path = CATALOG_DIR / "zonas_inventario.json"
+    path = CATALOG_DIR / _FN_ZONAS_INVENTARIO
     if not path.is_file():
         return out
     data = load_catalog(path)
@@ -171,7 +176,7 @@ def _build_kingdom_n_items() -> dict[str, int]:
 def _build_capture_lista_counts() -> dict[str, int]:
     """Capturas con lista[] (p. ej. Binoculars) → n ubicaciones."""
     out: dict[str, int] = {}
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if not caps_path.is_file():
         return out
     for row in load_catalog(caps_path).get("captures") or []:
@@ -246,7 +251,7 @@ def _orphan_moon_capture_word(moon: dict) -> str | None:
 def _build_capture_sin_luna_captura_counts() -> dict[str, int]:
     """Capturas fuera del pool de 163 lunas: +1 por goal fija; binoculars → n_lista."""
     out: dict[str, int] = {}
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if not caps_path.is_file():
         return out
     for row in load_catalog(caps_path).get("captures") or []:
@@ -258,7 +263,6 @@ def _build_capture_sin_luna_captura_counts() -> dict[str, int]:
         n_moons = int(row.get("n_moons") or 0)
         if n_moons <= 0:
             n_moons = len(row.get("moons") or [])
-        cap_id = int(row.get("id") or 0)
         n_obj = int(row.get("n_objectives") or 0)
         if n_obj <= 0:
             n_obj = len(row.get("objectives") or [])
@@ -285,7 +289,7 @@ def _build_per_capture_captura_counts() -> dict[str, int]:
     pool_moons = _resolve_bingo_group_moons_raw(captures_group)
     pool = {_moon_key(m) for m in pool_moons}
 
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     cap_rows = [
         r for r in load_catalog(caps_path).get("captures") or [] if isinstance(r, dict)
     ]
@@ -337,7 +341,7 @@ def _build_standalone_capture_words() -> set[str]:
     """Slugs capturas_lunas sin id de grupo bingo propio (goal/luna vía capturas_lunas)."""
     grupo_ids = _build_grupo_ids()
     out: set[str] = set()
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if not caps_path.is_file():
         return out
     for row in load_catalog(caps_path).get("captures") or []:
@@ -543,7 +547,7 @@ def _build_referencia_individual_counts() -> tuple[
             for token in _tokens_in_record(moon):
                 luna_counts[token] += 1
 
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if caps_path.is_file():
         for row in load_catalog(caps_path).get("captures") or []:
             if not isinstance(row, dict):
@@ -589,7 +593,7 @@ def _collect_fixed_usos() -> dict[str, set[str]]:
     """Palabras y usos fijos 1:1 con catálogo fuente (sin goal/luna)."""
     out: dict[str, set[str]] = defaultdict(set)
 
-    lineas_path = CATALOG_DIR / "bingo_lineas.json"
+    lineas_path = CATALOG_DIR / _FN_BINGO_LINEAS
     if lineas_path.is_file():
         for group in load_catalog(lineas_path).get("groups") or []:
             _add(out, _canon(group.get("id"), "bingo"), "bingo")
@@ -606,22 +610,21 @@ def _collect_fixed_usos() -> dict[str, set[str]]:
         for row in load_catalog(tags_path).get("tags") or []:
             _add(out, _canon(row.get("tag"), "tag"), "tag")
 
-    lists_path = CATALOG_DIR / "goal_lists.json"
+    lists_path = CATALOG_DIR / _FN_GOAL_LISTS
     if lists_path.is_file():
         lists = load_catalog(lists_path).get("lists") or {}
         if isinstance(lists, dict):
             for name in lists:
                 _add(out, _canon(name, "lista"), "lista")
 
-    zonas_inv_path = CATALOG_DIR / "zonas_inventario.json"
+    zonas_inv_path = CATALOG_DIR / _FN_ZONAS_INVENTARIO
     if zonas_inv_path.is_file():
         for row in load_catalog(zonas_inv_path).get("zones") or []:
             word = _canon(row.get("zone"), "zona") or _slug(row.get("zone"))
             if word:
                 _add(out, word, "zona")
 
-    grupo_ids = _build_grupo_ids()
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if caps_path.is_file():
         for row in load_catalog(caps_path).get("captures") or []:
             if isinstance(row, dict):
@@ -668,7 +671,7 @@ def _build_variable_indexes() -> tuple[
 
     captura_has_goal: dict[str, bool] = {}
     captura_has_luna: dict[str, bool] = {}
-    caps_path = CATALOG_DIR / "capturas_lunas.json"
+    caps_path = CATALOG_DIR / _FN_CAPTURAS_LUNAS
     if caps_path.is_file():
         for row in load_catalog(caps_path).get("captures") or []:
             if not isinstance(row, dict):
@@ -772,13 +775,21 @@ def _apply_variable_usos(
                 _add(out, word, "luna")
             continue
         keys = _lookup_keys_for_variable(word, usos)
-        if "captura" in usos and captura_has_goal.get(word):
+        if (
+            ("captura" in usos and captura_has_goal.get(word))
+            or (
+                not _is_capture_only_usos(usos, word, standalone_capture_words)
+                and keys & goal_tags
+            )
+        ):
             _add(out, word, "goal")
-        elif not _is_capture_only_usos(usos, word, standalone_capture_words) and keys & goal_tags:
-            _add(out, word, "goal")
-        if "captura" in usos and captura_has_luna.get(word):
-            _add(out, word, "luna")
-        elif not _is_capture_only_usos(usos, word, standalone_capture_words) and keys & luna_tags:
+        if (
+            ("captura" in usos and captura_has_luna.get(word))
+            or (
+                not _is_capture_only_usos(usos, word, standalone_capture_words)
+                and keys & luna_tags
+            )
+        ):
             _add(out, word, "luna")
 
 
@@ -787,7 +798,7 @@ def _apply_grupo_item_usos(
     grupo_counts: dict[str, dict[str, int]],
 ) -> None:
     """Si la palabra es grupo: goal/luna/lista según ítems del grupo."""
-    for word, usos in list(out.items()):
+    for word, usos in out.items():
         if "grupo" not in usos:
             continue
         counts = grupo_counts.get(word) or {}
@@ -848,7 +859,7 @@ def collect_palabra_usos() -> tuple[
 
 
 def _expected_fixed_uso_counts() -> dict[str, int]:
-    zones = load_catalog(CATALOG_DIR / "zonas_inventario.json")
+    zones = load_catalog(CATALOG_DIR / _FN_ZONAS_INVENTARIO)
     return {
         "grupo": len(load_bingo_groups()),
         "zona": len(zones.get("zones") or []),
@@ -857,10 +868,10 @@ def _expected_fixed_uso_counts() -> dict[str, int]:
 
 def _expected_palabra_fija_by_uso() -> dict[str, int]:
     """n_palabras esperado por uso de palabra fija (catálogo fuente)."""
-    lineas = load_catalog(CATALOG_DIR / "bingo_lineas.json")
+    lineas = load_catalog(CATALOG_DIR / _FN_BINGO_LINEAS)
     tags = load_catalog(CATALOG_DIR / "tags_inventario.json")
-    caps = load_catalog(CATALOG_DIR / "capturas_lunas.json")
-    lists = load_catalog(CATALOG_DIR / "goal_lists.json").get("lists") or {}
+    caps = load_catalog(CATALOG_DIR / _FN_CAPTURAS_LUNAS)
+    lists = load_catalog(CATALOG_DIR / _FN_GOAL_LISTS).get("lists") or {}
     lista_words: set[str] = set()
     if isinstance(lists, dict):
         for name in lists:
@@ -904,7 +915,7 @@ def _expected_palabra_fija_by_uso() -> dict[str, int]:
         "grupo": len(load_bingo_groups()),
         "lista": len(lista_words),
         "tag": len(tags.get("tags") or []),
-        "zona": len(load_catalog(CATALOG_DIR / "zonas_inventario.json").get("zones") or []),
+        "zona": len(load_catalog(CATALOG_DIR / _FN_ZONAS_INVENTARIO).get("zones") or []),
     }
 
 
@@ -962,7 +973,7 @@ def build_palabras_inventario() -> dict:
         key=lambda w: (w.casefold(), w),
     )
     rows: list[dict] = []
-    uso_counts: dict[str, int] = {u: 0 for u in USO_ORDER}
+    uso_counts: dict[str, int] = dict.fromkeys(USO_ORDER, 0)
     n_individual_bingo = 0
     n_individual_captura = 0
     n_individual_goal = 0
@@ -1050,7 +1061,7 @@ def build_palabras_inventario() -> dict:
             raise ValueError(
                 f"n_by_uso[{uso!r}]={got} != {want} (catálogo fuente)"
             )
-    lineas = load_catalog(CATALOG_DIR / "bingo_lineas.json")
+    lineas = load_catalog(CATALOG_DIR / _FN_BINGO_LINEAS)
     want_bingo = sum(
         int(g.get("n_goals") or 0) for g in lineas.get("groups") or []
     )
@@ -1162,7 +1173,7 @@ def build_palabras_inventario() -> dict:
                 raise ValueError(
                     f"{row['palabra']!r}: luna de grupo debe ser n.moons"
                 )
-    n_palabras_by_uso = {u: 0 for u in USO_ORDER}
+    n_palabras_by_uso = dict.fromkeys(USO_ORDER, 0)
     for row in rows:
         for u in parse_usos(row["usos"]):
             n_palabras_by_uso[u] += 1

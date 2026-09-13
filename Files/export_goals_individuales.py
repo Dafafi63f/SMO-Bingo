@@ -41,6 +41,7 @@ from fix_bingo_group_ranges import METRO_NIGHT_CHECKPOINT_NAMES
 
 SRC = CATALOG_DIR / "goals_referencia.json"
 OUT = CATALOG_DIR / "goals_individuales.json"
+GOAL_PLURAL_SUFFIX = "[[s]]"
 
 # Sin reino + progression mono-zona → grupo por fase de run.
 ZONE_GROUP_IDS: dict[str, str] = {
@@ -130,7 +131,7 @@ def kingdom_from_name(template: str) -> str | None:
     cleaned = (
         template.replace("{{X}} ", "")
         .replace("{{X}}", "")
-        .replace("[[s]]", "")
+        .replace(GOAL_PLURAL_SUFFIX, "")
     )
     for display, slug in KINGDOM_GOAL_PREFIXES:
         if (
@@ -470,7 +471,7 @@ def progressions_for_entries(
 
 
 def expand_zones_for_kingdom(
-    kingdom: str, zones: list[str], *, template_prog: list[str]
+    kingdom: str, zones: list[str], *, _template_prog: list[str]
 ) -> list[str]:
     """Filtra zonas al borde del reino; overlap vacío → todo el puente.
 
@@ -559,8 +560,8 @@ def kingdoms_for_ranges(g: dict, ranges: list[int] | None) -> list[str]:
 
 def expand_goal(template: str, value: int) -> str:
     text = template.replace("{{X}}", str(value))
-    if "[[s]]" in text:
-        text = text.replace("[[s]]", "" if value == 1 else "s")
+    if GOAL_PLURAL_SUFFIX in text:
+        text = text.replace(GOAL_PLURAL_SUFFIX, "" if value == 1 else "s")
     return text
 
 
@@ -578,8 +579,8 @@ def resolve_blank_progression(
     *,
     goal_text: str,
     template_prog: list[str],
-    n_range: int,
-    template_has_mapped_prog: bool,
+    _n_range: int,
+    _template_has_mapped_prog: bool,
 ) -> tuple[str, str]:
     """Rellena kingdom+prog vacíos tras el mapeo (fijas / sin overlap expandible).
 
@@ -757,16 +758,18 @@ def lockout_inverted_vs_progression(
     progression: str | list[str], lockout: str | list[str]
 ) -> bool:
     """True si progression es estrictamente más tarde que todo lockout."""
-    pr = (
-        list(progression)
-        if isinstance(progression, list)
-        else ([progression] if progression else [])
-    )
-    lo = (
-        list(lockout)
-        if isinstance(lockout, list)
-        else ([lockout] if lockout else [])
-    )
+    if isinstance(progression, list):
+        pr = list(progression)
+    elif progression:
+        pr = [progression]
+    else:
+        pr = []
+    if isinstance(lockout, list):
+        lo = list(lockout)
+    elif lockout:
+        lo = [lockout]
+    else:
+        lo = []
     pr = [z for z in pr if z]
     lo = [z for z in lo if z]
     if not pr or not lo:
@@ -963,7 +966,7 @@ def build_template_individual_rows(g: dict) -> list[dict]:
 
         if not curated_prog:
             zones = expand_zones_for_kingdom(
-                kingdom, zones, template_prog=template_prog
+                kingdom, zones, _template_prog=template_prog
             )
         if not zones:
             k2, prog = kingdom, ""
@@ -973,8 +976,8 @@ def build_template_individual_rows(g: dict) -> list[dict]:
                     "",
                     goal_text=goal_text,
                     template_prog=template_prog,
-                    n_range=n_range,
-                    template_has_mapped_prog=mapped_any,
+                    _n_range=n_range,
+                    _template_has_mapped_prog=mapped_any,
                 )
             _emit(k2, prog)
             continue
@@ -991,8 +994,8 @@ def build_template_individual_rows(g: dict) -> list[dict]:
                     "",
                     goal_text=goal_text,
                     template_prog=template_prog,
-                    n_range=n_range,
-                    template_has_mapped_prog=mapped_any,
+                    _n_range=n_range,
+                    _template_has_mapped_prog=mapped_any,
                 )
             if prog and prog not in final:
                 final.append(prog)
