@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from regenerate_lib import (
     RegenerateStep,
+    build_steps,
     load_state,
     record_step_success,
     step_input_fingerprint,
@@ -16,6 +17,35 @@ from regenerate_lib import (
 
 
 class RegenerateLibTests(unittest.TestCase):
+    def test_stamp_combined_always_runs(self) -> None:
+        """El stamp del Combined debe correr aunque el JSON no haya cambiado."""
+        step = next(s for s in build_steps() if s.id == "stamp_combined")
+        self.assertTrue(step.always)
+        state: dict = {"version": 1, "steps": {}}
+        record_step_success(step, state)
+        needs, reason = step_needs_run(
+            step, state=state, force=False, upstream_dirty=False
+        )
+        self.assertTrue(needs)
+        self.assertEqual(reason, "always")
+
+    def test_always_flag_forces_run(self) -> None:
+        step = RegenerateStep(
+            "demo",
+            "demo",
+            ("Files/regenerate_lib.py",),
+            ("Files/regenerate_all.py",),
+            lambda: 0,
+            always=True,
+        )
+        state: dict = {"version": 1, "steps": {}}
+        record_step_success(step, state)
+        needs, reason = step_needs_run(
+            step, state=state, force=False, upstream_dirty=False
+        )
+        self.assertTrue(needs)
+        self.assertEqual(reason, "always")
+
     def test_skip_when_inputs_unchanged(self) -> None:
         step = RegenerateStep(
             "demo",

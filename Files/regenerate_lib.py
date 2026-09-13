@@ -2,6 +2,7 @@
 
 Guarda huellas (blake2b) de entradas/salidas por paso en Files/.regenerate_state.json.
 Si nada relevante cambió desde la última corrida, se omiten pasos (y sus dependientes).
+``stamp_combined`` corre siempre (fecha del nombre); solo ensucia el pipeline si renombra.
 """
 from __future__ import annotations
 
@@ -302,6 +303,7 @@ def build_steps() -> list[RegenerateStep]:
             combined,
             combined,
             _run_stamp_combined,
+            always=True,
         ),
         RegenerateStep(
             "sync_objective_moon_groups",
@@ -482,11 +484,25 @@ def run_pipeline(
         print(f"\n=== {step.label} ===")
         if dry_run:
             print(f"  ejecutaría ({reason})")
-            dirty = True
+            if step.id == "stamp_combined":
+                from datetime import date
+
+                from catalog_lib import COMBINED_NAME_PREFIX, discover_combined_path
+
+                today_name = f"{COMBINED_NAME_PREFIX}{date.today().isoformat()}.json"
+                if discover_combined_path().name != today_name:
+                    dirty = True
+            else:
+                dirty = True
             ran += 1
             continue
 
         t0 = time.perf_counter()
+        before_combined: Path | None = None
+        if step.id == "stamp_combined":
+            from catalog_lib import discover_combined_path
+
+            before_combined = discover_combined_path().resolve()
         try:
             code = int(step.run() or 0)
         except Exception as exc:
@@ -498,7 +514,14 @@ def run_pipeline(
             return code, ran, skipped, total
         record_step_success(step, state, fp_cache)
         save_state(state)
-        dirty = True
+        if step.id == "stamp_combined":
+            from catalog_lib import discover_combined_path
+
+            after_combined = discover_combined_path().resolve()
+            if before_combined is None or before_combined != after_combined:
+                dirty = True
+        else:
+            dirty = True
         ran += 1
         print(f"  ok ({elapsed:.1f}s)")
 
